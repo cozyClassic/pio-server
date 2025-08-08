@@ -238,3 +238,108 @@ class Product(SoftDeleteModel):
 
     def __str__(self):
         return f"{self.name}"
+
+
+class Order(SoftDeleteModel):
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name="orders"
+    )
+    device_variant = models.ForeignKey(
+        DeviceVariant, on_delete=models.CASCADE, related_name="orders"
+    )
+    device_color = models.ForeignKey(
+        DeviceColor,
+        on_delete=models.CASCADE,
+        related_name="orders",
+        null=True,
+        blank=True,
+    )
+    plan = models.ForeignKey(
+        Plan,
+        on_delete=models.CASCADE,
+        related_name="orders",
+        help_text="요금제 (e.g., 5G 요금제)",
+    )
+    discount_type = models.CharField(
+        max_length=50,
+        choices=[
+            ("공시지원금", "공시지원금"),
+            ("선택약정", "선택약정"),
+        ],
+        default="공시지원금",
+    )
+    contract_type = models.CharField(
+        max_length=50,
+        choices=[
+            ("신규가입", "신규가입"),
+            ("번호이동", "번호이동"),
+            ("기기변경", "기기변경"),
+        ],
+        default="기기변경",
+    )
+    device_price = models.IntegerField(
+        help_text="기기 가격",
+        null=True,
+        blank=True,
+    )
+    subsidy_amount_standard = models.IntegerField(
+        help_text="공시지원금",
+        null=True,
+        blank=True,
+    )
+    subsidy_amount_mnp = models.IntegerField(
+        help_text="전환지원금",
+        null=True,
+        blank=True,
+    )
+    pio_discount = models.IntegerField(
+        help_text="추가지원금",
+        null=True,
+        blank=True,
+    )
+    final_price = models.IntegerField(
+        help_text="최종 가격",
+        null=True,
+        blank=True,
+    )
+
+    customer_name = models.CharField(max_length=100)
+    customer_phone_1 = models.CharField(max_length=15)
+    customer_phone_2 = models.CharField(max_length=15)
+    customer_email = models.EmailField(blank=True, null=True)
+    customer_birth = models.DateField(
+        blank=True, null=True, help_text="생년월일 (YYYY-MM-DD)"
+    )
+    password = models.CharField(max_length=100, blank=True, null=True)
+    address_1 = models.CharField(
+        max_length=255, blank=True, null=True, help_text="주소 1 (e.g., 도로명 주소)"
+    )
+    address_2 = models.CharField(
+        max_length=255, blank=True, null=True, help_text="주소 2 (e.g., 상세 주소)"
+    )
+    customer_memo = models.TextField(
+        blank=True, null=True, help_text="고객 메모 (e.g., 배송 요청사항)"
+    )
+    admin_memo = models.TextField(
+        blank=True, null=True, help_text="관리자 메모 (e.g., 주문 처리 관련 메모)"
+    )
+    status = models.CharField(
+        max_length=50,
+        choices=[
+            ("주문접수", "주문접수"),
+            ("해피콜진행중", "해피콜진행중"),
+            ("해피콜완료", "해피콜완료"),
+            ("신용조회중", "신용조회중"),
+            ("배송요청", "배송요청"),
+            ("배송중", "배송중"),
+            ("배송완료", "배송완료"),
+            ("개통대기", "개통대기"),
+            ("개통완료", "개통완료"),
+            ("취소요청", "취소요청"),
+            ("취소완료", "취소완료"),
+        ],
+        default="주문접수",
+    )
+
+    def __str__(self):
+        return f"{self.product.name} {self.customer_name}"

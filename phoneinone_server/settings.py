@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "phone",
     "nested_admin",
+    "simple_history",
 ]
 
 MIDDLEWARE = [
