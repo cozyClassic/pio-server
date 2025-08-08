@@ -5,12 +5,12 @@ from django.utils.html import format_html
 from .models import (
     Plan,
     Device,
-    DeviceColors,
-    DeviceVariants,
+    DeviceColor,
+    DeviceVariant,
     Product,
-    ProductOptions,
-    ProductDetailImages,
-    DevicesColorImages,
+    ProductOption,
+    ProductDetailImage,
+    DevicesColorImage,
 )
 
 
@@ -26,7 +26,7 @@ class PlanAdmin(commonAdmin):
 
 # 2. DevicesColorImages 모델을 위한 인라인 클래스
 class DeviceImagesInline(nested_admin.NestedStackedInline):
-    model = DevicesColorImages
+    model = DevicesColorImage
     extra = 1
     exclude = ("deleted_at",)
 
@@ -47,7 +47,7 @@ class DeviceImagesInline(nested_admin.NestedStackedInline):
 
 
 class ColorsInline(nested_admin.NestedStackedInline):
-    model = DeviceColors
+    model = DeviceColor
     extra = 1  # 기본으로 1개의 빈 폼을 더 보여줍니다.
     # SoftDeleteModel의 deleted_at 필드를 숨깁니다.
     exclude = ("deleted_at",)
@@ -63,32 +63,69 @@ class DeviceAdmin(nested_admin.NestedModelAdmin):
     inlines = [ColorsInline]
 
 
-@admin.register(DeviceColors)
+@admin.register(DeviceColor)
 class DeviceColorsAdmin(commonAdmin):
     list_display = ("device", "color", "color_code")
     search_fields = ("device__name", "color")
 
 
-@admin.register(DeviceVariants)
+@admin.register(DeviceVariant)
 class DeviceVariantsAdmin(commonAdmin):
     list_display = ("device", "capacity", "price")
     search_fields = ("device__name", "capacity")
 
 
+class ProductOptionsInline(nested_admin.NestedTabularInline):
+    model = ProductOption
+    extra = 0
+    exclude = ("deleted_at",)
+    readonly_fields = ("final_price",)
+
+    def get_formset(self, request, obj=None, **kwargs):
+        formset = super().get_formset(request, obj, **kwargs)
+
+        # 폼셋이 생성될 때 부모(Product) 객체를 참조하여 필터링합니다.
+        if obj and obj.device:
+            device_instance = obj.device
+
+            class CustomForm(formset.form):
+                def __init__(self, *args, **kwargs):
+                    super().__init__(*args, **kwargs)
+                    self.fields["device_variant"].queryset = (
+                        DeviceVariant.objects.filter(device_id=device_instance.id)
+                    )
+
+            formset.form = CustomForm
+        else:
+
+            class CustomForm(formset.form):
+                def __init__(self, *args, **kwargs):
+                    super().__init__(*args, **kwargs)
+                    self.fields["device_variant"].queryset = (
+                        DeviceVariant.objects.none()
+                    )
+
+            formset.form = CustomForm
+
+        return formset
+
+
 @admin.register(Product)
-class ProductAdmin(commonAdmin):
+class ProductAdmin(nested_admin.NestedModelAdmin):
     list_display = ("name", "created_at")
     search_fields = ("name",)
+    inlines = [ProductOptionsInline]
+    exclude = ("deleted_at",)
 
 
-@admin.register(ProductOptions)
+@admin.register(ProductOption)
 class ProductOptionsAdmin(commonAdmin):
     list_display = ("product", "device_variant")
     search_fields = ("product__name", "device_variant__device__name")
     list_filter = ("product", "device_variant")
 
 
-@admin.register(ProductDetailImages)
+@admin.register(ProductDetailImage)
 class ProductDetailImagesAdmin(commonAdmin):
     list_display = ("product", "image", "description")
     search_fields = ("product__name", "description")

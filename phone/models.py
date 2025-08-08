@@ -1,7 +1,11 @@
 from django.db import models
 from django.utils import timezone
+from django.db.models import QuerySet
+
 
 # Create your models here.
+def get_int_or_zero(value):
+    return int(value) if value is not None else 0
 
 
 class SoftDeleteModel(models.Model):
@@ -38,13 +42,13 @@ class Plan(SoftDeleteModel):
         blank=True,
         default="",
     )
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    price = models.IntegerField(default=0, help_text="Price in KRW")
     data = models.CharField(max_length=100, help_text="Data limit in MB")
     calling = models.CharField(max_length=100, help_text="Call minutes limit")
     sms = models.CharField(max_length=100, help_text="SMS limit")
 
     def __str__(self):
-        return f"{self.name} - {self.price}"
+        return f"{self.carrier} / {self.name} - {self.price}"
 
 
 class Device(SoftDeleteModel):
@@ -61,7 +65,7 @@ class Device(SoftDeleteModel):
         return f"{self.name} by {self.maker}"
 
 
-class DeviceColors(SoftDeleteModel):
+class DeviceColor(SoftDeleteModel):
     device = models.ForeignKey(Device, on_delete=models.CASCADE, related_name="colors")
     color = models.CharField(max_length=50)
     color_code = models.CharField(
@@ -72,9 +76,9 @@ class DeviceColors(SoftDeleteModel):
         return f"{self.color} for {self.device.name}"
 
 
-class DevicesColorImages(SoftDeleteModel):
+class DevicesColorImage(SoftDeleteModel):
     device_color = models.ForeignKey(
-        DeviceColors, on_delete=models.CASCADE, related_name="images"
+        DeviceColor, on_delete=models.CASCADE, related_name="images"
     )
     image = models.ImageField(upload_to="device_color_images/")
     description = models.CharField(max_length=255, blank=True)
@@ -83,23 +87,35 @@ class DevicesColorImages(SoftDeleteModel):
         return f"image for {self.device_color.device.name} - {self.device_color.color}"
 
 
-class DeviceVariants(SoftDeleteModel):
+class DeviceVariant(SoftDeleteModel):
     device = models.ForeignKey(
         Device, on_delete=models.CASCADE, related_name="variants"
     )
     capacity = models.CharField(max_length=100)
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    price = models.IntegerField(default=0, help_text="Price in KRW")
 
     def __str__(self):
         return f"{self.device.name} - {self.capacity}"
 
+    # 가격이 업데이트 되면 연결된 product 옵션들도 가격을 업데이트해야 합니다.
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # DeviceVariant의 가격이 변경되면 연결된 ProductOption의 가격도 업데이트합니다.
+        product_options: QuerySet[ProductOption] = self.product_options.filter(
+            device_variant_id=self.id
+        )
 
-class ProductOptions(SoftDeleteModel):
+        for option in product_options:
+            option.final_price = option.get_final_price()
+            option.save()
+
+
+class ProductOption(SoftDeleteModel):
     product = models.ForeignKey(
         "Product", on_delete=models.CASCADE, related_name="options"
     )
     device_variant = models.ForeignKey(
-        DeviceVariants,
+        DeviceVariant,
         on_delete=models.CASCADE,
         related_name="product_options",
     )
@@ -125,33 +141,71 @@ class ProductOptions(SoftDeleteModel):
         ],
         default=("기기변경", "기기변경"),
     )
-    subsidy_amount_standard = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
+    subsidy_amount_standard = models.IntegerField(
         help_text="공시지원금",
         null=True,
         blank=True,
     )
-    subsidy_amount_mnp = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
+    subsidy_amount_mnp = models.IntegerField(
         help_text="전환지원금",
         null=True,
         blank=True,
     )
-    pio_discount = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
+    pio_discount = models.IntegerField(
         help_text="추가지원금",
         null=True,
         blank=True,
     )
 
+    final_price = models.IntegerField(
+        help_text="최종 가격",
+        null=True,
+        blank=True,
+    )
+
     def __str__(self):
-        return f"{self.product.name} - {self.discount_type}/{self.contract_type}"
+        return f"{self.discount_type}/{self.contract_type} - {self.plan.name}"
+
+    def get_final_price(self):
+        """
+        Calculate the final price based on the discount type and contract type.
+        """
+        final_price = get_int_or_zero(self.device_variant.price) - get_int_or_zero(
+            self.pio_discount
+        )
+
+        if self.discount_type == "공시지원금":
+            final_price -= get_int_or_zero(self.subsidy_amount_standard)
+            if self.contract_type == "번호이동":
+                final_price -= get_int_or_zero(self.subsidy_amount_mnp)
+        elif self.discount_type == "선택약정":
+            final_price -= get_int_or_zero(self.plan.price) * 6
+
+        return final_price
+
+    def save(self, *args, **kwargs):
+        self.final_price = self.get_final_price()
+        # 먼저 객체를 저장합니다.
+        super().save(*args, **kwargs)
+        # 저장 후, 최적의 옵션을 찾아 Product 모델을 업데이트합니다.
+        self.update_product_best_option()
+
+    def delete(self, *args, **kwargs):
+        product = self.product
+        super().delete(*args, **kwargs)
+
+        # 삭제 후, 최적의 옵션을 다시 업데이트합니다.
+        product.update_best_option_on_delete()  # Product 모델에 정의된 메서드를 호출
+
+    def update_product_best_option(self):
+        product = self.product
+        options: QuerySet[ProductOption] = product.options.all()
+        best_option = options.order_by("final_price").first()
+        product.best_price_option = best_option
+        product.save()
 
 
-class ProductDetailImages(SoftDeleteModel):
+class ProductDetailImage(SoftDeleteModel):
     product = models.ForeignKey(
         "Product", on_delete=models.CASCADE, related_name="images"
     )
@@ -168,8 +222,13 @@ class ProductDetailImages(SoftDeleteModel):
 
 class Product(SoftDeleteModel):
     name = models.CharField(max_length=100)
+    device = models.ForeignKey(
+        Device,
+        on_delete=models.CASCADE,
+        related_name="products",
+    )
     best_price_option = models.ForeignKey(
-        "ProductOptions",
+        "ProductOption",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
