@@ -152,7 +152,7 @@ class ProductOption(SoftDeleteModel):
         null=True,
         blank=True,
     )
-    pio_discount = models.IntegerField(
+    additional_discount = models.IntegerField(
         help_text="추가지원금",
         null=True,
         blank=True,
@@ -172,7 +172,7 @@ class ProductOption(SoftDeleteModel):
         Calculate the final price based on the discount type and contract type.
         """
         final_price = get_int_or_zero(self.device_variant.price) - get_int_or_zero(
-            self.pio_discount
+            self.additional_discount
         )
 
         if self.discount_type == "공시지원금":
@@ -293,7 +293,7 @@ class Order(SoftDeleteModel):
         null=True,
         blank=True,
     )
-    pio_discount = models.IntegerField(
+    additional_discount = models.IntegerField(
         help_text="추가지원금",
         null=True,
         blank=True,
@@ -384,6 +384,9 @@ class ReviewImage(SoftDeleteModel):
 
 
 class Review(SoftDeleteModel):
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name="reviews"
+    )
     customer_name = models.CharField(max_length=100)
     rating = models.IntegerField(default=0, help_text="Rating from 1 to 5")
     comment = models.TextField(blank=True, null=True)
