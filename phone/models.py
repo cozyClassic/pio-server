@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.db.models import QuerySet
+from simple_history.models import HistoricalRecords
 
 
 # Create your models here.
@@ -340,6 +341,52 @@ class Order(SoftDeleteModel):
         ],
         default="주문접수",
     )
+    history = HistoricalRecords()
 
     def __str__(self):
         return f"{self.product.name} {self.customer_name}"
+
+
+class FAQ(SoftDeleteModel):
+    question = models.TextField(max_length=255)
+    answer = models.TextField()
+
+    def __str__(self):
+        return self.question
+
+
+class Notice(SoftDeleteModel):
+    title = models.CharField(max_length=100)
+    content = models.TextField()
+
+    def __str__(self):
+        return self.title
+
+
+class Banner(SoftDeleteModel):
+    title = models.CharField(max_length=100)
+    image = models.ImageField(upload_to="banners/")
+    link = models.URLField(blank=True, null=True, help_text="배너 클릭 시 이동할 링크")
+
+    def __str__(self):
+        return self.title
+
+
+class ReviewImage(SoftDeleteModel):
+    review = models.ForeignKey(
+        "Review", on_delete=models.CASCADE, related_name="images"
+    )
+    image = models.ImageField(upload_to="review_images/")
+    description = models.CharField(max_length=255, blank=True)
+
+    def __str__(self):
+        return f"Image for review by {self.review.customer_name}"
+
+
+class Review(SoftDeleteModel):
+    customer_name = models.CharField(max_length=100)
+    rating = models.IntegerField(default=0, help_text="Rating from 1 to 5")
+    comment = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.customer_name} - {self.created_at}"
