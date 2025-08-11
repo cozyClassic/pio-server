@@ -90,7 +90,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         queryset = (
             self.get_queryset()
             .select_related("plan", "device_variant", "device_color", "product__device")
-            .filter(customer_phone_1=phone, password=password)
+            .filter(customer_phone=phone, password=password)
         )
 
         serializer = OrderSerializer(queryset, many=True)

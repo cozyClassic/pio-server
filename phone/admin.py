@@ -26,7 +26,13 @@ class commonAdmin(admin.ModelAdmin):
 
 @admin.register(Plan)
 class PlanAdmin(commonAdmin):
-    list_display = ("name", "price", "data", "calling", "sms")
+    list_display = (
+        "name",
+        "price",
+        "data_allowance",
+        "call_allowance",
+        "sms_allowance",
+    )
     search_fields = ("name",)
 
 
@@ -63,8 +69,8 @@ class ColorsInline(nested_admin.NestedStackedInline):
 
 @admin.register(Device)
 class DeviceAdmin(nested_admin.NestedModelAdmin):
-    list_display = ("name", "maker")
-    search_fields = ("name", "maker")
+    list_display = ("model_name", "brand")
+    search_fields = ("model_name", "brand")
 
     inlines = [ColorsInline]
 
@@ -77,8 +83,8 @@ class DeviceColorsAdmin(commonAdmin):
 
 @admin.register(DeviceVariant)
 class DeviceVariantsAdmin(commonAdmin):
-    list_display = ("device", "capacity", "price")
-    search_fields = ("device__name", "capacity")
+    list_display = ("device", "storage_capacity", "device_price")
+    search_fields = ("device__name", "storage_capacity")
 
 
 class ProductOptionsInline(nested_admin.NestedTabularInline):

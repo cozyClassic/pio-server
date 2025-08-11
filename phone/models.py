@@ -44,17 +44,18 @@ class Plan(SoftDeleteModel):
         default="",
     )
     price = models.IntegerField(default=0, help_text="Price in KRW")
-    data = models.CharField(max_length=100, help_text="Data limit in MB")
-    calling = models.CharField(max_length=100, help_text="Call minutes limit")
-    sms = models.CharField(max_length=100, help_text="SMS limit")
+    data_allowance = models.CharField(max_length=100, help_text="Data limit in MB")
+    call_allowance = models.CharField(max_length=100, help_text="Call minutes limit")
+    sms_allowance = models.CharField(max_length=100, help_text="sms_allowance limit")
+    sort_order = models.IntegerField(default=0)
 
     def __str__(self):
         return f"{self.carrier} / {self.name} - {self.price}"
 
 
 class Device(SoftDeleteModel):
-    name = models.CharField(max_length=100)
-    maker = models.CharField(max_length=100)
+    model_name = models.CharField(max_length=100)
+    brand = models.CharField(max_length=100)
     series = models.CharField(
         max_length=100,
         help_text="e.g., 갤럭시 S, 아이폰, 갤럭시 Z",
@@ -63,7 +64,7 @@ class Device(SoftDeleteModel):
     )
 
     def __str__(self):
-        return f"{self.name} by {self.maker}"
+        return f"{self.name} by {self.brand}"
 
 
 class DeviceColor(SoftDeleteModel):
@@ -92,11 +93,11 @@ class DeviceVariant(SoftDeleteModel):
     device = models.ForeignKey(
         Device, on_delete=models.CASCADE, related_name="variants"
     )
-    capacity = models.CharField(max_length=100)
-    price = models.IntegerField(default=0, help_text="Price in KRW")
+    storage_capacity = models.CharField(max_length=100)
+    device_price = models.IntegerField(default=0, help_text="Price in KRW")
 
     def __str__(self):
-        return f"{self.device.name} - {self.capacity}"
+        return f"{self.device.name} - {self.storage_capacity}"
 
     # 가격이 업데이트 되면 연결된 product 옵션들도 가격을 업데이트해야 합니다.
     def save(self, *args, **kwargs):
@@ -142,7 +143,7 @@ class ProductOption(SoftDeleteModel):
         ],
         default=("기기변경", "기기변경"),
     )
-    subsidy_amount_standard = models.IntegerField(
+    subsidy_amount = models.IntegerField(
         help_text="공시지원금",
         null=True,
         blank=True,
@@ -157,12 +158,12 @@ class ProductOption(SoftDeleteModel):
         null=True,
         blank=True,
     )
-
     final_price = models.IntegerField(
         help_text="최종 가격",
         null=True,
         blank=True,
     )
+    sort_order = models.IntegerField(default=0)
 
     def __str__(self):
         return f"{self.discount_type}/{self.contract_type} - {self.plan.name}"
@@ -171,12 +172,12 @@ class ProductOption(SoftDeleteModel):
         """
         Calculate the final price based on the discount type and contract type.
         """
-        final_price = get_int_or_zero(self.device_variant.price) - get_int_or_zero(
-            self.additional_discount
-        )
+        final_price = get_int_or_zero(
+            self.device_variant.device_price
+        ) - get_int_or_zero(self.additional_discount)
 
         if self.discount_type == "공시지원금":
-            final_price -= get_int_or_zero(self.subsidy_amount_standard)
+            final_price -= get_int_or_zero(self.subsidy_amount)
             if self.contract_type == "번호이동":
                 final_price -= get_int_or_zero(self.subsidy_amount_mnp)
         elif self.discount_type == "선택약정":
@@ -236,6 +237,9 @@ class Product(SoftDeleteModel):
         related_name="best_price_option",
     )
     image_main = models.ImageField(upload_to="product_images/", blank=True)
+    description = models.TextField(default="", blank=True)
+    sort_order = models.IntegerField(default=0, help_text="정렬 순서")
+    is_featured = models.BooleanField(default=False, help_text="추천 상품 여부")
 
     def __str__(self):
         return f"{self.name}"
@@ -261,6 +265,9 @@ class Order(SoftDeleteModel):
         related_name="orders",
         help_text="요금제 (e.g., 5G 요금제)",
     )
+    # 신청 내역
+    plan_monthly_fee = models.IntegerField(default=0)
+    monthly_discount = models.IntegerField(default=0)
     discount_type = models.CharField(
         max_length=50,
         choices=[
@@ -283,7 +290,7 @@ class Order(SoftDeleteModel):
         null=True,
         blank=True,
     )
-    subsidy_amount_standard = models.IntegerField(
+    subsidy_amount = models.IntegerField(
         help_text="공시지원금",
         null=True,
         blank=True,
@@ -304,20 +311,34 @@ class Order(SoftDeleteModel):
         blank=True,
     )
 
+    # 고객 정보
     customer_name = models.CharField(max_length=100)
-    customer_phone_1 = models.CharField(max_length=15)
-    customer_phone_2 = models.CharField(max_length=15)
+    customer_phone = models.CharField(max_length=15)
+    customer_phone2 = models.CharField(max_length=15)
     customer_email = models.EmailField(blank=True, null=True)
     customer_birth = models.DateField(
         blank=True, null=True, help_text="생년월일 (YYYY-MM-DD)"
     )
     password = models.CharField(max_length=100, blank=True, null=True)
-    address_1 = models.CharField(
+
+    # 배송
+    shipping_method = models.CharField(
+        max_length=50, blank=True, null=True, help_text="배송 방법"
+    )
+    shipping_address = models.CharField(
         max_length=255, blank=True, null=True, help_text="주소 1 (e.g., 도로명 주소)"
     )
-    address_2 = models.CharField(
+    shipping_address_detail = models.CharField(
         max_length=255, blank=True, null=True, help_text="주소 2 (e.g., 상세 주소)"
     )
+    zipcode = models.CharField(
+        max_length=10, blank=True, null=True, help_text="우편번호"
+    )
+    shipping_number = models.CharField(
+        max_length=20, blank=True, null=True, help_text="배송 추적 번호"
+    )
+
+    # 상태관리
     customer_memo = models.TextField(
         blank=True, null=True, help_text="고객 메모 (e.g., 배송 요청사항)"
     )
@@ -341,6 +362,9 @@ class Order(SoftDeleteModel):
         ],
         default="주문접수",
     )
+    payment_status = models.CharField(
+        max_length=50, blank=True, null=True, help_text="결제 상태"
+    )
     history = HistoricalRecords()
 
     def __str__(self):
@@ -348,8 +372,10 @@ class Order(SoftDeleteModel):
 
 
 class FAQ(SoftDeleteModel):
+    category = models.CharField(max_length=100)
     question = models.TextField(max_length=255)
     answer = models.TextField()
+    sort_order = models.IntegerField(default=0)
 
     def __str__(self):
         return self.question

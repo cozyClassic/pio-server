@@ -12,7 +12,7 @@ class ProductListSerializer(serializers.ModelSerializer):
 
     def get_best_price_option(self, obj):
         option = {
-            "device_price": obj.best_price_option.device_variant.price,
+            "device_price": obj.best_price_option.device_variant.device_price,
             "final_price": obj.best_price_option.final_price,
             "carrier": obj.best_price_option.plan.carrier,
             "plan": obj.best_price_option.plan.name,
@@ -46,7 +46,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         options = obj.options.all()
         device_variants = {
             dv.id: {
-                "capacity": dv.capacity,
+                "storage_capacity": dv.storage_capacity,
             }
             for dv in obj.device.variants.all()
         }
@@ -54,23 +54,30 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 
         for op in options:
             dv_id = op.device_variant_id
-            capacity = device_variants[dv_id]["capacity"]
+            storage_capacity = device_variants[dv_id]["storage_capacity"]
             plan = op.plan
-            if capacity not in result:
-                result[capacity] = {}
-            if plan.carrier not in result[capacity]:
-                result[capacity][plan.carrier] = {}
-            if op.contract_type not in result[capacity][plan.carrier]:
-                result[capacity][plan.carrier][op.contract_type] = {}
-            if op.discount_type not in result[capacity][plan.carrier][op.contract_type]:
-                result[capacity][plan.carrier][op.contract_type][op.discount_type] = []
-            result[capacity][plan.carrier][op.contract_type][op.discount_type].append(
+            if storage_capacity not in result:
+                result[storage_capacity] = {}
+            if plan.carrier not in result[storage_capacity]:
+                result[storage_capacity][plan.carrier] = {}
+            if op.contract_type not in result[storage_capacity][plan.carrier]:
+                result[storage_capacity][plan.carrier][op.contract_type] = {}
+            if (
+                op.discount_type
+                not in result[storage_capacity][plan.carrier][op.contract_type]
+            ):
+                result[storage_capacity][plan.carrier][op.contract_type][
+                    op.discount_type
+                ] = []
+            result[storage_capacity][plan.carrier][op.contract_type][
+                op.discount_type
+            ].append(
                 {
                     "option_id": op.id,
                     "final_price": op.final_price,
                     "plan_id": plan.id,
                     "plan_name": plan.name,
-                    "subsidy_standard": op.subsidy_amount_standard,
+                    "subsidy_standard": op.subsidy_amount,
                     "subsidy_mnp": op.subsidy_amount_mnp,
                     "additional_discount": op.additional_discount,
                 }
@@ -79,14 +86,14 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         return result
 
     def get_device(self, obj):
-        # device_varaints: [capacity, price]
+        # device_varaints: [storage_capacity, price]
         # device_colors: {color_name, color_code, [device_color_images]}
         result = {"device_variants": [], "device_colors": []}
         for dv in obj.device.variants.all():
             result["device_variants"].append(
                 {
-                    "capacity": dv.capacity,
-                    "price": dv.price,
+                    "storage_capacity": dv.storage_capacity,
+                    "price": dv.device_price,
                 }
             )
 
@@ -126,21 +133,23 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     plan = serializers.StringRelatedField(source="plan.name")
     carrier = serializers.StringRelatedField(source="plan.carrier")
-    capacity = serializers.StringRelatedField(source="device_variant.capacity")
+    storage_capacity = serializers.StringRelatedField(
+        source="device_variant.storage_capacity"
+    )
     color = serializers.StringRelatedField(source="device_color.color")
-    device = serializers.StringRelatedField(source="product.device.name")
+    device = serializers.StringRelatedField(source="product.device.model_name")
 
     class Meta:
         model = Order
         fields = [
             "id",
             "device",
-            "customer_phone_1",
-            "customer_phone_2",
+            "customer_phone",
+            "customer_phone2",
             "password",
             "color",
             "product",
-            "capacity",
+            "storage_capacity",
             "plan",
             "carrier",
             "final_price",
@@ -154,7 +163,7 @@ class OrderSerializer(serializers.ModelSerializer):
         "status",
         "created_at",
         "updated_at",
-        "capacity",
+        "storage_capacity",
         "plan",
         "carrier",
         "final_price",
