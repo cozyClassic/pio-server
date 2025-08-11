@@ -121,3 +121,41 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             }
             for review in reviews
         ]
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    plan = serializers.StringRelatedField(source="plan.name")
+    carrier = serializers.StringRelatedField(source="plan.carrier")
+    capacity = serializers.StringRelatedField(source="device_variant.capacity")
+    color = serializers.StringRelatedField(source="device_color.color")
+    device = serializers.StringRelatedField(source="product.device.name")
+
+    class Meta:
+        model = Order
+        fields = [
+            "id",
+            "device",
+            "customer_phone_1",
+            "customer_phone_2",
+            "password",
+            "color",
+            "product",
+            "capacity",
+            "plan",
+            "carrier",
+            "final_price",
+            "status",
+            "created_at",
+            "updated_at",
+        ]
+
+    read_only_fields = [
+        "id",
+        "status",
+        "created_at",
+        "updated_at",
+        "capacity",
+        "plan",
+        "carrier",
+        "final_price",
+    ]

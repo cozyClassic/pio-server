@@ -80,11 +80,11 @@ WSGI_APPLICATION = "phoneinone_server.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "phoneinone",
+        "NAME": "postgres",
         "USER": "postgres",
-        "PASSWORD": "1234",
+        "PASSWORD": "Smt5885!!",
         "HOST": "localhost",
-        "PORT": "5432",
+        "PORT": "5433",
     }
 }
 

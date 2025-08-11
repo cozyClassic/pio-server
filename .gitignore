@@ -134,6 +134,7 @@ celerybeat.pid
 # Environments
 .env
 .venv
+*.env
 env/
 venv/
 ENV/
@@ -196,6 +197,7 @@ cython_debug/
 #   install all needed dependencies.
 
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow
+*.DS_Store
 
 
 # End of https://www.toptal.com/developers/gitignore/api/pythonvanilla,django

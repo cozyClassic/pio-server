@@ -1,7 +1,7 @@
 from django.http import HttpResponse, HttpRequest
 from rest_framework import viewsets
 from rest_framework.response import Response
-from .serializers import ProductListSerializer, ProductDetailSerializer
+from .serializers import ProductListSerializer, ProductDetailSerializer, OrderSerializer
 from django.db.models import Prefetch
 
 # Create your views here.
@@ -67,4 +67,32 @@ class ProductViewSet(viewsets.ModelViewSet):
         ).first()
 
         serializer = ProductDetailSerializer(instance)
+        return Response(serializer.data)
+
+
+class OrderViewSet(viewsets.ModelViewSet):
+    """
+    Viewset for managing orders.
+    """
+
+    queryset = Order.objects.all().filter(deleted_at__isnull=True)
+
+    def get_queryset(self):
+        return self.queryset
+
+    def list(self, request, *args, **kwargs):
+        """
+        Override the list method to return orders.
+        """
+        phone = request.query_params.get("phone", None)
+        password = request.query_params.get("password", None)
+
+        queryset = (
+            self.get_queryset()
+            .select_related("plan", "device_variant", "device_color", "product__device")
+            .filter(customer_phone_1=phone, password=password)
+        )
+
+        serializer = OrderSerializer(queryset, many=True)
+
         return Response(serializer.data)
