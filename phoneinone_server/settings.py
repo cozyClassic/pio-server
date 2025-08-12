@@ -31,6 +31,8 @@ REVIEW_UPLOAD_KEY = env("REVIEW_UPLOAD_KEY")
 AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME")
 AWS_CLOUDFRONT_KEY_ID = env("AWS_CLOUDFRONT_KEY_ID")
 AWS_CLOUDFRONT_KEY = open("cloudfront_private_key.pem").read()
+SECRET_KEY = env("DJANGO_SECRET_KEY")
+ALLOWED_HOSTS = ["phoneinone.com"]
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -38,9 +40,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-8tn(*+c)^ucy2$f2qoz23h5f2#=y-lv2&gl!2*f@v#%gk-d5$m"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -57,6 +56,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "ebhealthcheck.apps.EBHealthCheckConfig",
     "drf_yasg",
     "rest_framework",
     "phone",
