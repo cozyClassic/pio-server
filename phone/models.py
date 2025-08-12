@@ -329,7 +329,11 @@ class Order(SoftDeleteModel):
 
     # 배송
     shipping_method = models.CharField(
-        max_length=50, blank=True, null=True, help_text="배송 방법"
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="배송 방법",
+        default="우체국",
     )
     shipping_address = models.CharField(
         max_length=255, blank=True, null=True, help_text="주소 1 (e.g., 도로명 주소)"

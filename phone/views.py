@@ -1,16 +1,18 @@
+import re
 from django.http import HttpResponse, HttpRequest
-from rest_framework.viewsets import ReadOnlyModelViewSet
-from rest_framework.generics import CreateAPIView
+from rest_framework.viewsets import ReadOnlyModelViewSet, GenericViewSet
 from rest_framework.response import Response
 from .serializers import (
     ProductListSerializer,
     ProductDetailSerializer,
-    OrderListSerializer,
+    OrderSerializer,
     NoticeSerializer,
     FAQSerializer,
     BannerSerializer,
-    OrderCreateSerializer,
 )
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework import mixins
 from django.db.models import Prefetch
 import bcrypt
 
@@ -24,6 +26,10 @@ from .models import *
 5. 주문 작성
 6. 주문 조회
 """
+
+
+def clean_phone_num(phone_num: str) -> str:
+    return re.sub(r"[^0-9]", "", phone_num)
 
 
 def ping(request: HttpRequest) -> HttpResponse:
@@ -83,18 +89,37 @@ class ProductViewSet(ReadOnlyModelViewSet):
         return Response(serializer.data)
 
 
-class OrderListViewSet(ReadOnlyModelViewSet):
+class OrderViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewSet):
     """
     Viewset for managing orders.
     """
 
-    serializer_class = OrderListSerializer
+    serializer_class = OrderSerializer
 
     queryset = Order.objects.all().filter(deleted_at__isnull=True)
 
     def get_queryset(self):
         return self.queryset
 
+    @swagger_auto_schema(
+        operation_description="주문 목록 조회",
+        manual_parameters=[
+            openapi.Parameter(
+                "phone",
+                openapi.IN_QUERY,
+                description="고객 전화번호(필수)",
+                type=openapi.TYPE_STRING,
+                required=True,
+            ),
+            openapi.Parameter(
+                "password",
+                openapi.IN_QUERY,
+                description="고객 비밀번호(필수)",
+                type=openapi.TYPE_STRING,
+                required=True,
+            ),
+        ],
+    )
     def list(self, request, *args, **kwargs):
         """
         get phone_num and password from request query param
@@ -103,30 +128,28 @@ class OrderListViewSet(ReadOnlyModelViewSet):
 
         phone = request.query_params.get("phone", None)
         password = request.query_params.get("password", None)
-        password_hash = bcrypt.hashpw(
-            password.encode("utf-8"), bcrypt.gensalt()
-        ).decode("utf-8")
+        if not phone or not password:
+            return Response({"error": "phone and password are required"}, status=400)
+        phone = clean_phone_num(phone)
+        orders = self.get_queryset().filter(customer_phone=phone).all()
+        verified_orders = []
 
-        queryset = (
-            self.get_queryset()
-            .select_related("plan", "device_variant", "device_color", "product__device")
-            .filter(customer_phone=phone, password=password_hash)
-        )
+        for order in orders:
+            if bcrypt.checkpw(password.encode("utf-8"), order.password.encode("utf-8")):
+                verified_orders.append(order)
 
-        serializer = self.serializer_class(queryset, many=True)
+        serializer = self.serializer_class(verified_orders, many=True)
         return Response(serializer.data)
-
-
-class OrderCreateViewSet(CreateAPIView):
-    queryset = Order.objects.all().filter(deleted_at__isnull=True)
-    serializer_class = OrderCreateSerializer
 
     def create(self, request, *args, **kwargs):
         body = request.data
+        customer_phone = clean_phone_num(body.get("customer_phone"))
+        customer_phone2 = clean_phone_num(body.get("customer_phone2"))
+
         new_order = Order.objects.create(
             customer_name=body.get("customer_name"),
-            customer_phone=body.get("customer_phone"),
-            customer_phone2=body.get("customer_phone2"),
+            customer_phone=customer_phone,
+            customer_phone2=customer_phone2,
             customer_email=body.get("customer_email"),
             product_id=body.get("product_id"),
             plan_id=body.get("plan_id"),

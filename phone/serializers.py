@@ -132,54 +132,54 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         ]
 
     def get_images(self, obj):
-        imgs = obj.images.all()
-        imgs.sort(key=lambda x: x.sort_order)
+        imgs = obj.images.all().order_by("sort_order")
         return [img.image.url for img in imgs]
 
 
-class OrderListSerializer(serializers.ModelSerializer):
-    plan = serializers.StringRelatedField(source="plan.name")
-    carrier = serializers.StringRelatedField(source="plan.carrier")
-    storage_capacity = serializers.StringRelatedField(
-        source="device_variant.storage_capacity"
-    )
-    color = serializers.StringRelatedField(source="device_color.color")
-    device = serializers.StringRelatedField(source="product.device.model_name")
+class OrderSerializer(serializers.ModelSerializer):
+    plan_id = serializers.IntegerField(source="plan.id")
+    product_id = serializers.IntegerField(source="product.id")
 
     class Meta:
         model = Order
         fields = [
             "id",
-            "device",
             "customer_name",
             "customer_phone",
             "customer_phone2",
             "customer_email",
             "password",
-            "color",
-            "product",
-            "storage_capacity",
-            "plan",
-            "carrier",
+            "product_id",
+            "plan_id",
+            "contract_type",
+            "device_price",
+            "plan_monthly_fee",
+            "subsidy_amount",
+            "subsidy_amount_mnp",
             "final_price",
+            "discount_type",
+            "monthly_discount",
+            "additional_discount",
+            "storage_capacity",
+            "color",
+            "customer_memo",
             "status",
             "created_at",
             "updated_at",
+            "shipping_method",
+            "shipping_address",
+            "shipping_address_detail",
+            "zipcode",
+            "shipping_number",
         ]
 
-    read_only_fields = [
-        "id",
-        "status",
-        "created_at",
-        "updated_at",
-        "storage_capacity",
-        "plan",
-        "carrier",
-        "final_price",
-    ]
-
-
-class OrderCreateSerializer(serializers.ModelSerializer): ...
+        read_only_fields = [
+            "id",
+            "status",
+            "created_at",
+            "shipping_method",
+            "shipping_number",
+        ]
 
 
 class FAQSerializer(serializers.ModelSerializer):
