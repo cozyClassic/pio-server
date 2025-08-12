@@ -54,6 +54,10 @@ class DeviceImagesInline(nested_admin.NestedStackedInline):
             )
         return "이미지 없음"
 
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.filter(deleted_at__isnull=True)
+
     # 메서드에 짧은 설명을 붙여 Admin 페이지에 표시될 이름으로 사용
     image_preview.short_description = "미리보기"
 
@@ -68,7 +72,7 @@ class ColorsInline(nested_admin.NestedStackedInline):
 
 
 @admin.register(Device)
-class DeviceAdmin(nested_admin.NestedModelAdmin):
+class DeviceAdmin(commonAdmin, nested_admin.NestedModelAdmin):
     list_display = ("model_name", "brand")
     search_fields = ("model_name", "brand")
 

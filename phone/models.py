@@ -29,6 +29,18 @@ class SoftDeleteModel(models.Model):
         self.save(update_fields=["deleted_at"])
 
 
+class SoftDeleteImageModel(SoftDeleteModel):
+    image = models.ImageField(upload_to="images/")
+
+    class Meta:
+        abstract = True
+
+    def delete(self, *args, **kwargs):
+        if self.image:
+            self.image.delete(save=False)
+        super().delete(*args, **kwargs)
+
+
 class Plan(SoftDeleteModel):
     name = models.CharField(max_length=100)
     carrier = models.CharField(max_length=100)
@@ -64,7 +76,7 @@ class Device(SoftDeleteModel):
     )
 
     def __str__(self):
-        return f"{self.name} by {self.brand}"
+        return f"{self.model_name} by {self.brand}"
 
 
 class DeviceColor(SoftDeleteModel):
@@ -75,10 +87,10 @@ class DeviceColor(SoftDeleteModel):
     )
 
     def __str__(self):
-        return f"{self.color} for {self.device.name}"
+        return f"{self.color} for {self.device.model_name}"
 
 
-class DevicesColorImage(SoftDeleteModel):
+class DevicesColorImage(SoftDeleteImageModel):
     device_color = models.ForeignKey(
         DeviceColor, on_delete=models.CASCADE, related_name="images"
     )
@@ -86,7 +98,7 @@ class DevicesColorImage(SoftDeleteModel):
     description = models.CharField(max_length=255, blank=True)
 
     def __str__(self):
-        return f"image for {self.device_color.device.name} - {self.device_color.color}"
+        return f"image for {self.device_color.device.model_name} - {self.device_color.color}"
 
 
 class DeviceVariant(SoftDeleteModel):
@@ -97,7 +109,7 @@ class DeviceVariant(SoftDeleteModel):
     device_price = models.IntegerField(default=0, help_text="Price in KRW")
 
     def __str__(self):
-        return f"{self.device.name} - {self.storage_capacity}"
+        return f"{self.device.model_name} - {self.storage_capacity}"
 
     # 가격이 업데이트 되면 연결된 product 옵션들도 가격을 업데이트해야 합니다.
     def save(self, *args, **kwargs):
@@ -207,7 +219,7 @@ class ProductOption(SoftDeleteModel):
         product.save()
 
 
-class ProductDetailImage(SoftDeleteModel):
+class ProductDetailImage(SoftDeleteImageModel):
     product = models.ForeignKey(
         "Product", on_delete=models.CASCADE, related_name="images"
     )
@@ -389,7 +401,7 @@ class Notice(SoftDeleteModel):
         return self.title
 
 
-class Banner(SoftDeleteModel):
+class Banner(SoftDeleteImageModel):
     title = models.CharField(max_length=100)
     image = models.ImageField(upload_to="banners/")
     link = models.URLField(blank=True, null=True, help_text="배너 클릭 시 이동할 링크")
@@ -398,7 +410,7 @@ class Banner(SoftDeleteModel):
         return self.title
 
 
-class ReviewImage(SoftDeleteModel):
+class ReviewImage(SoftDeleteImageModel):
     review = models.ForeignKey(
         "Review", on_delete=models.CASCADE, related_name="images"
     )

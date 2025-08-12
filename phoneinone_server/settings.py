@@ -11,6 +11,26 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import environ
+
+server_env = "dev"
+env = environ.Env(DEBUG=(bool, False))
+
+if server_env == "dev":
+    environ.Env.read_env(".dev.env")
+elif server_env == "prod":
+    environ.Env.read_env(".prod.env")
+else:
+    environ.Env.read_env(".local.env")
+
+AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY")
+AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME")
+AWS_CLOUDFRONT_DOMAIN = env("AWS_CLOUDFRONT_DOMAIN")
+REVIEW_UPLOAD_KEY = env("REVIEW_UPLOAD_KEY")
+AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME")
+AWS_CLOUDFRONT_KEY_ID = env("AWS_CLOUDFRONT_KEY_ID")
+AWS_CLOUDFRONT_KEY = open("cloudfront_private_key.pem").read()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -80,11 +100,11 @@ WSGI_APPLICATION = "phoneinone_server.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "pio",
-        "USER": "postgres",
-        "PASSWORD": "Smt5885!!",
-        "HOST": "localhost",
-        "PORT": "5433",
+        "NAME": env("DB_NAME", default="postgres"),
+        "USER": env("DB_USER", default="postgres"),
+        "PASSWORD": env("DB_PASSWORD", default="1234"),
+        "HOST": env("DB_HOST", default="localhost"),
+        "PORT": env("DB_PORT", default="5432"),
     }
 }
 
@@ -151,5 +171,26 @@ LOGGING = {
             "handlers": ["console"],
             "level": "DEBUG",
         },
+    },
+}
+
+MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_URL = "/media/"
+
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "access_key": AWS_ACCESS_KEY_ID,
+            "secret_key": AWS_SECRET_ACCESS_KEY,
+            "bucket_name": AWS_STORAGE_BUCKET_NAME,
+            "cloudfront_key_id": AWS_CLOUDFRONT_KEY_ID,
+            "cloudfront_key": AWS_CLOUDFRONT_KEY,
+            "querystring_auth": False,
+            "custom_domain": AWS_CLOUDFRONT_DOMAIN,
+        },
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
     },
 }
