@@ -17,6 +17,7 @@ from .models import (
     Notice,
     Review,
     ReviewImage,
+    Banner,
 )
 
 
@@ -100,30 +101,54 @@ class ProductOptionsInline(nested_admin.NestedTabularInline):
     def get_formset(self, request, obj=None, **kwargs):
         formset = super().get_formset(request, obj, **kwargs)
 
-        # 폼셋이 생성될 때 부모(Product) 객체를 참조하여 필터링합니다.
+        # 미리 필요한 데이터를 모두 캐싱
+        device_variants_queryset = DeviceVariant.objects.none()
+        all_plans_queryset = (
+            Plan.objects.all().select_related()
+        )  # 모든 Plan을 미리 로드
+
         if obj and obj.device:
-            device_instance = obj.device
+            device_variants_queryset = DeviceVariant.objects.filter(
+                device_id=obj.device.id
+            ).select_related("device")
 
-            class CustomForm(formset.form):
-                def __init__(self, *args, **kwargs):
-                    super().__init__(*args, **kwargs)
-                    self.fields["device_variant"].queryset = (
-                        DeviceVariant.objects.filter(device_id=device_instance.id)
-                    )
+        class CustomForm(formset.form):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                # 미리 조회된 queryset들을 재사용
+                self.fields["device_variant"].queryset = device_variants_queryset
+                self.fields["plan"].queryset = all_plans_queryset
 
-            formset.form = CustomForm
-        else:
-
-            class CustomForm(formset.form):
-                def __init__(self, *args, **kwargs):
-                    super().__init__(*args, **kwargs)
-                    self.fields["device_variant"].queryset = (
-                        DeviceVariant.objects.none()
-                    )
-
-            formset.form = CustomForm
-
+        formset.form = CustomForm
         return formset
+
+    # def get_formset(self, request, obj=None, **kwargs):
+    #     formset = super().get_formset(request, obj, **kwargs)
+
+    #     # 폼셋이 생성될 때 부모(Product) 객체를 참조하여 필터링합니다.
+    #     if obj and obj.device:
+    #         device_instance = obj.device
+
+    #         class CustomForm(formset.form):
+    #             def __init__(self, *args, **kwargs):
+    #                 super().__init__(*args, **kwargs)
+    #                 self.fields["device_variant"].queryset = (
+    #                     DeviceVariant.objects.filter(device_id=device_instance.id)
+    #                 )
+
+    #         formset.form = CustomForm
+    #     else:
+
+    #         class CustomForm(formset.form):
+    #             def __init__(self, *args, **kwargs):
+    #                 super().__init__(*args, **kwargs)
+    #                 self.fields["device_variant"].queryset = (
+    #                     DeviceVariant.objects.none()
+    #                 )
+
+    #         formset.form = CustomForm
+
+    #     return formset
 
 
 @admin.register(Product)
@@ -132,6 +157,14 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
     search_fields = ("name",)
     inlines = [ProductOptionsInline]
     exclude = ("deleted_at",)
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return (
+            queryset.filter(deleted_at__isnull=True)
+            .select_related("device")
+            .prefetch_related("options", "options__plan", "options__device_variant")
+        )
 
 
 @admin.register(ProductOption)
@@ -203,3 +236,11 @@ class NoticeAdmin(commonAdmin):
     list_display = ("title", "created_at")
     search_fields = ("title", "content")
     list_filter = ("created_at",)
+
+
+@admin.register(Banner)
+class BannerAdmin(commonAdmin):
+    list_display = ("title", "image", "created_at")
+    search_fields = ("title",)
+    list_filter = ("created_at",)
+    readonly_fields = ("created_at", "updated_at", "deleted_at")

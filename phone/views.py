@@ -1,7 +1,15 @@
 from django.http import HttpResponse, HttpRequest
-from rest_framework import viewsets
+from rest_framework.viewsets import ReadOnlyModelViewSet, GenericViewSet
+from rest_framework.mixins import ListModelMixin, CreateModelMixin
 from rest_framework.response import Response
-from .serializers import ProductListSerializer, ProductDetailSerializer, OrderSerializer
+from .serializers import (
+    ProductListSerializer,
+    ProductDetailSerializer,
+    OrderSerializer,
+    NoticeSerializer,
+    FAQSerializer,
+    BannerSerializer,
+)
 from django.db.models import Prefetch
 
 # Create your views here.
@@ -22,11 +30,12 @@ def ping(request: HttpRequest) -> HttpResponse:
     return HttpResponse("pong")
 
 
-class ProductViewSet(viewsets.ModelViewSet):
+class ProductViewSet(ReadOnlyModelViewSet):
     """
     Viewset for listing products with their best price options.
     """
 
+    serializer_class = ProductListSerializer
     queryset = Product.objects.all().filter(deleted_at__isnull=True)
 
     def get_queryset(self):
@@ -56,6 +65,7 @@ class ProductViewSet(viewsets.ModelViewSet):
                 "device__variants",
                 "device__colors",
                 "device__colors__images",
+                "images",
                 Prefetch(
                     "reviews",
                     queryset=Review.objects.filter(deleted_at__isnull=True)
@@ -70,10 +80,12 @@ class ProductViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class OrderViewSet(viewsets.ModelViewSet):
+class OrderViewSet(ListModelMixin, CreateModelMixin, GenericViewSet):
     """
     Viewset for managing orders.
     """
+
+    serializer_class = OrderSerializer
 
     queryset = Order.objects.all().filter(deleted_at__isnull=True)
 
@@ -96,3 +108,31 @@ class OrderViewSet(viewsets.ModelViewSet):
         serializer = OrderSerializer(queryset, many=True)
 
         return Response(serializer.data)
+
+    def create(self, request, *args, **kwargs):
+        """
+        Override the create method to handle order creation.
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(serializer.data, status=201)
+
+
+class FAQViewSet(ReadOnlyModelViewSet):
+    queryset = FAQ.objects.all().filter(deleted_at__isnull=True).order_by("sort_order")
+    serializer_class = FAQSerializer
+
+
+class NoticeViewSet(ReadOnlyModelViewSet):
+    serializer_class = NoticeSerializer
+    queryset = (
+        Notice.objects.all().filter(deleted_at__isnull=True).order_by("-created_at")
+    )
+
+
+class BannerViewSet(ReadOnlyModelViewSet):
+    serializer_class = BannerSerializer
+    queryset = (
+        Banner.objects.all().filter(deleted_at__isnull=True).order_by("-created_at")
+    )

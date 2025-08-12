@@ -178,7 +178,7 @@ class ProductOption(SoftDeleteModel):
     sort_order = models.IntegerField(default=0)
 
     def __str__(self):
-        return f"{self.discount_type}/{self.contract_type} - {self.plan.name}"
+        return f"{self.discount_type}/{self.contract_type}"
 
     def get_final_price(self):
         """
@@ -212,9 +212,10 @@ class ProductOption(SoftDeleteModel):
         product.update_best_option_on_delete()  # Product 모델에 정의된 메서드를 호출
 
     def update_product_best_option(self):
+        # TODO: 하나의 가격이 바뀌어도 동작해야 하지만, 여러개의 가격이 바뀔 때는 한번만 돌아가야 함
         product = self.product
-        options: QuerySet[ProductOption] = product.options.all()
-        best_option = options.order_by("final_price").first()
+        options: QuerySet[ProductOption] = product.options.select_related("plan").all()
+        best_option = options.order_by("final_price", "plan__price").first()
         product.best_price_option = best_option
         product.save()
 
@@ -225,6 +226,7 @@ class ProductDetailImage(SoftDeleteImageModel):
     )
     image = models.ImageField(upload_to="product_images/")
     description = models.CharField(max_length=255, blank=True)
+    sort_order = models.IntegerField(default=0)
 
     def __str__(self):
         return (

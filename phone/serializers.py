@@ -33,6 +33,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     options = serializers.SerializerMethodField()
     device = serializers.SerializerMethodField()
     reviews = serializers.SerializerMethodField()
+    images = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -40,6 +41,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "options",
             "device",
             "reviews",
+            "images",
         ]
 
     def get_options(self, obj):
@@ -129,6 +131,11 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             for review in reviews
         ]
 
+    def get_images(self, obj):
+        imgs = obj.images.all()
+        imgs.sort(key=lambda x: x.sort_order)
+        return [img.image.url for img in imgs]
+
 
 class OrderSerializer(serializers.ModelSerializer):
     plan = serializers.StringRelatedField(source="plan.name")
@@ -168,3 +175,24 @@ class OrderSerializer(serializers.ModelSerializer):
         "carrier",
         "final_price",
     ]
+
+
+class FAQSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FAQ
+        fields = ["category", "id", "question", "answer", "created_at"]
+        read_only_fields = ["category", "id", "question", "answer", "created_at"]
+
+
+class NoticeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notice
+        fields = ["id", "title", "content", "created_at"]
+        read_only_fields = ["id", "title", "content", "created_at"]
+
+
+class BannerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Banner
+        fields = ["id", "title", "image", "created_at"]
+        read_only_fields = ["id", "title", "image", "created_at"]

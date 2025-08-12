@@ -1,14 +1,24 @@
-from django.urls import include, path
+from django.urls import path
 from rest_framework import routers
 
-from .views import OrderViewSet, ProductViewSet, ping, OrderViewSet
+from .views import (
+    OrderViewSet,
+    ProductViewSet,
+    ping,
+    FAQViewSet,
+    NoticeViewSet,
+    BannerViewSet,
+)
 
 
 router = routers.DefaultRouter()
-router.register(r"products", ProductViewSet, basename="products")
-router.register(r"orders", OrderViewSet, basename="orders")
 
 urlpatterns = [
-    path("", include(router.urls)),
+    path("products/", ProductViewSet.as_view({"get": "list"})),
+    path("products/<int:pk>", ProductViewSet.as_view({"get": "retrieve"})),
+    path("orders/", OrderViewSet.as_view({"get": "list", "post": "create"})),
+    path("faqs/", FAQViewSet.as_view({"get": "list"})),
+    path("notices/", NoticeViewSet.as_view({"get": "list"})),
+    path("banners/", BannerViewSet.as_view({"get": "list"})),
     path("ping/", ping, name="ping"),
 ]
