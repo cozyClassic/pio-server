@@ -1,15 +1,9 @@
 import re
 from django.http import HttpResponse, HttpRequest
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.viewsets import ReadOnlyModelViewSet, GenericViewSet
 from rest_framework.response import Response
-from .serializers import (
-    ProductListSerializer,
-    ProductDetailSerializer,
-    OrderSerializer,
-    NoticeSerializer,
-    FAQSerializer,
-    BannerSerializer,
-)
+from .serializers import *
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import mixins
@@ -19,13 +13,6 @@ import bcrypt
 
 # Create your views here.
 from .models import *
-
-"""TODO
-3. 리뷰 조회
-4. 리뷰 작성
-5. 주문 작성
-6. 주문 조회
-"""
 
 
 def clean_phone_num(phone_num: str) -> str:
@@ -190,3 +177,30 @@ class BannerViewSet(ReadOnlyModelViewSet):
     queryset = (
         Banner.objects.all().filter(deleted_at__isnull=True).order_by("-created_at")
     )
+
+
+class ReviewImageCreateView(mixins.CreateModelMixin, GenericViewSet):
+    serializer_class = ReviewImageSerializer
+    queryset = ReviewImage.objects.all().filter(deleted_at__isnull=True)
+    parser_classes = [MultiPartParser, FormParser]
+
+
+class ReviewViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewSet):
+    serializer_class = ReviewSerializer
+    queryset = (
+        Review.objects.all()
+        .prefetch_related("images")
+        .filter(deleted_at__isnull=True)
+        .order_by("-created_at")
+    )
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=201)

@@ -201,3 +201,39 @@ class BannerSerializer(serializers.ModelSerializer):
         model = Banner
         fields = ["id", "title", "image", "created_at"]
         read_only_fields = ["id", "title", "image", "created_at"]
+
+
+class ReviewImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ReviewImage
+        fields = ["id", "image"]
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    images = serializers.SerializerMethodField()
+    image_ids = serializers.ListField(child=serializers.IntegerField(), write_only=True)
+    product_id = serializers.IntegerField()
+
+    class Meta:
+        model = Review
+        fields = [
+            "id",
+            "product_id",
+            "customer_name",
+            "rating",
+            "comment",
+            "created_at",
+            "images",
+            "image_ids",
+        ]
+        read_only_fields = ["id", "created_at", "images"]
+
+    def create(self, validated_data):
+        validated_data.pop("images", None)
+        review_image_ids = validated_data.pop("image_ids", [])
+        review = super().create(validated_data)
+        ReviewImage.objects.filter(id__in=review_image_ids).update(review=review)
+        return review
+
+    def get_images(self, obj):
+        return [{"id": img.id, "url": img.image.url} for img in obj.images.all()]

@@ -410,13 +410,10 @@ class Banner(SoftDeleteImageModel):
 
 class ReviewImage(SoftDeleteImageModel):
     review = models.ForeignKey(
-        "Review", on_delete=models.CASCADE, related_name="images"
+        "Review", on_delete=models.CASCADE, related_name="images", null=True
     )
     image = models.ImageField(upload_to="review_images/")
     description = models.CharField(max_length=255, blank=True)
-
-    def __str__(self):
-        return f"Image for review by {self.review.customer_name}"
 
 
 class Review(SoftDeleteModel):
