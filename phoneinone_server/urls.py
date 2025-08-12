@@ -16,6 +16,7 @@ Including another URLconf
 """
 
 from django.contrib import admin
+from django.http import HttpResponse
 from django.urls import path, re_path, include
 from django.conf import settings
 from drf_yasg import openapi, views
@@ -36,9 +37,14 @@ schema_view = views.get_schema_view(
 )
 
 
+def health_check(request):
+    return HttpResponse("ok")
+
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include(("phone.urls", "api"))),
+    path("", health_check),
 ]
 
 if settings.DEBUG:

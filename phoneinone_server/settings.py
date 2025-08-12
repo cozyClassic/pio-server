@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 import environ
 
@@ -32,7 +33,6 @@ AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME")
 AWS_CLOUDFRONT_KEY_ID = env("AWS_CLOUDFRONT_KEY_ID")
 AWS_CLOUDFRONT_KEY = open("cloudfront_private_key.pem").read()
 SECRET_KEY = env("DJANGO_SECRET_KEY")
-ALLOWED_HOSTS = ["phoneinone.com"]
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -44,7 +44,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "phoneinone.com",
+    "develop-2.eba-myekmjwu.ap-northeast-2.elasticbeanstalk.com",
+]
+
+if server_env == "dev":
+    ALLOWED_HOSTS.append("localhost")
+    ALLOWED_HOSTS.append("127.0.0.1")
 
 
 # Application definition
@@ -144,6 +151,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
