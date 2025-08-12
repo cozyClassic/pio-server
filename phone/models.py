@@ -263,16 +263,6 @@ class Order(SoftDeleteModel):
     product = models.ForeignKey(
         Product, on_delete=models.CASCADE, related_name="orders"
     )
-    device_variant = models.ForeignKey(
-        DeviceVariant, on_delete=models.CASCADE, related_name="orders"
-    )
-    device_color = models.ForeignKey(
-        DeviceColor,
-        on_delete=models.CASCADE,
-        related_name="orders",
-        null=True,
-        blank=True,
-    )
     plan = models.ForeignKey(
         Plan,
         on_delete=models.CASCADE,
@@ -304,6 +294,8 @@ class Order(SoftDeleteModel):
         null=True,
         blank=True,
     )
+    storage_capacity = models.IntegerField(default=0)
+    color = models.CharField(max_length=50, blank=True, null=True)
     subsidy_amount = models.IntegerField(
         help_text="공시지원금",
         null=True,

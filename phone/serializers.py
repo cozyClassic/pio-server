@@ -137,7 +137,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         return [img.image.url for img in imgs]
 
 
-class OrderSerializer(serializers.ModelSerializer):
+class OrderListSerializer(serializers.ModelSerializer):
     plan = serializers.StringRelatedField(source="plan.name")
     carrier = serializers.StringRelatedField(source="plan.carrier")
     storage_capacity = serializers.StringRelatedField(
@@ -151,8 +151,10 @@ class OrderSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "device",
+            "customer_name",
             "customer_phone",
             "customer_phone2",
+            "customer_email",
             "password",
             "color",
             "product",
@@ -175,6 +177,9 @@ class OrderSerializer(serializers.ModelSerializer):
         "carrier",
         "final_price",
     ]
+
+
+class OrderCreateSerializer(serializers.ModelSerializer): ...
 
 
 class FAQSerializer(serializers.ModelSerializer):

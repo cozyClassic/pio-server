@@ -1,16 +1,19 @@
 from django.http import HttpResponse, HttpRequest
-from rest_framework.viewsets import ReadOnlyModelViewSet, GenericViewSet
-from rest_framework.mixins import ListModelMixin, CreateModelMixin
+from rest_framework.viewsets import ReadOnlyModelViewSet
+from rest_framework.generics import CreateAPIView
 from rest_framework.response import Response
 from .serializers import (
     ProductListSerializer,
     ProductDetailSerializer,
-    OrderSerializer,
+    OrderListSerializer,
     NoticeSerializer,
     FAQSerializer,
     BannerSerializer,
+    OrderCreateSerializer,
 )
 from django.db.models import Prefetch
+import bcrypt
+
 
 # Create your views here.
 from .models import *
@@ -80,12 +83,12 @@ class ProductViewSet(ReadOnlyModelViewSet):
         return Response(serializer.data)
 
 
-class OrderViewSet(ListModelMixin, CreateModelMixin, GenericViewSet):
+class OrderListViewSet(ReadOnlyModelViewSet):
     """
     Viewset for managing orders.
     """
 
-    serializer_class = OrderSerializer
+    serializer_class = OrderListSerializer
 
     queryset = Order.objects.all().filter(deleted_at__isnull=True)
 
@@ -94,29 +97,57 @@ class OrderViewSet(ListModelMixin, CreateModelMixin, GenericViewSet):
 
     def list(self, request, *args, **kwargs):
         """
-        Override the list method to return orders.
+        get phone_num and password from request query param
+        and if both are provided, filter the orders by these credentials.
         """
+
         phone = request.query_params.get("phone", None)
         password = request.query_params.get("password", None)
+        password_hash = bcrypt.hashpw(
+            password.encode("utf-8"), bcrypt.gensalt()
+        ).decode("utf-8")
 
         queryset = (
             self.get_queryset()
             .select_related("plan", "device_variant", "device_color", "product__device")
-            .filter(customer_phone=phone, password=password)
+            .filter(customer_phone=phone, password=password_hash)
         )
 
-        serializer = OrderSerializer(queryset, many=True)
-
+        serializer = self.serializer_class(queryset, many=True)
         return Response(serializer.data)
 
+
+class OrderCreateViewSet(CreateAPIView):
+    queryset = Order.objects.all().filter(deleted_at__isnull=True)
+    serializer_class = OrderCreateSerializer
+
     def create(self, request, *args, **kwargs):
-        """
-        Override the create method to handle order creation.
-        """
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        return Response(serializer.data, status=201)
+        body = request.data
+        new_order = Order.objects.create(
+            customer_name=body.get("customer_name"),
+            customer_phone=body.get("customer_phone"),
+            customer_phone2=body.get("customer_phone2"),
+            customer_email=body.get("customer_email"),
+            product_id=body.get("product_id"),
+            plan_id=body.get("plan_id"),
+            contract_type=body.get("contract_type"),
+            device_price=body.get("device_price"),
+            plan_monthly_fee=body.get("plan_monthly_fee"),
+            subsidy_amount=body.get("subsidy_amount"),
+            subsidy_amount_mnp=body.get("subsidy_amount_mnp"),
+            final_price=body.get("final_price"),
+            discount_type=body.get("discount_type"),
+            monthly_discount=body.get("monthly_discount"),
+            additional_discount=body.get("additional_discount"),
+            password=(
+                bcrypt.hashpw(body.get("password").encode("utf-8"), bcrypt.gensalt())
+            ).decode("utf-8"),
+            storage_capacity=body.get("storage_capacity"),
+            color=body.get("color"),
+            customer_memo=body.get("customer_memo"),
+        )
+        new_order.save()
+        return Response({"id": new_order.id}, status=201)
 
 
 class FAQViewSet(ReadOnlyModelViewSet):

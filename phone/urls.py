@@ -2,7 +2,7 @@ from django.urls import path
 from rest_framework import routers
 
 from .views import (
-    OrderViewSet,
+    OrderListViewSet,
     ProductViewSet,
     ping,
     FAQViewSet,
@@ -16,7 +16,7 @@ router = routers.DefaultRouter()
 urlpatterns = [
     path("products/", ProductViewSet.as_view({"get": "list"})),
     path("products/<int:pk>", ProductViewSet.as_view({"get": "retrieve"})),
-    path("orders/", OrderViewSet.as_view({"get": "list", "post": "create"})),
+    path("orders/", OrderListViewSet.as_view({"get": "list"})),
     path("faqs/", FAQViewSet.as_view({"get": "list"})),
     path("notices/", NoticeViewSet.as_view({"get": "list"})),
     path("banners/", BannerViewSet.as_view({"get": "list"})),
