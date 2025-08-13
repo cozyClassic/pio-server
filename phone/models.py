@@ -325,7 +325,6 @@ class Order(SoftDeleteModel):
     customer_birth = models.DateField(
         blank=True, null=True, help_text="생년월일 (YYYY-MM-DD)"
     )
-    password = models.CharField(max_length=100, blank=True, null=True)
 
     # 배송
     shipping_method = models.CharField(

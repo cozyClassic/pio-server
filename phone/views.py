@@ -41,11 +41,20 @@ class ProductViewSet(ReadOnlyModelViewSet):
         """
         Override the list method to return products with their best price options.
         """
-        queryset = self.get_queryset().select_related(
-            "best_price_option",
-            "best_price_option__plan",
-            "best_price_option__device_variant",
+        if brand_query := self.request.query_params.get("brand", None):
+            self.queryset = self.queryset.filter(device__brand=brand_query)
+
+        queryset = (
+            self.get_queryset()
+            .select_related(
+                "device",
+                "best_price_option",
+                "best_price_option__plan",
+                "best_price_option__device_variant",
+            )
+            .order_by("-sort_order")
         )
+
         serializer = ProductListSerializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -98,34 +107,20 @@ class OrderViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewSe
                 type=openapi.TYPE_STRING,
                 required=True,
             ),
-            openapi.Parameter(
-                "password",
-                openapi.IN_QUERY,
-                description="고객 비밀번호(필수)",
-                type=openapi.TYPE_STRING,
-                required=True,
-            ),
         ],
     )
     def list(self, request, *args, **kwargs):
         """
-        get phone_num and password from request query param
-        and if both are provided, filter the orders by these credentials.
+        get phone_num from request query param
         """
 
         phone = request.query_params.get("phone", None)
-        password = request.query_params.get("password", None)
-        if not phone or not password:
-            return Response({"error": "phone and password are required"}, status=400)
+        if not phone:
+            return Response({"error": "param phone required"}, status=400)
         phone = clean_phone_num(phone)
         orders = self.get_queryset().filter(customer_phone=phone).all()
-        verified_orders = []
 
-        for order in orders:
-            if bcrypt.checkpw(password.encode("utf-8"), order.password.encode("utf-8")):
-                verified_orders.append(order)
-
-        serializer = self.serializer_class(verified_orders, many=True)
+        serializer = self.serializer_class(orders, many=True)
         return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
@@ -149,9 +144,6 @@ class OrderViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewSe
             discount_type=body.get("discount_type"),
             monthly_discount=body.get("monthly_discount"),
             additional_discount=body.get("additional_discount"),
-            password=(
-                bcrypt.hashpw(body.get("password").encode("utf-8"), bcrypt.gensalt())
-            ).decode("utf-8"),
             storage_capacity=body.get("storage_capacity"),
             color=body.get("color"),
             customer_memo=body.get("customer_memo"),

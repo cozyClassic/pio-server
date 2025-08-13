@@ -17,6 +17,8 @@ class ProductListSerializer(serializers.ModelSerializer):
             "best_price_option",
             "brand",
             "series",
+            "is_featured",
+            "description",
         ]
 
     def get_best_price_option(self, obj):
@@ -43,6 +45,9 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     device = serializers.SerializerMethodField()
     reviews = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
+    best_option_id = serializers.IntegerField(
+        source="best_price_option_id", read_only=True
+    )
 
     class Meta:
         model = Product
@@ -51,6 +56,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "device",
             "reviews",
             "images",
+            "best_option_id",
         ]
 
     def get_options(self, obj):
@@ -157,7 +163,6 @@ class OrderSerializer(serializers.ModelSerializer):
             "customer_phone",
             "customer_phone2",
             "customer_email",
-            "password",
             "product_id",
             "plan_id",
             "contract_type",
