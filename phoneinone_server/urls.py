@@ -16,11 +16,13 @@ Including another URLconf
 """
 
 from django.contrib import admin
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.urls import path, re_path, include
 from django.conf import settings
 from drf_yasg import openapi, views
 from rest_framework import permissions
+from django.db import connection
+import logging
 
 
 schema_view = views.get_schema_view(
@@ -41,9 +43,29 @@ def health_check(request):
     return HttpResponse("ok")
 
 
+def db_check(request):
+    try:
+        # DB 연결 테스트
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            result = cursor.fetchone()
+        return HttpResponse("ok")
+    except Exception as e:
+        logging.error(f"DB connection failed: {e}")
+        return HttpResponse(f"DB Error: {str(e)}")
+
+
+def env_check(request):
+    from .settings import CSRF_TRUSTED_ORIGINS
+
+    return JsonResponse({"CSRF_TRUSTED_ORIGINS": CSRF_TRUSTED_ORIGINS})
+
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include(("phone.urls", "api"))),
+    path("db-check", db_check),
+    path("env-check", env_check),
     path("", health_check),
 ]
 

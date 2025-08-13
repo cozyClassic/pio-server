@@ -5,10 +5,19 @@ from .models import *
 
 class ProductListSerializer(serializers.ModelSerializer):
     best_price_option = serializers.SerializerMethodField()
+    brand = serializers.CharField(source="device.brand")
+    series = serializers.CharField(source="device.series")
 
     class Meta:
         model = Product
-        fields = ["id", "name", "image_main", "best_price_option"]
+        fields = [
+            "id",
+            "name",
+            "image_main",
+            "best_price_option",
+            "brand",
+            "series",
+        ]
 
     def get_best_price_option(self, obj):
         option = {
