@@ -208,8 +208,8 @@ class NoticeSerializer(serializers.ModelSerializer):
 class BannerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Banner
-        fields = ["id", "title", "image", "created_at"]
-        read_only_fields = ["id", "title", "image", "created_at"]
+        fields = ["id", "title", "image_pc", "image_mobile", "created_at"]
+        read_only_fields = ["id", "title", "image_pc", "image_mobile", "created_at"]
 
 
 class ReviewImageSerializer(serializers.ModelSerializer):

@@ -401,7 +401,8 @@ class Notice(SoftDeleteModel):
 
 class Banner(SoftDeleteImageModel):
     title = models.CharField(max_length=100)
-    image = models.ImageField(upload_to="banners/")
+    image_pc = models.ImageField(upload_to="banners/", default="")
+    image_mobile = models.ImageField(upload_to="banners/", default="")
     link = models.URLField(blank=True, null=True, help_text="배너 클릭 시 이동할 링크")
 
     def __str__(self):
