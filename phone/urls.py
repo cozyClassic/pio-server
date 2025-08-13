@@ -8,7 +8,6 @@ from .views import (
     FAQViewSet,
     NoticeViewSet,
     BannerViewSet,
-    ReviewImageCreateView,
     ReviewViewSet,
 )
 
@@ -23,6 +22,5 @@ urlpatterns = [
     path("notices/", NoticeViewSet.as_view({"get": "list"})),
     path("banners/", BannerViewSet.as_view({"get": "list"})),
     path("ping/", ping, name="ping"),
-    path("review_images/", ReviewImageCreateView.as_view({"post": "create"})),
     path("reviews/", ReviewViewSet.as_view({"get": "list", "post": "create"})),
 ]

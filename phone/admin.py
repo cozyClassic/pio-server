@@ -16,7 +16,6 @@ from .models import (
     FAQ,
     Notice,
     Review,
-    ReviewImage,
     Banner,
 )
 
@@ -196,31 +195,10 @@ class OrderAdmin(SimpleHistoryAdmin):
     history_list_per_page = 100
 
 
-class ReviewImageInline(nested_admin.NestedStackedInline):
-    model = ReviewImage
-    exclude = ("deleted_at",)
-
-    readonly_fields = ("image_preview",)
-
-    # 이미지 미리보기를 위한 커스텀 메서드
-    def image_preview(self, obj):
-        # 이미지가 있을 경우에만 미리보기를 보여줍니다.
-        if obj.image:
-            return format_html(
-                '<img src="{}" style="max-height: 200px; max-width: 200px;" />',
-                obj.image.url,
-            )
-        return "이미지 없음"
-
-    # 메서드에 짧은 설명을 붙여 Admin 페이지에 표시될 이름으로 사용
-    image_preview.short_description = "미리보기"
-
-
 @admin.register(Review)
 class ReviewAdmin(nested_admin.NestedModelAdmin):
     list_display = ("customer_name", "created_at")
     search_fields = ("created_at",)
-    inlines = [ReviewImageInline]
     exclude = ("deleted_at",)
 
 

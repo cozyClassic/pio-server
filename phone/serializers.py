@@ -33,13 +33,6 @@ class ProductListSerializer(serializers.ModelSerializer):
         return option
 
 
-class ReviewImageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ReviewImage
-        fields = ["id", "image"]
-        read_only_fields = ["id", "image"]
-
-
 class ProductDetailSerializer(serializers.ModelSerializer):
     options = serializers.SerializerMethodField()
     device = serializers.SerializerMethodField()
@@ -52,6 +45,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
+            "image_main",
             "options",
             "device",
             "reviews",
@@ -141,21 +135,20 @@ class ProductDetailSerializer(serializers.ModelSerializer):
                 "rating": review.rating,
                 "comment": review.comment,
                 "created_at": review.created_at,
-                "images": [
-                    {
-                        "id": img.id,
-                        "image": img.image.url,
-                        "description": img.description,
-                    }
-                    for img in review.images.all()
-                ],
+                "image": str(review.image),
             }
             for review in reviews
         ]
 
     def get_images(self, obj):
         imgs = [img for img in obj.images.all()]
-        return [img.image.url for img in sorted(imgs, key=lambda x: x.sort_order)]
+        return [
+            {
+                "url": img.image.url,
+                "type": img.type,
+            }
+            for img in sorted(imgs, key=lambda x: x.sort_order)
+        ]
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -224,15 +217,31 @@ class BannerSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "title", "image_pc", "image_mobile", "created_at"]
 
 
-class ReviewImageSerializer(serializers.ModelSerializer):
+class ReviewCreateSerializer(serializers.ModelSerializer):
     class Meta:
-        model = ReviewImage
-        fields = ["id", "image"]
+        model = Review
+        fields = [
+            "product_id",
+            "customer_name",
+            "rating",
+            "comment",
+            "image",
+        ]
+
+    def validate_rating(self, value):
+        """Rating 값 검증 (1-5 사이)"""
+        if not (1 <= value <= 5):
+            raise serializers.ValidationError("Rating must be between 1 and 5.")
+        return value
+
+    def validate_product(self, value):
+        """Product 존재 여부 검증"""
+        if not Product.objects.filter(id=value.id).exists():
+            raise serializers.ValidationError("Product does not exist.")
+        return value
 
 
 class ReviewSerializer(serializers.ModelSerializer):
-    images = serializers.SerializerMethodField()
-    image_ids = serializers.ListField(child=serializers.IntegerField(), write_only=True)
     product_id = serializers.IntegerField()
 
     class Meta:
@@ -244,17 +253,6 @@ class ReviewSerializer(serializers.ModelSerializer):
             "rating",
             "comment",
             "created_at",
-            "images",
-            "image_ids",
+            "image",
         ]
         read_only_fields = ["id", "created_at", "images"]
-
-    def create(self, validated_data):
-        validated_data.pop("images", None)
-        review_image_ids = validated_data.pop("image_ids", [])
-        review = super().create(validated_data)
-        ReviewImage.objects.filter(id__in=review_image_ids).update(review=review)
-        return review
-
-    def get_images(self, obj):
-        return [{"id": img.id, "url": img.image.url} for img in obj.images.all()]

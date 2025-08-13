@@ -225,6 +225,9 @@ class ProductDetailImage(SoftDeleteImageModel):
         "Product", on_delete=models.CASCADE, related_name="images"
     )
     image = models.ImageField(upload_to="product_images/")
+    type = models.CharField(
+        max_length=25, choices=[("pc", "pc"), ("mobile", "mobile")], default="pc"
+    )
     description = models.CharField(max_length=255, blank=True)
     sort_order = models.IntegerField(default=0)
 
@@ -408,14 +411,6 @@ class Banner(SoftDeleteImageModel):
         return self.title
 
 
-class ReviewImage(SoftDeleteImageModel):
-    review = models.ForeignKey(
-        "Review", on_delete=models.CASCADE, related_name="images", null=True
-    )
-    image = models.ImageField(upload_to="review_images/")
-    description = models.CharField(max_length=255, blank=True)
-
-
 class Review(SoftDeleteModel):
     product = models.ForeignKey(
         Product, on_delete=models.CASCADE, related_name="reviews"
@@ -423,6 +418,9 @@ class Review(SoftDeleteModel):
     customer_name = models.CharField(max_length=100)
     rating = models.IntegerField(default=0, help_text="Rating from 1 to 5")
     comment = models.TextField(blank=True, null=True)
+    image = models.ImageField(
+        upload_to="review_images/", blank=True, null=True, help_text="Review image"
+    )
 
     def __str__(self):
         return f"{self.customer_name} - {self.created_at}"
