@@ -41,6 +41,8 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     best_option_id = serializers.IntegerField(
         source="best_price_option_id", read_only=True
     )
+    model_name = serializers.CharField(source="device.model_name", read_only=True)
+    brand = serializers.CharField(source="device.brand", read_only=True)
 
     class Meta:
         model = Product
@@ -51,6 +53,8 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "reviews",
             "images",
             "best_option_id",
+            "model_name",
+            "brand",
         ]
 
     def get_options(self, obj):
@@ -213,8 +217,15 @@ class NoticeSerializer(serializers.ModelSerializer):
 class BannerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Banner
-        fields = ["id", "title", "image_pc", "image_mobile", "created_at"]
-        read_only_fields = ["id", "title", "image_pc", "image_mobile", "created_at"]
+        fields = ["id", "link", "title", "image_pc", "image_mobile", "created_at"]
+        read_only_fields = [
+            "id",
+            "link",
+            "title",
+            "image_pc",
+            "image_mobile",
+            "created_at",
+        ]
 
 
 class ReviewCreateSerializer(serializers.ModelSerializer):

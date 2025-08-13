@@ -45,32 +45,32 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-# ALLOWED_HOSTS = [".elasticbeanstalk.com"]
+ALLOWED_HOSTS = [".elasticbeanstalk.com"]
 
-# # HTTP 환경에서도 작동하도록 설정
-# CSRF_TRUSTED_ORIGINS = [
-#     "http://" + SERVER_HOST + "/",
-#     "https://" + SERVER_HOST + "/",
-#     "http://*.elasticbeanstalk.com/",
-#     "https://*.elasticbeanstalk.com/",  # 혹시 나중에 HTTPS 추가되면
-#     SERVER_HOST,
-# ]
-# CSRF_COOKIE_SECURE = False
-# SESSION_COOKIE_SECURE = False
-# CSRF_COOKIE_HTTPONLY = False
-# CSRF_COOKIE_SAMESITE = "Lax"  # 이 줄 추가
-# SESSION_COOKIE_SAMESITE = "Lax"  # 이 줄 추가
-# CSRF_COOKIE_AGE = 31449600  # 1년 (이 줄 추가)
-# CSRF_USE_SESSIONS = False
+# HTTP 환경에서도 작동하도록 설정
+CSRF_TRUSTED_ORIGINS = [
+    "http://" + SERVER_HOST + "/",
+    "https://" + SERVER_HOST + "/",
+    "http://*.elasticbeanstalk.com/",
+    "https://*.elasticbeanstalk.com/",  # 혹시 나중에 HTTPS 추가되면
+    SERVER_HOST,
+]
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = "Lax"  # 이 줄 추가
+SESSION_COOKIE_SAMESITE = "Lax"  # 이 줄 추가
+CSRF_COOKIE_AGE = 31449600  # 1년 (이 줄 추가)
+CSRF_USE_SESSIONS = False
 
-# # 도메인 설정
-# CSRF_COOKIE_DOMAIN = None
-# SESSION_COOKIE_DOMAIN = None
+# 도메인 설정
+CSRF_COOKIE_DOMAIN = None
+SESSION_COOKIE_DOMAIN = None
 
-# ALLOWED_HOSTS += [
-#     "phoneinone.com/",
-#     SERVER_HOST + "/",
-# ]
+ALLOWED_HOSTS += [
+    "phoneinone.com/",
+    SERVER_HOST + "/",
+]
 
 # Application definition
 
