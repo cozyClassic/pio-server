@@ -92,8 +92,15 @@ class ProductDetailSerializer(serializers.ModelSerializer):
                 {
                     "option_id": op.id,
                     "final_price": op.final_price,
-                    "plan_id": plan.id,
-                    "plan_name": plan.name,
+                    "plan": {
+                        "id": op.plan.id,
+                        "name": op.plan.name,
+                        "price": op.plan.price,
+                        "data_allowance": op.plan.data_allowance,
+                        "call_allowance": op.plan.call_allowance,
+                        "sms_allowance": op.plan.sms_allowance,
+                        "description": op.plan.description,
+                    },
                     "subsidy_standard": op.subsidy_amount,
                     "subsidy_mnp": op.subsidy_amount_mnp,
                     "additional_discount": op.additional_discount,
@@ -147,8 +154,8 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         ]
 
     def get_images(self, obj):
-        imgs = obj.images.all().order_by("sort_order")
-        return [img.image.url for img in imgs]
+        imgs = [img for img in obj.images.all()]
+        return [img.image.url for img in sorted(imgs, key=lambda x: x.sort_order)]
 
 
 class OrderSerializer(serializers.ModelSerializer):
