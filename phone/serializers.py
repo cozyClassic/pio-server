@@ -41,8 +41,6 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     best_option_id = serializers.IntegerField(
         source="best_price_option_id", read_only=True
     )
-    model_name = serializers.CharField(source="device.model_name", read_only=True)
-    brand = serializers.CharField(source="device.brand", read_only=True)
 
     class Meta:
         model = Product
@@ -53,8 +51,6 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "reviews",
             "images",
             "best_option_id",
-            "model_name",
-            "brand",
         ]
 
     def get_options(self, obj):
@@ -110,7 +106,13 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     def get_device(self, obj):
         # device_varaints: [storage_capacity, price]
         # device_colors: {color_name, color_code, [device_color_images]}
-        result = {"device_variants": [], "device_colors": []}
+        result = {
+            "device_variants": [],
+            "device_colors": [],
+            "model_name": obj.device.model_name,
+            "brand": obj.device.brand,
+        }
+
         for dv in obj.device.variants.all():
             result["device_variants"].append(
                 {

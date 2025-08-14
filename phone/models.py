@@ -209,12 +209,14 @@ class ProductOption(SoftDeleteModel):
         super().delete(*args, **kwargs)
 
         # 삭제 후, 최적의 옵션을 다시 업데이트합니다.
-        product.update_best_option_on_delete()  # Product 모델에 정의된 메서드를 호출
+        self.update_product_best_option()  # Product 모델에 정의된 메서드를 호출
 
     def update_product_best_option(self):
         # TODO: 하나의 가격이 바뀌어도 동작해야 하지만, 여러개의 가격이 바뀔 때는 한번만 돌아가야 함
         product = self.product
-        options: QuerySet[ProductOption] = product.options.select_related("plan").all()
+        options: QuerySet[ProductOption] = product.options.select_related(
+            "plan"
+        ).filter(plan__deleted_at__isnull=True)
         best_option = options.order_by("final_price", "plan__price").first()
         product.best_price_option = best_option
         product.save()

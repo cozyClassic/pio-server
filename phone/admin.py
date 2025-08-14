@@ -3,6 +3,7 @@ import nested_admin
 from django.utils.html import format_html
 from simple_history.admin import SimpleHistoryAdmin
 
+
 from .models import (
     Plan,
     Device,
@@ -97,6 +98,10 @@ class ProductOptionsInline(nested_admin.NestedTabularInline):
     exclude = ("deleted_at",)
     readonly_fields = ("final_price",)
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.filter(deleted_at__isnull=True)
+
     def get_formset(self, request, obj=None, **kwargs):
         formset = super().get_formset(request, obj, **kwargs)
 
@@ -120,34 +125,6 @@ class ProductOptionsInline(nested_admin.NestedTabularInline):
 
         formset.form = CustomForm
         return formset
-
-    # def get_formset(self, request, obj=None, **kwargs):
-    #     formset = super().get_formset(request, obj, **kwargs)
-
-    #     # 폼셋이 생성될 때 부모(Product) 객체를 참조하여 필터링합니다.
-    #     if obj and obj.device:
-    #         device_instance = obj.device
-
-    #         class CustomForm(formset.form):
-    #             def __init__(self, *args, **kwargs):
-    #                 super().__init__(*args, **kwargs)
-    #                 self.fields["device_variant"].queryset = (
-    #                     DeviceVariant.objects.filter(device_id=device_instance.id)
-    #                 )
-
-    #         formset.form = CustomForm
-    #     else:
-
-    #         class CustomForm(formset.form):
-    #             def __init__(self, *args, **kwargs):
-    #                 super().__init__(*args, **kwargs)
-    #                 self.fields["device_variant"].queryset = (
-    #                     DeviceVariant.objects.none()
-    #                 )
-
-    #         formset.form = CustomForm
-
-    #     return formset
 
 
 @admin.register(Product)

@@ -81,7 +81,10 @@ class ProductViewSet(ReadOnlyModelViewSet):
             base_queryset.select_related(
                 "device",
             ).prefetch_related(
-                "options",
+                Prefetch(
+                    "options",
+                    queryset=ProductOption.objects.filter(deleted_at__isnull=True),
+                ),
                 "options__plan",
                 "device__variants",
                 "device__colors",
