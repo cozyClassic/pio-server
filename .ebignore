@@ -1,1 +1,35 @@
-.git/*
+# 환경변수 파일들은 배포에서 제외
+.prod.env
+.local.env
+
+# 개발 도구
+.git/
+.gitignore
+README.md
+.DS_Store
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+
+# 테스트
+.coverage
+htmlcov/
+.pytest_cache/
+
+# 불필요한 파일들
+node_modules/
+npm-debug.log
