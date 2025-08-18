@@ -1,0 +1,1 @@
+web: gunicorn --bind :8000 --workers 3 phoneinone_server.wsgi:application

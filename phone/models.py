@@ -1,7 +1,12 @@
 from django.db import models
+
 from django.utils import timezone
 from django.db.models import QuerySet
 from simple_history.models import HistoricalRecords
+from threading import local
+
+# Thread-local storage for tracking products that need updates
+_thread_locals = local()
 
 
 # Create your models here.
@@ -199,24 +204,42 @@ class ProductOption(SoftDeleteModel):
 
     def save(self, *args, **kwargs):
         self.final_price = self.get_final_price()
-        # 먼저 객체를 저장합니다.
         super().save(*args, **kwargs)
-        # 저장 후, 최적의 옵션을 찾아 Product 모델을 업데이트합니다.
-        self.update_product_best_option()
 
-    def delete(self, *args, **kwargs):
-        product = self.product
-        super().delete(*args, **kwargs)
+    @classmethod
+    def _get_pending_products(cls):
+        """현재 트랜잭션에서 업데이트가 필요한 제품들을 반환"""
+        if not hasattr(_thread_locals, "pending_products"):
+            _thread_locals.pending_products = set()
+        return _thread_locals.pending_products
 
-        # 삭제 후, 최적의 옵션을 다시 업데이트합니다.
-        self.update_product_best_option()  # Product 모델에 정의된 메서드를 호출
+    @classmethod
+    def _add_pending_product(cls, product_id):
+        """업데이트가 필요한 제품 ID를 추가"""
+        cls._get_pending_products().add(product_id)
 
-    def update_product_best_option(self):
-        # TODO: 하나의 가격이 바뀌어도 동작해야 하지만, 여러개의 가격이 바뀔 때는 한번만 돌아가야 함
-        product = self.product
-        options: QuerySet[ProductOption] = product.options.select_related(
-            "plan"
-        ).filter(plan__deleted_at__isnull=True)
+    @classmethod
+    def _update_pending_products(cls):
+        """대기 중인 모든 제품들의 best_option을 업데이트"""
+        from .models import Product  # 순환 import 방지
+
+        pending_product_ids = cls._get_pending_products()
+        if not pending_product_ids:
+            return
+
+        products = Product.objects.filter(id__in=pending_product_ids)
+        for product in products:
+            cls._update_product_best_option(product)
+
+        # 처리 완료 후 초기화
+        _thread_locals.pending_products.clear()
+
+    @classmethod
+    def _update_product_best_option(cls, product):
+        """특정 제품의 최적 옵션을 업데이트"""
+        options = product.options.select_related("plan").filter(
+            plan__deleted_at__isnull=True
+        )
         best_option = options.order_by("final_price", "plan__price").first()
         product.best_price_option = best_option
         product.save()

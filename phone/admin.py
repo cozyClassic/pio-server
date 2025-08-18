@@ -2,7 +2,8 @@ from django.contrib import admin
 import nested_admin
 from django.utils.html import format_html
 from simple_history.admin import SimpleHistoryAdmin
-
+from django.db.models import Prefetch
+from django import forms
 
 from .models import (
     Plan,
@@ -98,33 +99,47 @@ class ProductOptionsInline(nested_admin.NestedTabularInline):
     exclude = ("deleted_at",)
     readonly_fields = ("final_price",)
 
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.filter(deleted_at__isnull=True)
-
     def get_formset(self, request, obj=None, **kwargs):
-        formset = super().get_formset(request, obj, **kwargs)
+        formset_class = super().get_formset(request, obj, **kwargs)
 
-        # 미리 필요한 데이터를 모두 캐싱
-        device_variants_queryset = DeviceVariant.objects.none()
-        all_plans_queryset = (
-            Plan.objects.all().select_related()
-        )  # 모든 Plan을 미리 로드
-
+        # queryset을 미리 평가해서 실제 객체들로 만들기
         if obj and obj.device:
-            device_variants_queryset = DeviceVariant.objects.filter(
-                device_id=obj.device.id
+            device_variants_qs = DeviceVariant.objects.filter(
+                device_id=obj.device.id, deleted_at__isnull=True
             ).select_related("device")
+            # 중요: list()로 완전히 평가
+            device_variants_list = list(device_variants_qs)
+        else:
+            device_variants_list = []
 
-        class CustomForm(formset.form):
+        plans_qs = Plan.objects.filter(deleted_at__isnull=True)
+        plans_list = list(plans_qs)  # 완전히 평가
+
+        class CustomForm(formset_class.form):
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
-                # 미리 조회된 queryset들을 재사용
-                self.fields["device_variant"].queryset = device_variants_queryset
-                self.fields["plan"].queryset = all_plans_queryset
 
-        formset.form = CustomForm
-        return formset
+                # 이미 평가된 객체들로 새로운 queryset 만들기
+                if device_variants_list:
+                    device_variant_ids = [dv.id for dv in device_variants_list]
+                    self.fields["device_variant"].queryset = (
+                        DeviceVariant.objects.filter(
+                            id__in=device_variant_ids
+                        ).select_related("device")
+                    )
+                else:
+                    self.fields["device_variant"].queryset = (
+                        DeviceVariant.objects.none()
+                    )
+
+                if plans_list:
+                    plan_ids = [p.id for p in plans_list]
+                    self.fields["plan"].queryset = Plan.objects.filter(id__in=plan_ids)
+                else:
+                    self.fields["plan"].queryset = Plan.objects.none()
+
+        formset_class.form = CustomForm
+        return formset_class
 
 
 @admin.register(Product)
@@ -139,7 +154,20 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
         return (
             queryset.filter(deleted_at__isnull=True)
             .select_related("device")
-            .prefetch_related("options", "options__plan", "options__device_variant")
+            .prefetch_related(
+                Prefetch(
+                    "options",
+                    queryset=ProductOption.objects.filter(deleted_at__isnull=True),
+                ),
+                Prefetch(
+                    "options__plan",
+                    queryset=Plan.objects.filter(deleted_at__isnull=True),
+                ),
+                Prefetch(
+                    "options__device_variant",
+                    queryset=DeviceVariant.objects.filter(deleted_at__isnull=True),
+                ),
+            )
         )
 
 

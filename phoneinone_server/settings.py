@@ -12,28 +12,22 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import os
 from pathlib import Path
-import environ
 
-server_env = "dev"
-env = environ.Env(DEBUG=(bool, False))
-
-if server_env == "dev":
-    environ.Env.read_env(".dev.env")
-elif server_env == "prod":
-    environ.Env.read_env(".prod.env")
-else:
-    environ.Env.read_env(".local.env")
-
-AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY")
-AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME")
-AWS_CLOUDFRONT_DOMAIN = env("AWS_CLOUDFRONT_DOMAIN")
-REVIEW_UPLOAD_KEY = env("REVIEW_UPLOAD_KEY")
-AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME")
-AWS_CLOUDFRONT_KEY_ID = env("AWS_CLOUDFRONT_KEY_ID")
+AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
+AWS_STORAGE_BUCKET_NAME = os.environ.get("AWS_STORAGE_BUCKET_NAME")
+AWS_CLOUDFRONT_DOMAIN = os.environ.get("AWS_CLOUDFRONT_DOMAIN")
+REVIEW_UPLOAD_KEY = os.environ.get("REVIEW_UPLOAD_KEY")
+AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME")
+AWS_CLOUDFRONT_KEY_ID = os.environ.get("AWS_CLOUDFRONT_KEY_ID")
 AWS_CLOUDFRONT_KEY = open("cloudfront_private_key.pem").read()
-SECRET_KEY = env("DJANGO_SECRET_KEY")
-SERVER_HOST = env("SERVER_HOST", default="localhost:8000")
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
+SERVER_HOST = os.environ.get("SERVER_HOST", default="localhost:8000")
+DB_NAME = os.environ.get("DB_NAME", default="postgres")
+DB_USER = os.environ.get("DB_USER", default="postgres")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", default="1234")
+DB_HOST = os.environ.get("DB_HOST", default="localhost")
+DB_PORT = os.environ.get("DB_PORT", default="5432")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -43,31 +37,51 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
+
+is_local = False
+
+if is_local:
+    import environ
+
+    env = environ.Env(DEBUG=(bool, False))
+    DEBUG = True
+    environ.Env.read_env(os.path.join(BASE_DIR, ".local.env"))
+    AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID")
+    AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY")
+    AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME")
+    AWS_CLOUDFRONT_DOMAIN = env("AWS_CLOUDFRONT_DOMAIN")
+    REVIEW_UPLOAD_KEY = env("REVIEW_UPLOAD_KEY")
+    AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME")
+    AWS_CLOUDFRONT_KEY_ID = env("AWS_CLOUDFRONT_KEY_ID")
+    AWS_CLOUDFRONT_KEY = open("cloudfront_private_key.pem").read()
+    SECRET_KEY = env("DJANGO_SECRET_KEY")
+    SERVER_HOST = env("SERVER_HOST", default="localhost:8000")
+    DB_NAME = env("DB_NAME", default="postgres")
+    DB_USER = env("DB_USER", default="postgres")
+    DB_PASSWORD = env("DB_PASSWORD", default="1234")
+    DB_HOST = env("DB_HOST", default="localhost")
+    DB_PORT = env("DB_PORT", default="5432")
 
 ALLOWED_HOSTS = [".elasticbeanstalk.com"]
 
 # HTTP 환경에서도 작동하도록 설정
 CSRF_TRUSTED_ORIGINS = [
+    "server.phoneinone.com",
+    "phoneinone.com",
     "http://" + SERVER_HOST + "/",
     "https://" + SERVER_HOST + "/",
     "http://*.elasticbeanstalk.com/",
     "https://*.elasticbeanstalk.com/",  # 혹시 나중에 HTTPS 추가되면
     SERVER_HOST,
 ]
-CSRF_COOKIE_SECURE = False
-SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_HTTPONLY = False
-CSRF_COOKIE_SAMESITE = "Lax"  # 이 줄 추가
-SESSION_COOKIE_SAMESITE = "Lax"  # 이 줄 추가
-CSRF_COOKIE_AGE = 31449600  # 1년 (이 줄 추가)
-CSRF_USE_SESSIONS = False
 
 # 도메인 설정
 CSRF_COOKIE_DOMAIN = None
 SESSION_COOKIE_DOMAIN = None
 
 ALLOWED_HOSTS += [
+    "server.phoneinone.com",
     "phoneinone.com/",
     SERVER_HOST + "/",
 ]
@@ -125,11 +139,11 @@ WSGI_APPLICATION = "phoneinone_server.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": env("DB_NAME", default="postgres"),
-        "USER": env("DB_USER", default="postgres"),
-        "PASSWORD": env("DB_PASSWORD", default="1234"),
-        "HOST": env("DB_HOST", default="localhost"),
-        "PORT": env("DB_PORT", default="5432"),
+        "NAME": DB_NAME,
+        "USER": DB_USER,
+        "PASSWORD": DB_PASSWORD,
+        "HOST": DB_HOST,
+        "PORT": DB_PORT,
     }
 }
 

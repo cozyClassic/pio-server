@@ -2,5 +2,10 @@ from django.apps import AppConfig
 
 
 class PhoneConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'phone'
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "phone"
+
+    def ready(self):
+        import phone.signals
+
+        return super().ready()
