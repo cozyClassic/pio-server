@@ -114,7 +114,7 @@ class DeviceVariant(SoftDeleteModel):
     device_price = models.IntegerField(default=0, help_text="Price in KRW")
 
     def __str__(self):
-        return f"{self.device.model_name} - {self.storage_capacity}"
+        return f"{self.storage_capacity}"
 
     # 가격이 업데이트 되면 연결된 product 옵션들도 가격을 업데이트해야 합니다.
     def save(self, *args, **kwargs):
@@ -125,7 +125,7 @@ class DeviceVariant(SoftDeleteModel):
         )
 
         for option in product_options:
-            option.final_price = option.get_final_price()
+            option.final_price = option._get_final_price()
             option.save()
 
 
@@ -185,7 +185,7 @@ class ProductOption(SoftDeleteModel):
     def __str__(self):
         return f"{self.discount_type}/{self.contract_type}"
 
-    def get_final_price(self):
+    def _get_final_price(self):
         """
         Calculate the final price based on the discount type and contract type.
         """
@@ -203,7 +203,7 @@ class ProductOption(SoftDeleteModel):
         return final_price
 
     def save(self, *args, **kwargs):
-        self.final_price = self.get_final_price()
+        self.final_price = self._get_final_price()
         super().save(*args, **kwargs)
 
     @classmethod
@@ -282,6 +282,7 @@ class Product(SoftDeleteModel):
     description = models.TextField(default="", blank=True)
     sort_order = models.IntegerField(default=0, help_text="정렬 순서")
     is_featured = models.BooleanField(default=False, help_text="추천 상품 여부")
+    is_active = models.BooleanField(default=False, help_text="활성화 여부")
 
     def __str__(self):
         return f"{self.name}"

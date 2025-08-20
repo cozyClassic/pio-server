@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 
+ENVIRON = os.environ.get("ENVIRON", "local")
 AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
 AWS_STORAGE_BUCKET_NAME = os.environ.get("AWS_STORAGE_BUCKET_NAME")
@@ -20,7 +21,11 @@ AWS_CLOUDFRONT_DOMAIN = os.environ.get("AWS_CLOUDFRONT_DOMAIN")
 REVIEW_UPLOAD_KEY = os.environ.get("REVIEW_UPLOAD_KEY")
 AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME")
 AWS_CLOUDFRONT_KEY_ID = os.environ.get("AWS_CLOUDFRONT_KEY_ID")
-AWS_CLOUDFRONT_KEY = open("cloudfront_private_key.pem").read()
+AWS_CLOUDFRONT_KEY_PATH = os.environ.get("AWS_CLOUDFRONT_KEY_PATH")
+if AWS_CLOUDFRONT_KEY_PATH:
+    AWS_CLOUDFRONT_KEY = open(AWS_CLOUDFRONT_KEY_PATH).read()
+else:
+    AWS_CLOUDFRONT_KEY = open("cloudfront_private_key.pem").read()
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 SERVER_HOST = os.environ.get("SERVER_HOST", default="localhost:8000")
 DB_NAME = os.environ.get("DB_NAME", default="postgres")
@@ -39,9 +44,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
-is_local = False
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+STATIC_URL = "/static/"
 
-if is_local:
+if ENVIRON == "production":
+    STATIC_URL = f"https://{AWS_CLOUDFRONT_DOMAIN}/static/"
+
+
+else:
+    CSRF_COOKIE_DOMAIN = None
+    SESSION_COOKIE_DOMAIN = None
+
+
+if ENVIRON == "local":
     import environ
 
     env = environ.Env(DEBUG=(bool, False))
@@ -63,28 +78,22 @@ if is_local:
     DB_HOST = env("DB_HOST", default="localhost")
     DB_PORT = env("DB_PORT", default="5432")
 
-ALLOWED_HOSTS = [".elasticbeanstalk.com"]
-
 # HTTP 환경에서도 작동하도록 설정
 CSRF_TRUSTED_ORIGINS = [
+    "https://server.phoneinone.com",
+    "https://phoneinone.com",
+    "http://" + SERVER_HOST + "",
+]
+
+ALLOWED_HOSTS = [
     "server.phoneinone.com",
     "phoneinone.com",
-    "http://" + SERVER_HOST + "/",
-    "https://" + SERVER_HOST + "/",
-    "http://*.elasticbeanstalk.com/",
-    "https://*.elasticbeanstalk.com/",  # 혹시 나중에 HTTPS 추가되면
-    SERVER_HOST,
+    SERVER_HOST.replace("http://", "").replace("https://", "").rstrip("/"),
 ]
 
-# 도메인 설정
-CSRF_COOKIE_DOMAIN = None
-SESSION_COOKIE_DOMAIN = None
-
-ALLOWED_HOSTS += [
-    "server.phoneinone.com",
-    "phoneinone.com/",
-    SERVER_HOST + "/",
-]
+if ENVIRON == "local":
+    ALLOWED_HOSTS.append("localhost")
+    ALLOWED_HOSTS.append("127.0.0.1")
 
 # Application definition
 
@@ -179,12 +188,6 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
-STATIC_URL = "static/"
-STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
-
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
@@ -195,7 +198,9 @@ REST_FRAMEWORK = {
     # or allow read-only access for unauthenticated users.
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly"
-    ]
+    ],
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
+    "PAGE_SIZE": 20,
 }
 
 LOGGING = {
@@ -234,3 +239,5 @@ STORAGES = {
         "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
     },
 }
+
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 2000

@@ -255,17 +255,27 @@ class ReviewCreateSerializer(serializers.ModelSerializer):
 
 
 class ReviewSerializer(serializers.ModelSerializer):
-    product_id = serializers.IntegerField()
+    product = serializers.SerializerMethodField()
 
     class Meta:
         model = Review
         fields = [
             "id",
-            "product_id",
             "customer_name",
             "rating",
             "comment",
             "created_at",
             "image",
+            "product",
         ]
         read_only_fields = ["id", "created_at", "images"]
+
+    def get_product(self, obj):
+        if obj.product is None or obj.product.deleted_at is not None:
+            return None
+
+        return {
+            "id": obj.product.id,
+            "name": obj.product.name,
+            "image": str(obj.product.image_main) if obj.product.image_main else None,
+        }

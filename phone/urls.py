@@ -20,6 +20,7 @@ urlpatterns = [
     path("orders/", OrderViewSet.as_view({"get": "list", "post": "create"})),
     path("faqs/", FAQViewSet.as_view({"get": "list"})),
     path("notices/", NoticeViewSet.as_view({"get": "list"})),
+    path("notices/<int:pk>/", NoticeViewSet.as_view({"get": "retrieve"})),
     path("banners/", BannerViewSet.as_view({"get": "list"})),
     path("ping/", ping, name="ping"),
     path("reviews/", ReviewViewSet.as_view({"get": "list", "post": "create"})),

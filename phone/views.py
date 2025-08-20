@@ -8,7 +8,7 @@ from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import mixins, status
 from django.db.models import Prefetch
-import bcrypt
+from rest_framework.pagination import PageNumberPagination
 
 
 # Create your views here.
@@ -32,7 +32,7 @@ class ProductViewSet(ReadOnlyModelViewSet):
     """
 
     serializer_class = ProductListSerializer
-    queryset = Product.objects.all().filter(deleted_at__isnull=True)
+    queryset = Product.objects.filter(deleted_at__isnull=True, is_active=True).all()
 
     def get_queryset(self):
         return self.queryset
@@ -199,6 +199,14 @@ class NoticeViewSet(ReadOnlyModelViewSet):
 
         return Response(self.get_serializer(base_queryset, many=True).data)
 
+    def retrieve(self, request, *args, **kwargs):
+        base_queryset = self.get_queryset().filter(id=kwargs.get("pk"))
+
+        if not base_queryset.exists():
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        return Response(self.get_serializer(base_queryset, many=True).data)
+
 
 class BannerViewSet(ReadOnlyModelViewSet):
     serializer_class = BannerSerializer
@@ -209,15 +217,14 @@ class BannerViewSet(ReadOnlyModelViewSet):
 
 class ReviewViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewSet):
     serializer_class = ReviewSerializer
+    pagination_class = PageNumberPagination
     queryset = (
-        Review.objects.all().filter(deleted_at__isnull=True).order_by("-created_at")
+        Review.objects.all()
+        .filter(deleted_at__isnull=True)
+        .select_related("product")
+        .order_by("-created_at")
     )
     parser_classes = [MultiPartParser, FormParser]
-
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
 
     @swagger_auto_schema(
         operation_summary="리뷰 생성",

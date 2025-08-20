@@ -2,7 +2,8 @@ from django.contrib import admin
 import nested_admin
 from django.utils.html import format_html
 from simple_history.admin import SimpleHistoryAdmin
-from django.db.models import Prefetch
+from django.db.models import Prefetch, F
+from django.contrib import admin
 from django import forms
 
 from .models import (
@@ -41,7 +42,7 @@ class PlanAdmin(commonAdmin):
 # 2. DevicesColorImages 모델을 위한 인라인 클래스
 class DeviceImagesInline(nested_admin.NestedStackedInline):
     model = DevicesColorImage
-    extra = 1
+    extra = 0
     exclude = ("deleted_at",)
 
     readonly_fields = ("image_preview",)
@@ -66,7 +67,7 @@ class DeviceImagesInline(nested_admin.NestedStackedInline):
 
 class ColorsInline(nested_admin.NestedStackedInline):
     model = DeviceColor
-    extra = 1  # 기본으로 1개의 빈 폼을 더 보여줍니다.
+    extra = 0  # 기본으로 1개의 빈 폼을 더 보여줍니다.
     # SoftDeleteModel의 deleted_at 필드를 숨깁니다.
     exclude = ("deleted_at",)
 
@@ -97,49 +98,69 @@ class ProductOptionsInline(nested_admin.NestedTabularInline):
     model = ProductOption
     extra = 0
     exclude = ("deleted_at",)
-    readonly_fields = ("final_price",)
+    readonly_fields = (
+        "device_storage",
+        "final_price",
+        "custom_plan_carrier",
+        "custom_plan_name",
+        "discount_type",
+        "contract_type",
+        "subsidy_amount",
+        "subsidy_amount_mnp",
+        "additional_discount",
+    )
 
-    def get_formset(self, request, obj=None, **kwargs):
-        formset_class = super().get_formset(request, obj, **kwargs)
+    # 필드 순서 지정 (커스텀 필드들 포함)
+    fields = (
+        "device_storage",
+        "custom_plan_carrier",
+        "discount_type",
+        "contract_type",
+        "custom_plan_name",
+        "subsidy_amount",
+        "subsidy_amount_mnp",
+        "additional_discount",
+        "final_price",
+    )
 
-        # queryset을 미리 평가해서 실제 객체들로 만들기
-        if obj and obj.device:
-            device_variants_qs = DeviceVariant.objects.filter(
-                device_id=obj.device.id, deleted_at__isnull=True
-            ).select_related("device")
-            # 중요: list()로 완전히 평가
-            device_variants_list = list(device_variants_qs)
-        else:
-            device_variants_list = []
+    def custom_plan_carrier(self, obj):
+        """올바른 방법: select_related로 이미 로드된 데이터 사용"""
+        if not obj or not obj.plan:
+            return "-"
+        return obj.plan.carrier
 
-        plans_qs = Plan.objects.filter(deleted_at__isnull=True)
-        plans_list = list(plans_qs)  # 완전히 평가
+    custom_plan_carrier.short_description = "통신사"
 
-        class CustomForm(formset_class.form):
-            def __init__(self, *args, **kwargs):
-                super().__init__(*args, **kwargs)
+    def custom_plan_name(self, obj):
+        """올바른 방법: select_related로 이미 로드된 데이터 사용"""
+        if not obj or not obj.plan:
+            return "-"
+        return obj.plan.name
 
-                # 이미 평가된 객체들로 새로운 queryset 만들기
-                if device_variants_list:
-                    device_variant_ids = [dv.id for dv in device_variants_list]
-                    self.fields["device_variant"].queryset = (
-                        DeviceVariant.objects.filter(
-                            id__in=device_variant_ids
-                        ).select_related("device")
-                    )
-                else:
-                    self.fields["device_variant"].queryset = (
-                        DeviceVariant.objects.none()
-                    )
+    def device_storage(self, obj):
+        """N+1 방지: select_related된 device_variant 사용"""
+        if not obj or not obj.device_variant:
+            return "-"
+        # device_variant와 device도 이미 로드되어 있음
+        return (
+            f"{obj.device_variant.storage_capacity} ({obj.device_variant.device.brand})"
+        )
 
-                if plans_list:
-                    plan_ids = [p.id for p in plans_list]
-                    self.fields["plan"].queryset = Plan.objects.filter(id__in=plan_ids)
-                else:
-                    self.fields["plan"].queryset = Plan.objects.none()
+    device_storage.short_description = "저장용량 (브랜드)"
 
-        formset_class.form = CustomForm
-        return formset_class
+    # N+1 문제 해결을 위한 핵심: get_queryset 오버라이드
+    def get_queryset(self, request):
+        """
+        Inline에서 사용할 queryset을 미리 최적화
+        이렇게 하면 커스텀 필드에서 obj.plan.carrier 같은 접근이 추가 쿼리를 발생시키지 않음
+        """
+        queryset = super().get_queryset(request)
+        return queryset.select_related(
+            "device_variant__device",  # device_variant와 device 함께 로드
+            "plan",  # plan도 함께 로드
+        ).prefetch_related(
+            # 추가로 필요한 관계가 있다면 여기에 추가
+        )
 
 
 @admin.register(Product)
@@ -152,20 +173,23 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
         return (
-            queryset.filter(deleted_at__isnull=True)
-            .select_related("device")
+            queryset.filter(deleted_at__isnull=True).select_related("device")
+            # N+1 문제 해결을 위한 최적화된 prefetch
             .prefetch_related(
                 Prefetch(
                     "options",
-                    queryset=ProductOption.objects.filter(deleted_at__isnull=True),
-                ),
-                Prefetch(
-                    "options__plan",
-                    queryset=Plan.objects.filter(deleted_at__isnull=True),
-                ),
-                Prefetch(
-                    "options__device_variant",
-                    queryset=DeviceVariant.objects.filter(deleted_at__isnull=True),
+                    queryset=ProductOption.objects.filter(deleted_at__isnull=True)
+                    .select_related(
+                        "device_variant__device",
+                        "plan",  # 필요한 관계들을 모두 포함
+                        "product",
+                    )
+                    .order_by(
+                        "plan__carrier",
+                        "discount_type",
+                        "contract_type",
+                        "plan__price",
+                    ),
                 ),
             )
         )
