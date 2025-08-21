@@ -47,6 +47,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
+            "id",
             "image_main",
             "options",
             "device",
@@ -176,8 +177,8 @@ class OrderSerializer(serializers.ModelSerializer):
             "contract_type",
             "device_price",
             "plan_monthly_fee",
-            "subsidy_amount",
-            "subsidy_amount_mnp",
+            "subsidy_standard",
+            "subsidy_mnp",
             "final_price",
             "discount_type",
             "monthly_discount",
@@ -193,6 +194,8 @@ class OrderSerializer(serializers.ModelSerializer):
             "shipping_address_detail",
             "zipcode",
             "shipping_number",
+            "payment_period",
+            "customer_birth",
         ]
 
         read_only_fields = [

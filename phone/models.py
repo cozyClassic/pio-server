@@ -253,16 +253,12 @@ class ProductOption(SoftDeleteModel):
     @classmethod
     def _update_product_best_option(cls, product):
         """특정 제품의 최적 옵션을 업데이트"""
-        options = product.options.select_related("plan").filter(
-            plan__deleted_at__isnull=True
+        best_option = (
+            product.options.select_related("plan")
+            .filter(plan__deleted_at__isnull=True)
+            .order_by("final_price")
+            .first()
         )
-        best_option = None
-        total_discount = 0
-        for option in options:
-            option_total_discount = option._get_total_discount()
-            if option_total_discount > total_discount:
-                total_discount = option_total_discount
-                best_option = option
 
         product.best_price_option = best_option
         product.save()

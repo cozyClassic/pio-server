@@ -155,13 +155,15 @@ class OrderViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewSe
             customer_phone=customer_phone,
             customer_phone2=customer_phone2,
             customer_email=body.get("customer_email"),
+            customer_birth=body.get("customer_birth"),
             product_id=body.get("product_id"),
             plan_id=body.get("plan_id"),
             contract_type=body.get("contract_type"),
             device_price=body.get("device_price"),
             plan_monthly_fee=body.get("plan_monthly_fee"),
-            subsidy_amount=body.get("subsidy_amount"),
-            subsidy_amount_mnp=body.get("subsidy_amount_mnp"),
+            subsidy_standard=body.get("subsidy_standard"),
+            subsidy_mnp=body.get("subsidy_mnp"),
+            payment_period=body.get("payment_period"),
             final_price=body.get("final_price"),
             discount_type=body.get("discount_type"),
             monthly_discount=body.get("monthly_discount"),
@@ -169,6 +171,9 @@ class OrderViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewSe
             storage_capacity=body.get("storage_capacity"),
             color=body.get("color"),
             customer_memo=body.get("customer_memo"),
+            shipping_address=body.get("shipping_address"),
+            shipping_address_detail=body.get("shipping_address_detail"),
+            zipcode=body.get("zipcode"),
         )
         new_order.save()
         return Response({"id": new_order.id}, status=201)
