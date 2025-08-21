@@ -256,7 +256,7 @@ class ProductOption(SoftDeleteModel):
         options = product.options.select_related("plan").filter(
             plan__deleted_at__isnull=True
         )
-        best_option = options[0]
+        best_option = None
         total_discount = 0
         for option in options:
             option_total_discount = option._get_total_discount()
@@ -358,12 +358,12 @@ class Order(SoftDeleteModel):
     )
     storage_capacity = models.IntegerField(default=0)
     color = models.CharField(max_length=50, blank=True, null=True)
-    subsidy_amount = models.IntegerField(
+    subsidy_standard = models.IntegerField(
         help_text="공시지원금",
         null=True,
         blank=True,
     )
-    subsidy_amount_mnp = models.IntegerField(
+    subsidy_mnp = models.IntegerField(
         help_text="전환지원금",
         null=True,
         blank=True,
