@@ -447,6 +447,7 @@ class Review(SoftDeleteModel):
     image = models.ImageField(
         upload_to="review_images/", blank=True, null=True, help_text="Review image"
     )
+    is_public = models.BooleanField(default=False, help_text="Is the review public?")
 
     def __str__(self):
         return f"{self.customer_name} - {self.created_at}"

@@ -92,9 +92,9 @@ class ProductViewSet(ReadOnlyModelViewSet):
                 "images",
                 Prefetch(
                     "reviews",
-                    queryset=Review.objects.filter(deleted_at__isnull=True).order_by(
-                        "-created_at"
-                    )[:10],
+                    queryset=Review.objects.filter(
+                        deleted_at__isnull=True, is_public=True
+                    ).order_by("-created_at")[:10],
                     to_attr="limited_reviews",
                 ),
             )
@@ -220,7 +220,7 @@ class ReviewViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewS
     pagination_class = PageNumberPagination
     queryset = (
         Review.objects.all()
-        .filter(deleted_at__isnull=True)
+        .filter(deleted_at__isnull=True, is_public=True)
         .select_related("product")
         .order_by("-created_at")
     )
