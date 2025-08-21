@@ -233,6 +233,8 @@ class BannerSerializer(serializers.ModelSerializer):
 
 
 class ReviewCreateSerializer(serializers.ModelSerializer):
+    product_id = serializers.IntegerField(write_only=True)  # 명시적으로 정의
+
     class Meta:
         model = Review
         fields = [
@@ -249,9 +251,14 @@ class ReviewCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Rating must be between 1 and 5.")
         return value
 
-    def validate_product(self, value):
-        """Product 존재 여부 검증"""
-        if not Product.objects.filter(id=value.id).exists():
+    def validate_product_id(self, value):
+        if isinstance(value, str):
+            try:
+                value = int(value)
+            except ValueError:
+                raise serializers.ValidationError("Invalid product_id format.")
+
+        if not Product.objects.filter(id=value).exists():
             raise serializers.ValidationError("Product does not exist.")
         return value
 

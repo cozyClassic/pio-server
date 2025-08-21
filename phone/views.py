@@ -287,13 +287,8 @@ class ReviewViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewS
         tags=["Reviews"],
     )
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        serializer = ReviewCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        serializer.save()
 
-        # 리뷰 생성
-        review = serializer.save()
-
-        # 생성된 리뷰를 DetailSerializer로 응답
-        response_serializer = ReviewCreateSerializer(review)
-
-        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
