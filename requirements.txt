@@ -15,6 +15,8 @@ cryptography==45.0.6
 decorator==5.2.1
 Deprecated==1.2.18
 Django==5.2.5
+Django==5.2.5
+django-cors-headers==4.7.0
 django-ebhealthcheck==2.0.2
 django-environ==0.12.0
 django-nested-admin==4.1.1
