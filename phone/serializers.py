@@ -22,6 +22,8 @@ class ProductListSerializer(serializers.ModelSerializer):
         ]
 
     def get_best_price_option(self, obj):
+        if obj.best_price_option is None:
+            return {}
         option = {
             "device_price": obj.best_price_option.device_variant.device_price,
             "final_price": obj.best_price_option.final_price,

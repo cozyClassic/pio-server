@@ -53,7 +53,7 @@ class ProductViewSet(ReadOnlyModelViewSet):
         """
         Override the list method to return products with their best price options.
         """
-        base_queryset = self.get_queryset()
+        base_queryset = self.get_queryset().filter(best_price_option_id__isnull=False)
         if brand_query := self.request.query_params.get("brand", None):
             base_queryset = base_queryset.filter(device__brand=brand_query)
 
