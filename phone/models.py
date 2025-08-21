@@ -197,8 +197,6 @@ class ProductOption(SoftDeleteModel):
             final_price -= get_int_or_zero(self.subsidy_amount)
             if self.contract_type == "번호이동":
                 final_price -= get_int_or_zero(self.subsidy_amount_mnp)
-        elif self.discount_type == "선택약정":
-            final_price -= get_int_or_zero(self.plan.price) * 6
 
         return final_price
 
@@ -234,13 +232,38 @@ class ProductOption(SoftDeleteModel):
         # 처리 완료 후 초기화
         _thread_locals.pending_products.clear()
 
+    def _get_total_discount(self):
+        if self.discount_type == "공시지원금":
+            total_discount = (
+                get_int_or_zero(self.subsidy_amount_mnp)
+                if self.contract_type == "번호이동"
+                else 0
+            )
+            return (
+                total_discount
+                + get_int_or_zero(self.subsidy_amount)
+                + get_int_or_zero(self.additional_discount)
+            )
+        elif self.discount_type == "선택약정":
+            return get_int_or_zero(self.plan.price) * 6 + get_int_or_zero(
+                self.additional_discount
+            )
+        return 0
+
     @classmethod
     def _update_product_best_option(cls, product):
         """특정 제품의 최적 옵션을 업데이트"""
         options = product.options.select_related("plan").filter(
             plan__deleted_at__isnull=True
         )
-        best_option = options.order_by("final_price", "plan__price").first()
+        best_option = options[0]
+        total_discount = 0
+        for option in options:
+            option_total_discount = option._get_total_discount()
+            if option_total_discount > total_discount:
+                total_discount = option_total_discount
+                best_option = option
+
         product.best_price_option = best_option
         product.save()
 
@@ -317,6 +340,16 @@ class Order(SoftDeleteModel):
             ("기기변경", "기기변경"),
         ],
         default="기기변경",
+    )
+    payment_period = models.CharField(
+        max_length=50,
+        choices=[
+            ("24개월", "24개월"),
+            ("30개월", "30개월"),
+            ("36개월", "36개월"),
+            ("일시불", "일시불"),
+        ],
+        default="24개월",
     )
     device_price = models.IntegerField(
         help_text="기기 가격",
