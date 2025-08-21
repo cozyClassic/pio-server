@@ -81,7 +81,9 @@ if ENVIRON == "local":
 # HTTP 환경에서도 작동하도록 설정
 CSRF_TRUSTED_ORIGINS = [
     "https://server.phoneinone.com",
+    "https://test.phoneinone.com",
     "https://phoneinone.com",
+    "https://www.phoneinone.com",
     "http://" + SERVER_HOST + "",
 ]
 
@@ -125,8 +127,10 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
+    "https://www.phoneinone.com",
     "https://phoneinone.com",
     "https://server.phoneinone.com",
+    "https://settings.phoneinone.com",
 ]
 
 if ENVIRON == "local":
