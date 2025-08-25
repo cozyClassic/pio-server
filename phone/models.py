@@ -227,41 +227,10 @@ class ProductOption(SoftDeleteModel):
 
         products = Product.objects.filter(id__in=pending_product_ids)
         for product in products:
-            cls._update_product_best_option(product)
+            product._update_product_best_option()
 
         # 처리 완료 후 초기화
         _thread_locals.pending_products.clear()
-
-    def _get_total_discount(self):
-        if self.discount_type == "공시지원금":
-            total_discount = (
-                get_int_or_zero(self.subsidy_amount_mnp)
-                if self.contract_type == "번호이동"
-                else 0
-            )
-            return (
-                total_discount
-                + get_int_or_zero(self.subsidy_amount)
-                + get_int_or_zero(self.additional_discount)
-            )
-        elif self.discount_type == "선택약정":
-            return get_int_or_zero(self.plan.price) * 6 + get_int_or_zero(
-                self.additional_discount
-            )
-        return 0
-
-    @classmethod
-    def _update_product_best_option(cls, product):
-        """특정 제품의 최적 옵션을 업데이트"""
-        best_option = (
-            product.options.select_related("plan")
-            .filter(plan__deleted_at__isnull=True)
-            .order_by("final_price")
-            .first()
-        )
-
-        product.best_price_option = best_option
-        product.save()
 
 
 class ProductDetailImage(SoftDeleteImageModel):
@@ -305,6 +274,17 @@ class Product(SoftDeleteModel):
 
     def __str__(self):
         return f"{self.name}"
+
+    def _update_product_best_option(self):
+        best_option = (
+            self.options.select_related("plan")
+            .filter(plan__deleted_at__isnull=True)
+            .order_by("final_price")
+            .first()
+        )
+
+        self.best_price_option = best_option
+        self.save()
 
 
 class Order(SoftDeleteModel):

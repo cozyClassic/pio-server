@@ -45,20 +45,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
-STATIC_URL = "/static/"
-
-if ENVIRON == "production":
-    STATIC_URL = f"https://{AWS_CLOUDFRONT_DOMAIN}/static/"
-
-
-else:
-    CSRF_COOKIE_DOMAIN = None
-    SESSION_COOKIE_DOMAIN = None
-
-
+STATIC_URL = f"https://{AWS_CLOUDFRONT_DOMAIN}/static/"
 if ENVIRON == "local":
     import environ
 
+    STATIC_URL = "/static/"
     env = environ.Env(DEBUG=(bool, False))
     DEBUG = True
     environ.Env.read_env(os.path.join(BASE_DIR, ".local.env"))
@@ -78,18 +69,27 @@ if ENVIRON == "local":
     DB_HOST = env("DB_HOST", default="localhost")
     DB_PORT = env("DB_PORT", default="5432")
 
+
+else:
+    CSRF_COOKIE_DOMAIN = None
+    SESSION_COOKIE_DOMAIN = None
+
+
 # HTTP 환경에서도 작동하도록 설정
 CSRF_TRUSTED_ORIGINS = [
     "https://server.phoneinone.com",
     "https://test.phoneinone.com",
     "https://phoneinone.com",
     "https://www.phoneinone.com",
+    "https://dev.server.phoneinone.com",
     "http://" + SERVER_HOST + "",
 ]
 
 ALLOWED_HOSTS = [
     "server.phoneinone.com",
+    "test.phoneinone.com",
     "phoneinone.com",
+    "dev.server.phoneinone.com",
     SERVER_HOST.replace("http://", "").replace("https://", "").rstrip("/"),
 ]
 
@@ -98,6 +98,7 @@ if ENVIRON == "local":
     ALLOWED_HOSTS.append("127.0.0.1")
 
 # Application definition
+
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -126,11 +127,15 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+APPEND_SLASH = False
+
 CORS_ALLOWED_ORIGINS = [
     "https://www.phoneinone.com",
     "https://phoneinone.com",
     "https://server.phoneinone.com",
     "https://settings.phoneinone.com",
+    "https://test.phoneinone.com",
+    "https://dev.server.phoneinone.com",
 ]
 
 if ENVIRON == "local":

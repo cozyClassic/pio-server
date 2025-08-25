@@ -3,6 +3,7 @@ from django.http import HttpResponse, HttpRequest
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.viewsets import ReadOnlyModelViewSet, GenericViewSet
 from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
 from .serializers import *
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -110,6 +111,7 @@ class OrderViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewSe
     """
 
     serializer_class = OrderSerializer
+    permission_classes = [AllowAny]
 
     queryset = Order.objects.all().filter(deleted_at__isnull=True)
 
@@ -230,6 +232,7 @@ class ReviewViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewS
         .order_by("-created_at")
     )
     parser_classes = [MultiPartParser, FormParser]
+    permission_classes = [AllowAny]
 
     @swagger_auto_schema(
         operation_summary="리뷰 생성",
