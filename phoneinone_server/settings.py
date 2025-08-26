@@ -81,7 +81,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://test.phoneinone.com",
     "https://phoneinone.com",
     "https://www.phoneinone.com",
-    "https://dev.server.phoneinone.com",
+    "https://dev.phoneinone.com",
     "http://" + SERVER_HOST + "",
 ]
 
@@ -89,15 +89,13 @@ ALLOWED_HOSTS = [
     "server.phoneinone.com",
     "test.phoneinone.com",
     "phoneinone.com",
-    "dev.server.phoneinone.com",
+    "dev.phoneinone.com",
     SERVER_HOST.replace("http://", "").replace("https://", "").rstrip("/"),
 ]
 
 if ENVIRON == "local":
     ALLOWED_HOSTS.append("localhost")
     ALLOWED_HOSTS.append("127.0.0.1")
-
-# Application definition
 
 
 INSTALLED_APPS = [
@@ -135,7 +133,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://server.phoneinone.com",
     "https://settings.phoneinone.com",
     "https://test.phoneinone.com",
-    "https://dev.server.phoneinone.com",
+    "https://dev.phoneinone.com",
 ]
 
 if ENVIRON == "local":
@@ -146,7 +144,9 @@ ROOT_URLCONF = "phoneinone_server.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [
+            BASE_DIR / "templates",
+        ],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -222,21 +222,22 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 20,
 }
 
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
+if DEBUG:
+    LOGGING = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "handlers": {
+            "console": {
+                "class": "logging.StreamHandler",
+            },
         },
-    },
-    "loggers": {
-        "django.db.backends": {
-            "handlers": ["console"],
-            "level": "DEBUG",
+        "loggers": {
+            "django.db.backends": {
+                "handlers": ["console"],
+                "level": "DEBUG",
+            },
         },
-    },
-}
+    }
 
 MEDIA_ROOT = BASE_DIR / "media"
 MEDIA_URL = "/media/"
