@@ -183,7 +183,7 @@ class ProductOption(SoftDeleteModel):
     sort_order = models.IntegerField(default=0)
 
     def __str__(self):
-        return f"{self.discount_type}/{self.contract_type}"
+        return f"{self.id}"
 
     def _get_final_price(self):
         """

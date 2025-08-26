@@ -4,7 +4,10 @@ from django.utils.html import format_html
 from simple_history.admin import SimpleHistoryAdmin
 from django.db.models import Prefetch, F
 from django.contrib import admin
-from django import forms
+import pandas as pd
+from django.urls import path
+from io import BytesIO
+from django.http import HttpResponse
 
 from .models import (
     Plan,
@@ -169,6 +172,28 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
     search_fields = ("name",)
     inlines = [ProductOptionsInline]
     exclude = ("deleted_at",)
+    change_list_template = "admin/product_changelist.html"
+    change_form_template = "admin/product_nested_change_form.html"
+
+    # admin의 URL 패턴 확장
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path("download-excel/", self.download_excel, name="product_download_excel"),
+            path(
+                "<path:object_id>/change/download-excel/",
+                self.download_excel,
+                name="product_download_excel",
+            ),
+            # path("upload-excel/", self.upload_excel_view, name="product_upload_excel"),
+            # path(
+            #     "process-upload/",
+            #     self.process_excel_upload,
+            #     name="product_process_upload",
+            # ),
+        ]
+        # 커스텀 URL을 기본 URL보다 먼저 배치
+        return custom_urls + urls
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
@@ -193,6 +218,68 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
                 ),
             )
         )
+
+    def download_excel(self, request, object_id=None):
+        # 특정 쿼리 (예: 재고가 10개 이하인 상품들)
+
+        queryset = ProductOption.objects.select_related(
+            "device_variant", "plan"
+        ).filter(
+            deleted_at__isnull=True,
+            device_variant__deleted_at__isnull=True,
+            plan__deleted_at__isnull=True,
+        )
+        if object_id:
+            queryset = queryset.filter(product_id=object_id)
+        devices_dict = {
+            device.id: device.model_name
+            for device in list(Device.objects.filter(deleted_at__isnull=True).all())
+        }
+
+        data = []
+        for op in queryset:
+            data.append(
+                {
+                    "단말기명": devices_dict[op.device_variant.device_id],
+                    "용량": op.device_variant.storage_capacity,
+                    "단말기가격": op.device_variant.device_price,
+                    "통신사": op.plan.carrier,
+                    "할인": op.discount_type,
+                    "약정": op.contract_type,
+                    "요금제명": op.plan.name,
+                    "월요금": op.plan.price,
+                    "공시지원금": op.subsidy_amount,
+                    "전환지원금": op.subsidy_amount_mnp,
+                    "추가지원금": op.additional_discount,
+                    "단말기할부원금": op.final_price,
+                }
+            )
+
+        # 정렬 먼저
+        data.sort(
+            key=lambda op: (
+                op["단말기명"],
+                op["용량"],
+                op["통신사"],
+                op["할인"],
+                op["약정"],
+                -op["월요금"],
+            )
+        )
+
+        df = pd.DataFrame(data)
+
+        output = BytesIO()
+        csv_data = df.to_csv(
+            index=False, encoding="utf-8-sig"
+        )  # utf-8-sig는 한글 깨짐 방지
+        output.write(csv_data.encode("utf-8-sig"))
+        output.seek(0)
+
+        response = HttpResponse(output.getvalue(), content_type="text/csv")
+        response["Content-Disposition"] = "attachment; filename=products.csv"
+
+        return response
 
 
 @admin.register(ProductOption)
