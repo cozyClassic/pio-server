@@ -207,6 +207,57 @@ class OrderSerializer(serializers.ModelSerializer):
         ]
 
 
+class ProductSimpleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ["id", "name", "image_main"]
+
+
+class PlanSimpleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Plan
+        fields = ["id", "name", "price", "carrier"]
+
+
+class OrderDetailSerializer(serializers.ModelSerializer):
+    plan = PlanSimpleSerializer()
+    product = ProductSimpleSerializer()
+
+    class Meta:
+        model = Order
+        fields = [
+            "id",
+            "customer_name",
+            "customer_phone",
+            "customer_phone2",
+            "customer_email",
+            "plan",
+            "product",
+            "contract_type",
+            "device_price",
+            "plan_monthly_fee",
+            "subsidy_standard",
+            "subsidy_mnp",
+            "final_price",
+            "discount_type",
+            "monthly_discount",
+            "additional_discount",
+            "storage_capacity",
+            "color",
+            "customer_memo",
+            "status",
+            "created_at",
+            "updated_at",
+            "shipping_method",
+            "shipping_address",
+            "shipping_address_detail",
+            "zipcode",
+            "shipping_number",
+            "payment_period",
+            "customer_birth",
+        ]
+
+
 class FAQSerializer(serializers.ModelSerializer):
     class Meta:
         model = FAQ

@@ -105,7 +105,12 @@ class ProductViewSet(ReadOnlyModelViewSet):
         return Response(serializer.data)
 
 
-class OrderViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewSet):
+class OrderViewSet(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    mixins.RetrieveModelMixin,
+    GenericViewSet,
+):
     """
     Viewset for managing orders.
     """
@@ -128,6 +133,13 @@ class OrderViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewSe
                 type=openapi.TYPE_STRING,
                 required=True,
             ),
+            openapi.Parameter(
+                "customer_name",
+                openapi.IN_QUERY,
+                description="고객 이름(필수)",
+                type=openapi.TYPE_STRING,
+                required=True,
+            ),
         ],
     )
     def list(self, request, *args, **kwargs):
@@ -138,8 +150,16 @@ class OrderViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewSe
         phone = request.query_params.get("phone", None)
         if not phone:
             return Response({"error": "param phone required"}, status=400)
+        customer_name = request.query_params.get("customer_name", None)
+        if not customer_name:
+            return Response({"error": "param customer_name required"}, status=400)
+
         phone = clean_phone_num(phone)
-        orders = self.get_queryset().filter(customer_phone=phone).all()
+        orders = (
+            self.get_queryset()
+            .filter(customer_phone=phone, customer_name=customer_name)
+            .all()
+        )
 
         if not orders.exists():
             return Response(status=status.HTTP_404_NOT_FOUND)
@@ -179,6 +199,11 @@ class OrderViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewSe
         )
         new_order.save()
         return Response({"id": new_order.id}, status=201)
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = OrderDetailSerializer(instance)
+        return Response(serializer.data)
 
 
 class FAQViewSet(ReadOnlyModelViewSet):

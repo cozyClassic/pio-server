@@ -74,6 +74,16 @@ else:
     CSRF_COOKIE_DOMAIN = None
     SESSION_COOKIE_DOMAIN = None
 
+CORS_ALLOWED_ORIGINS = [
+    "https://www.phoneinone.com",
+    "https://phoneinone.com",
+    "https://server.phoneinone.com",
+    "https://settings.phoneinone.com",
+    "https://test.phoneinone.com",
+    "https://dev.phoneinone.com",
+]
+
+CORS_ALLOWED_METHODS = ["GET", "POST"]
 
 # HTTP 환경에서도 작동하도록 설정
 CSRF_TRUSTED_ORIGINS = [
@@ -93,9 +103,18 @@ ALLOWED_HOSTS = [
     SERVER_HOST.replace("http://", "").replace("https://", "").rstrip("/"),
 ]
 
-if ENVIRON == "local":
+# 3000~3004 이랑, db ID로 조회하는
+if DEBUG:
     ALLOWED_HOSTS.append("localhost")
     ALLOWED_HOSTS.append("127.0.0.1")
+    CSRF_TRUSTED_ORIGINS.append("http://localhost")
+    CSRF_TRUSTED_ORIGINS.append("http://127.0.0.1")
+    CSRF_TRUSTED_ORIGINS.append("http://localhost:3000")
+    CSRF_TRUSTED_ORIGINS.append("http://localhost:3001")
+    CSRF_TRUSTED_ORIGINS.append("http://localhost:3002")
+    CSRF_TRUSTED_ORIGINS.append("http://localhost:3003")
+    CSRF_TRUSTED_ORIGINS.append("http://localhost:3004")
+    CORS_ALLOWED_ORIGINS.append("http://localhost:8000")
 
 
 INSTALLED_APPS = [
@@ -126,18 +145,6 @@ MIDDLEWARE = [
 ]
 
 APPEND_SLASH = False
-
-CORS_ALLOWED_ORIGINS = [
-    "https://www.phoneinone.com",
-    "https://phoneinone.com",
-    "https://server.phoneinone.com",
-    "https://settings.phoneinone.com",
-    "https://test.phoneinone.com",
-    "https://dev.phoneinone.com",
-]
-
-if ENVIRON == "local":
-    CORS_ALLOWED_ORIGINS.append("http://localhost:8000")
 
 ROOT_URLCONF = "phoneinone_server.urls"
 
@@ -215,6 +222,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 REST_FRAMEWORK = {
     # Use Django's standard `django.contrib.auth` permissions,
     # or allow read-only access for unauthenticated users.
+    "TRAILING_SLASH": False,
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly"
     ],

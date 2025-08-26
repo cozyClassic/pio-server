@@ -18,6 +18,7 @@ urlpatterns = [
     path("products", ProductViewSet.as_view({"get": "list"})),
     path("products/<int:pk>", ProductViewSet.as_view({"get": "retrieve"})),
     path("orders", OrderViewSet.as_view({"get": "list", "post": "create"})),
+    path("orders/<int:pk>", OrderViewSet.as_view({"get": "retrieve"})),
     path("faqs", FAQViewSet.as_view({"get": "list"})),
     path("notices", NoticeViewSet.as_view({"get": "list"})),
     path("notices/<int:pk>", NoticeViewSet.as_view({"get": "retrieve"})),
