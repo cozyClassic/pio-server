@@ -100,6 +100,7 @@ ALLOWED_HOSTS = [
     "test.phoneinone.com",
     "phoneinone.com",
     "dev.phoneinone.com",
+    "*.myekmjwu.ap-northeast-2.elasticbeanstalk.com",
     SERVER_HOST.replace("http://", "").replace("https://", "").rstrip("/"),
 ]
 
