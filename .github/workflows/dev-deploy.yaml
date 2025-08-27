@@ -30,7 +30,7 @@ jobs:
           aws-region: ap-northeast-2
       - name: EB init
         run: |
-          eb init pio --region ap-northeast-2 -e test-1 -p python-3.12
+          eb init pio --region ap-northeast-2 -e dev-8 -p python-3.12
       - name: EB deploy
         run: |
-          eb deploy test-1
+          eb deploy dev-8 &
