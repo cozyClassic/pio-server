@@ -31,6 +31,7 @@ jobs:
       - name: EB init
         run: |
           eb init pio --region ap-northeast-2 -e dev-8 -p python-3.12
-      - name: EB deploy
+
+      - name: EB deploy # 배포 오래걸려서 그냥 백그라운드로 돌림
         run: |
           eb deploy dev-8 &
