@@ -97,6 +97,12 @@ class DeviceVariantsAdmin(commonAdmin):
     search_fields = ("device__name", "storage_capacity")
 
 
+class ProductDetailImageInline(nested_admin.NestedTabularInline):
+    model = ProductDetailImage
+    extra = 0
+    exclude = ("deleted_at",)
+
+
 class ProductOptionsInline(nested_admin.NestedTabularInline):
     model = ProductOption
     extra = 0
@@ -170,7 +176,7 @@ class ProductOptionsInline(nested_admin.NestedTabularInline):
 class ProductAdmin(nested_admin.NestedModelAdmin):
     list_display = ("name", "created_at")
     search_fields = ("name",)
-    inlines = [ProductOptionsInline]
+    inlines = [ProductDetailImageInline, ProductOptionsInline]
     exclude = ("deleted_at",)
     change_list_template = "admin/product_changelist.html"
     change_form_template = "admin/product_nested_change_form.html"

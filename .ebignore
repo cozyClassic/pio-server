@@ -1,7 +1,7 @@
 # 환경변수 파일들은 배포에서 제외
-.prod.env
-.local.env
+*.env
 
+ 
 .elasticbeanstalk/app_versions/
 .elasticbeanstalk/logs/
 

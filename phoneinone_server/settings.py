@@ -1,66 +1,37 @@
 import os
 from pathlib import Path
 
-ENVIRON = os.environ.get("ENVIRON", "local")
-AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
-AWS_STORAGE_BUCKET_NAME = os.environ.get("AWS_STORAGE_BUCKET_NAME")
-AWS_CLOUDFRONT_DOMAIN = os.environ.get("AWS_CLOUDFRONT_DOMAIN")
-REVIEW_UPLOAD_KEY = os.environ.get("REVIEW_UPLOAD_KEY")
-AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME")
-AWS_CLOUDFRONT_KEY_ID = os.environ.get("AWS_CLOUDFRONT_KEY_ID")
-AWS_CLOUDFRONT_KEY_PATH = os.environ.get("AWS_CLOUDFRONT_KEY_PATH")
-if AWS_CLOUDFRONT_KEY_PATH:
-    AWS_CLOUDFRONT_KEY = open(AWS_CLOUDFRONT_KEY_PATH).read()
-else:
-    AWS_CLOUDFRONT_KEY = open("cloudfront_private_key.pem").read()
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
-SERVER_HOST = os.environ.get("SERVER_HOST", default="localhost:8000")
-DB_NAME = os.environ.get("DB_NAME", default="postgres")
-DB_USER = os.environ.get("DB_USER", default="postgres")
-DB_PASSWORD = os.environ.get("DB_PASSWORD", default="1234")
-DB_HOST = os.environ.get("DB_HOST", default="localhost")
-DB_PORT = os.environ.get("DB_PORT", default="5432")
+import environ
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+env = environ.Env(DEBUG=(bool, False))
+environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
+STATIC_URL = "/static/"
+AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY")
+AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME")
+AWS_CLOUDFRONT_DOMAIN = env("AWS_CLOUDFRONT_DOMAIN")
+REVIEW_UPLOAD_KEY = env("REVIEW_UPLOAD_KEY")
+AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME")
+AWS_CLOUDFRONT_KEY_ID = env("AWS_CLOUDFRONT_KEY_ID")
+AWS_CLOUDFRONT_KEY = open("cloudfront_private_key.pem").read()
+SECRET_KEY = env("DJANGO_SECRET_KEY")
+SERVER_HOST = env("SERVER_HOST", default="localhost:8000")
+DB_NAME = env("DB_NAME", default="postgres")
+DB_USER = env("DB_USER", default="postgres")
+DB_PASSWORD = env("DB_PASSWORD", default="1234")
+DB_HOST = env("DB_HOST", default="localhost")
+DB_PORT = env("DB_PORT", default="5432")
+DEBUG = env("DEBUG", default="False") == True
 
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 STATIC_URL = f"https://{AWS_CLOUDFRONT_DOMAIN}/static/"
-if ENVIRON == "local":
-    import environ
-
-    STATIC_URL = "/static/"
-    env = environ.Env(DEBUG=(bool, False))
-    DEBUG = True
-    environ.Env.read_env(os.path.join(BASE_DIR, ".local.env"))
-    AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID")
-    AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY")
-    AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME")
-    AWS_CLOUDFRONT_DOMAIN = env("AWS_CLOUDFRONT_DOMAIN")
-    REVIEW_UPLOAD_KEY = env("REVIEW_UPLOAD_KEY")
-    AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME")
-    AWS_CLOUDFRONT_KEY_ID = env("AWS_CLOUDFRONT_KEY_ID")
-    AWS_CLOUDFRONT_KEY = open("cloudfront_private_key.pem").read()
-    SECRET_KEY = env("DJANGO_SECRET_KEY")
-    SERVER_HOST = env("SERVER_HOST", default="localhost:8000")
-    DB_NAME = env("DB_NAME", default="postgres")
-    DB_USER = env("DB_USER", default="postgres")
-    DB_PASSWORD = env("DB_PASSWORD", default="1234")
-    DB_HOST = env("DB_HOST", default="localhost")
-    DB_PORT = env("DB_PORT", default="5432")
 
 
-else:
-    CSRF_COOKIE_DOMAIN = None
-    SESSION_COOKIE_DOMAIN = None
+CSRF_COOKIE_DOMAIN = None
+SESSION_COOKIE_DOMAIN = None
 
 CORS_ALLOWED_ORIGINS = [
     "https://www.phoneinone.com",
