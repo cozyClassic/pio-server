@@ -31,5 +31,5 @@ jobs:
 
       - name: Deploy to Elastic Beanstalk
         run: |
-          eb init pio --region ap-northeast-2
+          eb init pio --region ap-northeast-2 --default-env test-1
           eb deploy test-1
