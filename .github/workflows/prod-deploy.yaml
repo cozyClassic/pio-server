@@ -1,9 +1,35 @@
-steps:
-  - uses: actions/checkout@v2
-  - uses: aws-actions/configure-aws-credentials@v1
-    with:
-      aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  - uses: sparkplug-app/install-eb-cli-action
-  - run: eb init pio
-  - run: eb deploy prod-7
+name: eb-deploy-dev
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.12"
+
+      - name: Install EB CLI
+        run: |
+          python -m pip install awsebcli --upgrade --user
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@vv4.3.1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+
+      - name: Deploy to Elastic Beanstalk
+        run: |
+          eb init pio --region ap-northeast-2
+          eb deploy test-1
