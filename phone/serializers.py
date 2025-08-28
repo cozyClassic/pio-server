@@ -160,9 +160,21 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         ]
 
 
+class ProductSimpleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ["id", "name", "image_main"]
+
+
+class PlanSimpleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Plan
+        fields = ["id", "name", "price", "carrier"]
+
+
 class OrderSerializer(serializers.ModelSerializer):
-    plan_id = serializers.IntegerField(source="plan.id")
-    product_id = serializers.IntegerField(source="product.id")
+    plan = PlanSimpleSerializer()
+    product = ProductSimpleSerializer()
     device_color = serializers.SerializerMethodField()
 
     class Meta:
@@ -173,8 +185,8 @@ class OrderSerializer(serializers.ModelSerializer):
             "customer_phone",
             "customer_phone2",
             "customer_email",
-            "product_id",
-            "plan_id",
+            "product",
+            "plan",
             "contract_type",
             "device_price",
             "plan_monthly_fee",
@@ -213,18 +225,6 @@ class OrderSerializer(serializers.ModelSerializer):
             "color_code": obj.color_code,
             "image": obj.image,
         }
-
-
-class ProductSimpleSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Product
-        fields = ["id", "name", "image_main"]
-
-
-class PlanSimpleSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Plan
-        fields = ["id", "name", "price", "carrier"]
 
 
 class OrderDetailSerializer(serializers.ModelSerializer):
