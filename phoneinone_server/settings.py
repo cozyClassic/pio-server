@@ -67,15 +67,23 @@ ALLOWED_HOSTS = [
 # 3000~3004 이랑, db ID로 조회하는
 if DEBUG:
     ALLOWED_HOSTS.append("localhost")
-    ALLOWED_HOSTS.append("127.0.0.1")
+    ALLOWED_HOSTS.append("localhost:3000")
+    ALLOWED_HOSTS.append("localhost:3001")
+    ALLOWED_HOSTS.append("localhost:3002")
+    ALLOWED_HOSTS.append("localhost:3003")
+    ALLOWED_HOSTS.append("localhost:3004")
     CSRF_TRUSTED_ORIGINS.append("http://localhost")
-    CSRF_TRUSTED_ORIGINS.append("http://127.0.0.1")
     CSRF_TRUSTED_ORIGINS.append("http://localhost:3000")
     CSRF_TRUSTED_ORIGINS.append("http://localhost:3001")
     CSRF_TRUSTED_ORIGINS.append("http://localhost:3002")
     CSRF_TRUSTED_ORIGINS.append("http://localhost:3003")
     CSRF_TRUSTED_ORIGINS.append("http://localhost:3004")
     CORS_ALLOWED_ORIGINS.append("http://localhost:8000")
+    CORS_ALLOWED_ORIGINS.append("http://localhost:3000")
+    CORS_ALLOWED_ORIGINS.append("http://localhost:3001")
+    CORS_ALLOWED_ORIGINS.append("http://localhost:3002")
+    CORS_ALLOWED_ORIGINS.append("http://localhost:3003")
+    CORS_ALLOWED_ORIGINS.append("http://localhost:3004")
 
 
 INSTALLED_APPS = [

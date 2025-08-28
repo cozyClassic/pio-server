@@ -3,11 +3,12 @@ import nested_admin
 from django.utils.html import format_html
 from simple_history.admin import SimpleHistoryAdmin
 from django.db.models import Prefetch, F
-from django.contrib import admin
+from django.contrib import admin, messages
 import pandas as pd
 from django.urls import path
 from io import BytesIO
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
+from django.shortcuts import render
 
 from .models import (
     Plan,
@@ -23,6 +24,7 @@ from .models import (
     Notice,
     Review,
     Banner,
+    get_int_or_zero,
 )
 
 
@@ -181,6 +183,14 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
     change_list_template = "admin/product_changelist.html"
     change_form_template = "admin/product_nested_change_form.html"
 
+    readonly_fields = ["best_price_option"]
+
+    def get_readonly_fields(self, request, obj=None):
+        # obj가 None이면 새로 생성하는 경우, obj가 있으면 수정하는 경우
+        if obj:  # 수정하는 경우
+            return self.readonly_fields + ["device"]
+        return self.readonly_fields  # 생성하는 경우는 기본 설정 사용
+
     # admin의 URL 패턴 확장
     def get_urls(self):
         urls = super().get_urls()
@@ -191,12 +201,12 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
                 self.download_excel,
                 name="product_download_excel",
             ),
-            # path("upload-excel/", self.upload_excel_view, name="product_upload_excel"),
-            # path(
-            #     "process-upload/",
-            #     self.process_excel_upload,
-            #     name="product_process_upload",
-            # ),
+            path("upload-excel/", self.upload_excel_view, name="product_upload_excel"),
+            path(
+                "process-upload/",
+                self.upload_excel,
+                name="product_process_upload",
+            ),
         ]
         # 커스텀 URL을 기본 URL보다 먼저 배치
         return custom_urls + urls
@@ -224,6 +234,11 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
                 ),
             )
         )
+
+    # Excel 업로드 페이지
+    def upload_excel_view(self, request):
+        if request.method == "GET":
+            return render(request, "admin/upload_excel.html")
 
     def download_excel(self, request, object_id=None):
         # 특정 쿼리 (예: 재고가 10개 이하인 상품들)
@@ -286,6 +301,195 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
         response["Content-Disposition"] = "attachment; filename=products.csv"
 
         return response
+
+    def upload_excel(self, request):
+        if request.method == "POST" and request.FILES.get("excel_file"):
+            excel_file = request.FILES["excel_file"]
+
+            try:
+                # Excel 파일 읽기
+                df = pd.read_csv(excel_file, delimiter=",").fillna(0)
+
+                # 필수 컬럼 확인
+                required_columns = [
+                    "단말기명",
+                    "용량",
+                    "통신사",
+                    "할인",
+                    "약정",
+                    "요금제명",
+                    "공시지원금",
+                    "전환지원금",
+                    "추가지원금",
+                ]
+                missing_columns = [
+                    col for col in required_columns if col not in df.columns
+                ]
+
+                if missing_columns:
+                    messages.error(
+                        request, f'필수 컬럼이 없습니다: {", ".join(missing_columns)}'
+                    )
+                    return HttpResponseRedirect("../upload-excel/")
+
+                # 단말기명 전체 가져와서 필터링하기
+                device_names = df["단말기명"].unique()
+
+                # 데이터 처리 전 db에서 미리 가져오기
+                # 너무 많아지지 않게, 단말기명 기준으로 필터링하기
+                devices_db = list(
+                    Device.objects.filter(
+                        model_name__in=device_names, deleted_at__isnull=True
+                    ).values("id", "model_name")
+                )
+
+                # 단말기명 : 단말기 id
+                device_db_dict = {d["model_name"]: d["id"] for d in devices_db}
+
+                products = list(
+                    Product.objects.filter(
+                        device__id__in=[d["id"] for d in devices_db],
+                        deleted_at__isnull=True,
+                    )
+                )
+
+                product_ids = [p.id for p in products]
+                device_product_dict = {p.device_id: p.id for p in products}
+
+                product_options_db = list(
+                    ProductOption.objects.filter(deleted_at__isnull=True)
+                    .filter(product_id__in=product_ids)
+                    .all()
+                )
+
+                device_variants_db = list(
+                    DeviceVariant.objects.filter(deleted_at__isnull=True).values(
+                        "id", "device_id", "storage_capacity", "device_price"
+                    )
+                )
+
+                # 단말기id_용량: {단말기옵션 id, 상품id, 단말기 가격)
+                dv_db_dict = {
+                    f"{dv['device_id']}_{dv['storage_capacity']}": {
+                        "dv_id": dv["id"],
+                        "product_id": device_product_dict[dv["device_id"]],
+                        "device_price": dv["device_price"],
+                    }
+                    for dv in device_variants_db
+                    if dv["device_id"] in device_product_dict
+                }
+
+                plans_db = list(
+                    Plan.objects.filter(deleted_at__isnull=True).values(
+                        "id", "carrier", "name", "price"
+                    )
+                )
+
+                # 통신사_요금제명: 요금제 id
+                plan_db_dict = {
+                    f"{plan['carrier']}_{plan['name']}": plan["id"] for plan in plans_db
+                }
+
+                # dvID_planId_할인_약정: {옵션id, 공시지원금, 전환지원금, 추가지원금}
+                option_db_dict = {
+                    f"{op.device_variant_id}_{op.plan_id}_{op.discount_type}_{op.contract_type}": {
+                        "id": op.id,
+                        "공시지원금": op.subsidy_amount,
+                        "전환지원금": op.subsidy_amount_mnp,
+                        "추가지원금": op.additional_discount,
+                    }
+                    for op in product_options_db
+                }
+
+                option_id_to_instance = {op.id: op for op in product_options_db}
+
+                errors = []
+                creates = []
+                updates = []
+
+                for index, row in df.iterrows():
+                    device_id = device_db_dict.get(row["단말기명"])
+                    plan_id = plan_db_dict.get(f"{row['통신사']}_{row['요금제명']}")
+                    dv_id = dv_db_dict.get(f"{device_id}_{row['용량']}")["dv_id"]
+
+                    key = f"{dv_id}_{plan_id}_{row['할인']}_{row['약정']}"
+                    if key in option_db_dict:
+                        # update
+
+                        # 만약 가격이 똑같으면 굳이 업데이트 하지 않음
+                        if (
+                            option_db_dict[key]["공시지원금"] == row["공시지원금"]
+                            and option_db_dict[key]["전환지원금"] == row["전환지원금"]
+                            and option_db_dict[key]["추가지원금"] == row["추가지원금"]
+                        ):
+                            continue
+                        instance = option_id_to_instance[option_db_dict[key]["id"]]
+                        instance.subsidy_amount = row["공시지원금"]
+                        instance.subsidy_amount_mnp = row["전환지원금"]
+                        instance.additional_discount = row["추가지원금"]
+                        instance.final_price = ProductOption.calculate_final_price(
+                            device_price=dv_db_dict[f"{device_id}_{row['용량']}"][
+                                "device_price"
+                            ],
+                            discount_type=row["할인"],
+                            contract_type=row["약정"],
+                            subsidy_amount=row["공시지원금"],
+                            subsidy_amount_mnp=row["전환지원금"],
+                            additional_discount=row["추가지원금"],
+                        )
+
+                        updates.append(instance)
+                    else:
+                        # create
+                        creates.append(
+                            Product(
+                                product_id=device_product_dict[
+                                    device_db_dict[row["단말기명"]]
+                                ],
+                                device_variant_id=dv_id,
+                                plan_id=plan_id,
+                                discount_type=row["할인"],
+                                contract_type=row["약정"],
+                                subsidy_amount=row["공시지원금"],
+                                subsidy_amount_mnp=row["전환지원금"],
+                                additional_discount=row["추가지원금"],
+                                final_price=ProductOption.calculate_final_price(
+                                    device_price=dv_db_dict[
+                                        f"{device_id}_{row['용량']}"
+                                    ]["device_price"],
+                                    discount_type=row["할인"],
+                                    contract_type=row["약정"],
+                                    subsidy_amount=row["공시지원금"],
+                                    subsidy_amount_mnp=row["전환지원금"],
+                                    additional_discount=row["추가지원금"],
+                                ),
+                            )
+                        )
+
+                ProductOption.objects.bulk_update(
+                    updates,
+                    [
+                        "subsidy_amount",
+                        "subsidy_amount_mnp",
+                        "additional_discount",
+                        "final_price",
+                    ],
+                )
+
+                ProductOption.objects.bulk_create(
+                    [ProductOption(**data) for data in creates]
+                )
+
+                products = Product.objects.filter(id__in=product_ids)
+                for product in products:
+                    product._update_product_best_option()
+
+            except Exception as e:
+                messages.error(request, f"파일 처리 중 오류 발생: {str(e)}")
+
+            return HttpResponseRedirect("../../")
+
+        return HttpResponseRedirect("../upload-excel/")
 
 
 @admin.register(ProductOption)

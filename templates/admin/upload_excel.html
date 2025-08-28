@@ -9,8 +9,8 @@
 <form method="post" action="../process-upload/" enctype="multipart/form-data">
   {% csrf_token %}
   <div class="form-row">
-    <label for="excel_file">Excel 파일:</label>
-    <input type="file" name="excel_file" accept=".xlsx,.xls" required />
+    <label for="excel_file">csv 파일:</label>
+    <input type="file" name="excel_file" accept=".csv" required />
   </div>
   <div class="submit-row">
     <input type="submit" value="업로드" class="default" />

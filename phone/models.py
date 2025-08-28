@@ -4,6 +4,7 @@ from django.utils import timezone
 from django.db.models import QuerySet
 from simple_history.models import HistoricalRecords
 from threading import local
+import pandas as pd
 
 # Thread-local storage for tracking products that need updates
 _thread_locals = local()
@@ -11,7 +12,7 @@ _thread_locals = local()
 
 # Create your models here.
 def get_int_or_zero(value):
-    return int(value) if value is not None else 0
+    return 0 if value is None or pd.isna(value) else int(value)
 
 
 class SoftDeleteModel(models.Model):
@@ -81,7 +82,7 @@ class Device(SoftDeleteModel):
     )
 
     def __str__(self):
-        return f"{self.model_name} by {self.brand}"
+        return f"{self.model_name}"
 
 
 class DeviceColor(SoftDeleteModel):
@@ -92,7 +93,7 @@ class DeviceColor(SoftDeleteModel):
     )
 
     def __str__(self):
-        return f"{self.color} for {self.device.model_name}"
+        return f"{self.color} / {self.device.model_name}"
 
 
 class DevicesColorImage(SoftDeleteImageModel):
@@ -103,7 +104,9 @@ class DevicesColorImage(SoftDeleteImageModel):
     description = models.CharField(max_length=255, blank=True)
 
     def __str__(self):
-        return f"image for {self.device_color.device.model_name} - {self.device_color.color}"
+        return (
+            f"image - {self.device_color.device.model_name}  {self.device_color.color}"
+        )
 
 
 class DeviceVariant(SoftDeleteModel):
@@ -114,7 +117,7 @@ class DeviceVariant(SoftDeleteModel):
     device_price = models.IntegerField(default=0, help_text="Price in KRW")
 
     def __str__(self):
-        return f"{self.storage_capacity}"
+        return f"{self.id}"
 
     # 가격이 업데이트 되면 연결된 product 옵션들도 가격을 업데이트해야 합니다.
     def save(self, *args, **kwargs):
@@ -186,23 +189,39 @@ class ProductOption(SoftDeleteModel):
         return f"{self.id}"
 
     def _get_final_price(self):
-        """
-        Calculate the final price based on the discount type and contract type.
-        """
-        final_price = get_int_or_zero(
-            self.device_variant.device_price
-        ) - get_int_or_zero(self.additional_discount)
-
-        if self.discount_type == "공시지원금":
-            final_price -= get_int_or_zero(self.subsidy_amount)
-            if self.contract_type == "번호이동":
-                final_price -= get_int_or_zero(self.subsidy_amount_mnp)
-
-        return final_price
+        return self.calculate_final_price(
+            device_price=self.device_variant.device_price,
+            discount_type=self.discount_type,
+            contract_type=self.contract_type,
+            subsidy_amount=self.subsidy_amount,
+            subsidy_amount_mnp=self.subsidy_amount_mnp,
+            additional_discount=self.additional_discount,
+        )
 
     def save(self, *args, **kwargs):
         self.final_price = self._get_final_price()
         super().save(*args, **kwargs)
+
+    @classmethod
+    def calculate_final_price(
+        cls,
+        device_price,
+        discount_type,
+        contract_type,
+        subsidy_amount,
+        subsidy_amount_mnp,
+        additional_discount,
+    ):
+        final_price = get_int_or_zero(device_price) - get_int_or_zero(
+            additional_discount
+        )
+
+        if discount_type == "공시지원금":
+            final_price -= get_int_or_zero(subsidy_amount)
+            if contract_type == "번호이동":
+                final_price -= get_int_or_zero(subsidy_amount_mnp)
+
+        return final_price
 
     @classmethod
     def _get_pending_products(cls):
