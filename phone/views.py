@@ -8,7 +8,7 @@ from .serializers import *
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import mixins, status
-from django.db.models import Prefetch
+from django.db.models import Prefetch, F
 from rest_framework.pagination import PageNumberPagination
 
 
@@ -155,13 +155,28 @@ class OrderViewSet(
             return Response({"error": "param customer_name required"}, status=400)
 
         phone = clean_phone_num(phone)
-        orders = (
-            self.get_queryset()
-            .filter(customer_phone=phone, customer_name=customer_name)
-            .all()
+        orders = Order.objects.raw(
+            f"""
+SELECT DISTINCT ON (o.id) ci.image, c.color_code, o.*
+FROM phone_order o
+JOIN phone_product p
+    ON p.id = o.product_id
+JOIN phone_devicecolor c
+    ON c.device_id = p.device_id
+    AND o.color = c.color
+    AND c.deleted_at IS NULL
+JOIN phone_devicescolorimage ci
+    ON ci.device_color_id = c.id
+    AND ci.deleted_at IS NULL
+WHERE 
+    o.deleted_at IS NULL
+    AND o.customer_name='{customer_name}'
+    AND o.customer_phone='{phone}'
+ORDER BY o.id, ci.id;
+"""
         )
 
-        if not orders.exists():
+        if len(orders) == 0:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         serializer = self.serializer_class(orders, many=True)
@@ -201,7 +216,32 @@ class OrderViewSet(
         return Response({"id": new_order.id}, status=201)
 
     def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
+        queryset = Order.objects.raw(
+            """
+            SELECT DISTINCT ON (o.id) ci.image, c.color_code, o.*
+            FROM phone_order o
+            JOIN phone_product p
+                ON p.id = o.product_id
+            JOIN phone_devicecolor c
+                ON c.device_id = p.device_id
+                AND o.color = c.color
+                AND c.deleted_at IS NULL
+            JOIN phone_devicescolorimage ci
+                ON ci.device_color_id = c.id
+                AND ci.deleted_at IS NULL
+            WHERE 
+                o.deleted_at IS NULL
+                AND o.id = %s
+            ORDER BY o.id, ci.id;
+            """,
+            [kwargs.get("pk")],  # SQL 인젝션 방지를 위해 파라미터 사용
+        )
+
+        try:
+            instance = list(queryset)[0]
+        except (IndexError, Order.DoesNotExist):
+            raise HttpResponse("Order not found", status=404)
+
         serializer = OrderDetailSerializer(instance)
         return Response(serializer.data)
 

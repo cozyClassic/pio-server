@@ -163,6 +163,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     plan_id = serializers.IntegerField(source="plan.id")
     product_id = serializers.IntegerField(source="product.id")
+    device_color = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
@@ -184,7 +185,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "monthly_discount",
             "additional_discount",
             "storage_capacity",
-            "color",
+            "device_color",
             "customer_memo",
             "status",
             "created_at",
@@ -206,6 +207,13 @@ class OrderSerializer(serializers.ModelSerializer):
             "shipping_number",
         ]
 
+    def get_device_color(self, obj):
+        return {
+            "color": obj.color,
+            "color_code": obj.color_code,
+            "image": obj.image,
+        }
+
 
 class ProductSimpleSerializer(serializers.ModelSerializer):
     class Meta:
@@ -222,6 +230,7 @@ class PlanSimpleSerializer(serializers.ModelSerializer):
 class OrderDetailSerializer(serializers.ModelSerializer):
     plan = PlanSimpleSerializer()
     product = ProductSimpleSerializer()
+    device_color = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
@@ -243,7 +252,7 @@ class OrderDetailSerializer(serializers.ModelSerializer):
             "monthly_discount",
             "additional_discount",
             "storage_capacity",
-            "color",
+            "device_color",
             "customer_memo",
             "status",
             "created_at",
@@ -256,6 +265,13 @@ class OrderDetailSerializer(serializers.ModelSerializer):
             "payment_period",
             "customer_birth",
         ]
+
+    def get_device_color(self, obj):
+        return {
+            "color": obj.color,
+            "color_code": obj.color_code,
+            "image": obj.image,
+        }
 
 
 class FAQSerializer(serializers.ModelSerializer):
