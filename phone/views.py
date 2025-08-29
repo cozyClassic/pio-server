@@ -86,11 +86,26 @@ class ProductViewSet(ReadOnlyModelViewSet):
                     "options",
                     queryset=ProductOption.objects.filter(deleted_at__isnull=True),
                 ),
-                "options__plan",
-                "device__variants",
-                "device__colors",
-                "device__colors__images",
-                "images",
+                Prefetch(
+                    "options__plan",
+                    queryset=Plan.objects.filter(deleted_at__isnull=True),
+                ),
+                Prefetch(
+                    "device__variants",
+                    queryset=DeviceVariant.objects.filter(deleted_at__isnull=True),
+                ),
+                Prefetch(
+                    "device__colors",
+                    queryset=DeviceColor.objects.filter(deleted_at__isnull=True),
+                ),
+                Prefetch(
+                    "device__colors__images",
+                    queryset=DevicesColorImage.objects.filter(deleted_at__isnull=True),
+                ),
+                Prefetch(
+                    "images",
+                    queryset=ProductDetailImage.objects.filter(deleted_at__isnull=True),
+                ),
                 Prefetch(
                     "reviews",
                     queryset=Review.objects.filter(
