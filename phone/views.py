@@ -182,6 +182,9 @@ ORDER BY o.id, ci.id;
         serializer = self.serializer_class(orders, many=True)
         return Response(serializer.data)
 
+    @swagger_auto_schema(
+        request_body=OrderCreateSerializer,
+    )
     def create(self, request, *args, **kwargs):
         body = request.data
         customer_phone = clean_phone_num(body.get("customer_phone"))
@@ -211,6 +214,7 @@ ORDER BY o.id, ci.id;
             shipping_address=body.get("shipping_address"),
             shipping_address_detail=body.get("shipping_address_detail"),
             zipcode=body.get("zipcode"),
+            ga4_id=body.get("ga4_id", ""),
         )
         new_order.save()
         return Response({"id": new_order.id}, status=201)
@@ -239,7 +243,7 @@ ORDER BY o.id, ci.id;
 
         try:
             instance = list(queryset)[0]
-        except (IndexError, Order.DoesNotExist):
+        except Exception as e:
             raise HttpResponse("Order not found", status=404)
 
         serializer = OrderDetailSerializer(instance)
@@ -365,3 +369,12 @@ class ReviewViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewS
         serializer.save()
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class PolicyDocumentViewSet(ReadOnlyModelViewSet):
+    serializer_class = PolicyDocumentSerializer
+    queryset = (
+        PolicyDocument.objects.all()
+        .filter(deleted_at__isnull=True)
+        .order_by("-created_at")
+    )

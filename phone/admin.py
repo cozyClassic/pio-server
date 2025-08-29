@@ -24,6 +24,7 @@ from .models import (
     Notice,
     Review,
     Banner,
+    PolicyDocument,
     get_int_or_zero,
 )
 
@@ -547,4 +548,12 @@ class BannerAdmin(commonAdmin):
     list_display = ("title", "image", "created_at")
     search_fields = ("title",)
     list_filter = ("created_at",)
+    readonly_fields = ("created_at", "updated_at", "deleted_at")
+
+
+@admin.register(PolicyDocument)
+class PolicyDocumentAdmin(commonAdmin):
+    list_display = ("document_type", "effective_date", "created_at")
+    search_fields = ("document_type",)
+    list_filter = ("effective_date", "created_at")
     readonly_fields = ("created_at", "updated_at", "deleted_at")

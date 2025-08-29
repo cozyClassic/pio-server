@@ -431,6 +431,10 @@ class Order(SoftDeleteModel):
     payment_status = models.CharField(
         max_length=50, blank=True, null=True, help_text="결제 상태"
     )
+    ga4_id = models.CharField(
+        max_length=255, blank=True, help_text="GA4 ID", default=""
+    )
+
     history = HistoricalRecords()
 
     def __str__(self):
@@ -479,3 +483,19 @@ class Review(SoftDeleteModel):
 
     def __str__(self):
         return f"{self.customer_name} - {self.created_at}"
+
+
+class PolicyDocument(SoftDeleteModel):
+    document_type = models.CharField(
+        choices=[
+            ("terms", "이용약관"),
+            ("privacy", "개인정보처리방침"),
+        ],
+        max_length=20,
+        default="terms",
+    )
+    content = models.FileField(upload_to="policy_documents/")
+    effective_date = models.DateField(help_text="Effective date of the policy")
+
+    def __str__(self):
+        return self.document_type
