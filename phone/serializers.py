@@ -227,6 +227,37 @@ class OrderSerializer(serializers.ModelSerializer):
         }
 
 
+class OrderCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = [
+            "customer_name",
+            "customer_phone",
+            "customer_phone2",
+            "customer_email",
+            "customer_birth",
+            "product_id",
+            "plan_id",
+            "contract_type",
+            "device_price",
+            "plan_monthly_fee",
+            "subsidy_standard",
+            "subsidy_mnp",
+            "final_price",
+            "discount_type",
+            "monthly_discount",
+            "additional_discount",
+            "storage_capacity",
+            "color",
+            "customer_memo",
+            "shipping_address",
+            "shipping_address_detail",
+            "zipcode",
+            "payment_period",
+            "ga4_id",
+        ]
+
+
 class OrderDetailSerializer(serializers.ModelSerializer):
     plan = PlanSimpleSerializer()
     product = ProductSimpleSerializer()
@@ -358,3 +389,10 @@ class ReviewSerializer(serializers.ModelSerializer):
             "name": obj.product.name,
             "image": str(obj.product.image_main) if obj.product.image_main else None,
         }
+
+
+class PolicyDocumentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PolicyDocument
+        fields = ["id", "document_type", "content", "effective_date"]
+        read_only_fields = ["id", "document_type", "content", "effective_date"]

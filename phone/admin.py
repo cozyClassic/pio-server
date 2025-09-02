@@ -24,6 +24,7 @@ from .models import (
     Notice,
     Review,
     Banner,
+    PolicyDocument,
     get_int_or_zero,
 )
 
@@ -92,17 +93,23 @@ class DeviceColorsAdmin(commonAdmin):
     list_display = ("device", "color", "color_code")
     search_fields = ("device__name", "color")
 
+    queryset = DeviceColor.objects.filter(deleted_at__isnull=True)
+
 
 @admin.register(DeviceVariant)
 class DeviceVariantsAdmin(commonAdmin):
     list_display = ("device", "storage_capacity", "device_price")
     search_fields = ("device__name", "storage_capacity")
 
+    queryset = DeviceVariant.objects.filter(deleted_at__isnull=True)
+
 
 class ProductDetailImageInline(nested_admin.NestedTabularInline):
     model = ProductDetailImage
     extra = 0
     exclude = ("deleted_at",)
+
+    queryset = ProductDetailImage.objects.filter(deleted_at__isnull=True)
 
 
 class ProductOptionsInline(nested_admin.NestedTabularInline):
@@ -166,11 +173,15 @@ class ProductOptionsInline(nested_admin.NestedTabularInline):
         이렇게 하면 커스텀 필드에서 obj.plan.carrier 같은 접근이 추가 쿼리를 발생시키지 않음
         """
         queryset = super().get_queryset(request)
-        return queryset.select_related(
-            "device_variant__device",  # device_variant와 device 함께 로드
-            "plan",  # plan도 함께 로드
-        ).prefetch_related(
-            # 추가로 필요한 관계가 있다면 여기에 추가
+        return (
+            queryset.select_related(
+                "device_variant__device",  # device_variant와 device 함께 로드
+                "plan",  # plan도 함께 로드
+            )
+            .prefetch_related(
+                # 추가로 필요한 관계가 있다면 여기에 추가
+            )
+            .filter(deleted_at__isnull=True)
         )
 
 
@@ -498,12 +509,16 @@ class ProductOptionsAdmin(commonAdmin):
     search_fields = ("product__name", "device_variant__device__name")
     list_filter = ("product", "device_variant")
 
+    queryset = ProductOption.objects.filter(deleted_at__isnull=True)
+
 
 @admin.register(ProductDetailImage)
 class ProductDetailImagesAdmin(commonAdmin):
     list_display = ("product", "image", "description")
     search_fields = ("product__name", "description")
     list_filter = ("product",)
+
+    queryset = ProductDetailImage.objects.filter(deleted_at__isnull=True)
 
 
 @admin.register(Order)
@@ -520,12 +535,16 @@ class OrderAdmin(SimpleHistoryAdmin):
 
     history_list_per_page = 100
 
+    queryset = Order.objects.filter(deleted_at__isnull=True)
+
 
 @admin.register(Review)
 class ReviewAdmin(nested_admin.NestedModelAdmin):
     list_display = ("customer_name", "created_at")
     search_fields = ("created_at",)
     exclude = ("deleted_at",)
+
+    queryset = Review.objects.filter(deleted_at__isnull=True)
 
 
 @admin.register(FAQ)
@@ -534,12 +553,15 @@ class FAQAdmin(commonAdmin):
     search_fields = ("question", "answer")
     list_filter = ("created_at",)
 
+    queryset = FAQ.objects.filter(deleted_at__isnull=True)
+
 
 @admin.register(Notice)
 class NoticeAdmin(commonAdmin):
     list_display = ("title", "created_at")
     search_fields = ("title", "content")
     list_filter = ("created_at",)
+    queryset = Notice.objects.filter(deleted_at__isnull=True)
 
 
 @admin.register(Banner)
@@ -548,3 +570,14 @@ class BannerAdmin(commonAdmin):
     search_fields = ("title",)
     list_filter = ("created_at",)
     readonly_fields = ("created_at", "updated_at", "deleted_at")
+    queryset = Banner.objects.filter(deleted_at__isnull=True)
+
+
+@admin.register(PolicyDocument)
+class PolicyDocumentAdmin(commonAdmin):
+    list_display = ("document_type", "effective_date", "created_at")
+    search_fields = ("document_type",)
+    list_filter = ("effective_date", "created_at")
+    readonly_fields = ("created_at", "updated_at", "deleted_at")
+
+    queryset = PolicyDocument.objects.filter(deleted_at__isnull=True)
