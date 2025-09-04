@@ -8,8 +8,7 @@ from .serializers import *
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import mixins, status
-from django.db.models import Prefetch, F
-from rest_framework.pagination import PageNumberPagination
+from django.db.models import Prefetch
 
 
 # Create your views here.
@@ -256,25 +255,16 @@ ORDER BY o.id, ci.id;
             [kwargs.get("pk")],  # SQL 인젝션 방지를 위해 파라미터 사용
         )
 
-        try:
-            instance = list(queryset)[0]
-        except Exception as e:
-            raise HttpResponse("Order not found", status=404)
+        if len(queryset) == 0:
+            return HttpResponse("Order not found", status=404)
 
-        serializer = OrderDetailSerializer(instance)
+        serializer = OrderDetailSerializer(queryset[0])
         return Response(serializer.data)
 
 
 class FAQViewSet(ReadOnlyModelViewSet):
     queryset = FAQ.objects.all().filter(deleted_at__isnull=True).order_by("sort_order")
     serializer_class = FAQSerializer
-
-    def list(self, request, *args, **kwargs):
-        base_queryset = self.get_queryset()
-        if not base_queryset.exists():
-            return Response(status=status.HTTP_404_NOT_FOUND)
-
-        return Response(self.get_serializer(base_queryset, many=True).data)
 
 
 class NoticeViewSet(ReadOnlyModelViewSet):
@@ -284,19 +274,20 @@ class NoticeViewSet(ReadOnlyModelViewSet):
     )
 
     def list(self, request, *args, **kwargs):
-        base_queryset = self.get_queryset()
-        if not base_queryset.exists():
-            return Response(status=status.HTTP_404_NOT_FOUND)
+        queryset = self.filter_queryset(self.get_queryset())
 
-        return Response(self.get_serializer(base_queryset, many=True).data)
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     def retrieve(self, request, *args, **kwargs):
-        base_queryset = self.get_queryset().filter(id=kwargs.get("pk"))
-
-        if not base_queryset.exists():
-            return Response(status=status.HTTP_404_NOT_FOUND)
-
-        return Response(self.get_serializer(base_queryset, many=True).data)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
 
 class BannerViewSet(ReadOnlyModelViewSet):
@@ -308,7 +299,6 @@ class BannerViewSet(ReadOnlyModelViewSet):
 
 class ReviewViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewSet):
     serializer_class = ReviewSerializer
-    pagination_class = PageNumberPagination
     queryset = (
         Review.objects.all()
         .filter(deleted_at__isnull=True, is_public=True)

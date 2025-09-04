@@ -112,9 +112,18 @@ class ProductDetailImageInline(nested_admin.NestedTabularInline):
     queryset = ProductDetailImage.objects.filter(deleted_at__isnull=True)
 
 
+class ProductOptionFormset(nested_admin.formsets.NestedInlineFormSet):
+    def save_existing_objects(self, initial_forms=None, commit=True):
+        return []
+
+    def is_valid(self):
+        return True
+
+
 class ProductOptionsInline(nested_admin.NestedTabularInline):
     model = ProductOption
     extra = 0
+    formset = ProductOptionFormset
     exclude = ("deleted_at",)
     readonly_fields = (
         "device_storage",
@@ -501,6 +510,16 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
             return HttpResponseRedirect("../../")
 
         return HttpResponseRedirect("../upload-excel/")
+
+    def save_related(self, request, form, formsets, change):
+        form.save_m2m()
+        for formset in formsets:
+            if formset.model == ProductOption:
+                formset.new_objects = []
+                formset.changed_objects = []
+                formset.deleted_objects = []
+            else:
+                self.save_formset(request, form, formset, change=change)
 
 
 @admin.register(ProductOption)
