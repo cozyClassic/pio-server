@@ -8,8 +8,7 @@ from .serializers import *
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import mixins, status
-from django.db.models import Prefetch, F
-from rest_framework.pagination import PageNumberPagination
+from django.db.models import Prefetch
 
 
 # Create your views here.
@@ -270,7 +269,6 @@ class FAQViewSet(ReadOnlyModelViewSet):
 
 class NoticeViewSet(ReadOnlyModelViewSet):
     serializer_class = NoticeSerializer
-    pagination_class = PageNumberPagination
     queryset = (
         Notice.objects.all().filter(deleted_at__isnull=True).order_by("-created_at")
     )
@@ -301,7 +299,6 @@ class BannerViewSet(ReadOnlyModelViewSet):
 
 class ReviewViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewSet):
     serializer_class = ReviewSerializer
-    pagination_class = PageNumberPagination
     queryset = (
         Review.objects.all()
         .filter(deleted_at__isnull=True, is_public=True)
