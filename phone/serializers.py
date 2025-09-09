@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from .models import *
+from phoneinone_server.settings import AWS_CLOUDFRONT_DOMAIN
 
 
 class ProductListSerializer(serializers.ModelSerializer):
@@ -387,7 +388,7 @@ class ReviewSerializer(serializers.ModelSerializer):
         return {
             "id": obj.product.id,
             "name": obj.product.name,
-            "image": str(obj.product.image_main) if obj.product.image_main else None,
+            "image": obj.product.image_main.url if obj.product.image_main else None,
         }
 
 
