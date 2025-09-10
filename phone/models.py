@@ -296,9 +296,10 @@ class Product(SoftDeleteModel):
 
     def _update_product_best_option(self):
         best_option = (
-            self.options.select_related("plan")
+            self.options.filter(deleted_at__isnull=True)
+            .select_related("plan")
             .filter(plan__deleted_at__isnull=True)
-            .order_by("final_price")
+            .order_by("final_price", "plan__price")
             .first()
         )
 
