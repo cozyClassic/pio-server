@@ -87,7 +87,9 @@ class ProductViewSet(ReadOnlyModelViewSet):
                 ),
                 Prefetch(
                     "options__plan",
-                    queryset=Plan.objects.filter(deleted_at__isnull=True),
+                    queryset=Plan.objects.filter(deleted_at__isnull=True).order_by(
+                        "-price"
+                    ),
                 ),
                 Prefetch(
                     "device__variants",

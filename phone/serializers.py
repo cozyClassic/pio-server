@@ -1,7 +1,6 @@
 from rest_framework import serializers
 
 from .models import *
-from phoneinone_server.settings import AWS_CLOUDFRONT_DOMAIN
 
 
 class ProductListSerializer(serializers.ModelSerializer):
