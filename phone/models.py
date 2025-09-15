@@ -36,7 +36,7 @@ class SoftDeleteModel(models.Model):
 
 
 class SoftDeleteImageModel(SoftDeleteModel):
-    image = models.ImageField(upload_to="images/")
+    image = models.ImageField(upload_to="images/", null=True, blank=True)
 
     class Meta:
         abstract = True
@@ -465,6 +465,9 @@ class Banner(SoftDeleteImageModel):
     image_pc = models.ImageField(upload_to="banners/", default="")
     image_mobile = models.ImageField(upload_to="banners/", default="")
     link = models.URLField(blank=True, null=True, help_text="배너 클릭 시 이동할 링크")
+    sort_order = models.IntegerField(default=0)
+    is_active = models.BooleanField(default=True, help_text="배너 활성화 여부")
+    # remove field 'image'
 
     def __str__(self):
         return self.title

@@ -537,11 +537,20 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
 
 @admin.register(ProductOption)
 class ProductOptionsAdmin(commonAdmin):
-    list_display = ("product", "device_variant")
+    list_display = (
+        "product",
+        "device_variant__storage_capacity",
+        "plan__carrier",
+        "plan__name",
+        "discount_type",
+        "contract_type",
+    )
     search_fields = ("product__name", "device_variant__device__name")
     list_filter = ("product", "device_variant")
 
-    queryset = ProductOption.objects.filter(deleted_at__isnull=True)
+    queryset = ProductOption.objects.filter(deleted_at__isnull=True).select_related(
+        "plan", "device_variant"
+    )
 
 
 @admin.register(ProductDetailImage)

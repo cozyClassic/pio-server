@@ -295,7 +295,9 @@ class NoticeViewSet(ReadOnlyModelViewSet):
 class BannerViewSet(ReadOnlyModelViewSet):
     serializer_class = BannerSerializer
     queryset = (
-        Banner.objects.all().filter(deleted_at__isnull=True).order_by("-created_at")
+        Banner.objects.all()
+        .filter(deleted_at__isnull=True, is_active=True)
+        .order_by("-sort_order")
     )
 
 
