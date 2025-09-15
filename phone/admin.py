@@ -1,3 +1,4 @@
+import traceback
 from django.contrib import admin
 import nested_admin
 from django.utils.html import format_html
@@ -9,6 +10,7 @@ from django.urls import path
 from io import BytesIO
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
+
 
 from .models import (
     Plan,
@@ -430,6 +432,16 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
                 for index, row in df.iterrows():
                     device_id = device_db_dict.get(row["단말기명"])
                     plan_id = plan_db_dict.get(f"{row['통신사']}_{row['요금제명']}")
+                    if f"{device_id}_{row['용량']}" not in dv_db_dict:
+                        print(
+                            f"단말기 {row['단말기명']}의 용량 {row['용량']}이(가) 존재하지 않습니다. (행 {index + 2})"
+                        )
+                        continue
+                    if "dv_id" not in dv_db_dict.get(f"{device_id}_{row['용량']}"):
+                        print(
+                            f"단말기 {row['단말기명']}의 용량 {row['용량']}이(가) 존재하지 않습니다. (행 {index + 2})"
+                        )
+                        continue
                     dv_id = dv_db_dict.get(f"{device_id}_{row['용량']}")["dv_id"]
 
                     key = f"{dv_id}_{plan_id}_{row['할인']}_{row['약정']}"
@@ -462,7 +474,7 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
                     else:
                         # create
                         creates.append(
-                            Product(
+                            ProductOption(
                                 product_id=device_product_dict[
                                     device_db_dict[row["단말기명"]]
                                 ],
@@ -496,16 +508,17 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
                     ],
                 )
 
-                ProductOption.objects.bulk_create(
-                    [ProductOption(**data) for data in creates]
-                )
+                ProductOption.objects.bulk_create([data for data in creates])
 
                 products = Product.objects.filter(id__in=product_ids)
                 for product in products:
                     product._update_product_best_option()
 
             except Exception as e:
-                messages.error(request, f"파일 처리 중 오류 발생: {str(e)}")
+                error_info = traceback.format_exc()
+                messages.error(
+                    request, f"파일 처리 중 오류 발생: {str(e)}\n{error_info}"
+                )
 
             return HttpResponseRedirect("../../")
 
