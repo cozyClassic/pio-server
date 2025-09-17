@@ -387,3 +387,22 @@ class PolicyDocumentViewSet(ReadOnlyModelViewSet):
         .filter(deleted_at__isnull=True)
         .order_by("-created_at")
     )
+
+
+class PartnerCardViewSet(ReadOnlyModelViewSet):
+    serializer_class = PartnerCardSerializer
+    queryset = (
+        PartnerCard.objects.all()
+        .filter(deleted_at__isnull=True, is_active=True)
+        .order_by("sort_order")
+    ).prefetch_related(
+        Prefetch(
+            "card_benefits",
+            queryset=CardBenefit.objects.filter(deleted_at__isnull=True),
+        )
+    )
+
+
+class EventViewSet(ReadOnlyModelViewSet):
+    serializer_class = EventSerializer
+    queryset = Event.objects.all().filter(deleted_at__isnull=True, is_active=True)
