@@ -396,3 +396,43 @@ class PolicyDocumentSerializer(serializers.ModelSerializer):
         model = PolicyDocument
         fields = ["id", "document_type", "content", "effective_date"]
         read_only_fields = ["id", "document_type", "content", "effective_date"]
+
+
+class CardBenefitSimpleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CardBenefit
+        fields = ["condition", "benefit_price", "is_optional"]
+        read_only_fields = ["id", "title", "description"]
+
+
+class PartnerCardSerializer(serializers.ModelSerializer):
+    benefits = CardBenefitSimpleSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = PartnerCard
+        fields = [
+            "id",
+            "carrier",
+            "benefit_type",
+            "image",
+            "link",
+            "benefits",
+            "contact",
+        ]
+        read_only_fields = [
+            "id",
+            "carrier",
+            "benefit_type",
+            "image",
+            "link",
+            "sort_order",
+            "benefits",
+            "contact",
+        ]
+
+
+class EventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Event
+        fields = ["id", "title", "description", "start_date", "end_date"]
+        read_only_fields = ["id", "title", "description", "start_date", "end_date"]

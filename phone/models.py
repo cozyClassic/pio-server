@@ -6,6 +6,8 @@ from simple_history.models import HistoricalRecords
 from threading import local
 import pandas as pd
 
+from mdeditor.fields import MDTextField
+
 # Thread-local storage for tracking products that need updates
 _thread_locals = local()
 
@@ -503,3 +505,41 @@ class PolicyDocument(SoftDeleteModel):
 
     def __str__(self):
         return self.document_type
+
+
+class PartnerCard(SoftDeleteImageModel):
+    carrier = models.CharField(max_length=100, null=True)
+    benefit_type = models.CharField(max_length=100, null=True)
+    name = models.CharField(max_length=100, null=True)
+    contact = models.CharField(max_length=100, null=True)
+    link = models.TextField()
+    sort_order = models.IntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+
+class CardBenefit(SoftDeleteModel):
+    condition = models.CharField(max_length=255, null=True)
+    benefit_price = models.IntegerField(default=0)
+    card = models.ForeignKey(
+        PartnerCard, on_delete=models.CASCADE, related_name="card_benefits"
+    )
+    is_optional = models.BooleanField(default=False)
+
+
+class Event(SoftDeleteModel):
+    title = models.CharField(max_length=100)
+    description = MDTextField(null=True, blank=True)
+    start_date = models.DateField()
+    end_date = models.DateField()
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.title
+
+
+class CustomImage(SoftDeleteImageModel):
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return self.name
