@@ -1,34 +1,18 @@
 import traceback
-from django.contrib import admin
-import nested_admin
-from django.utils.html import format_html
-from simple_history.admin import SimpleHistoryAdmin
-from django.db.models import Prefetch, F
-from django.contrib import admin, messages
-import pandas as pd
-from django.urls import path
 from io import BytesIO
+import pandas as pd
+
+from django.utils.html import format_html
+from django.db.models import Prefetch
+from django.contrib import admin, messages
+from django.urls import path
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 
+import nested_admin
+from simple_history.admin import SimpleHistoryAdmin
 
-from .models import (
-    Plan,
-    Device,
-    DeviceColor,
-    DeviceVariant,
-    Product,
-    ProductOption,
-    ProductDetailImage,
-    DevicesColorImage,
-    Order,
-    FAQ,
-    Notice,
-    Review,
-    Banner,
-    PolicyDocument,
-    get_int_or_zero,
-)
+from .models import *
 
 
 class commonAdmin(admin.ModelAdmin):
@@ -622,3 +606,37 @@ class PolicyDocumentAdmin(commonAdmin):
     readonly_fields = ("created_at", "updated_at", "deleted_at")
 
     queryset = PolicyDocument.objects.filter(deleted_at__isnull=True)
+
+
+class CardBenefitInline(nested_admin.NestedStackedInline):
+    model = CardBenefit
+    extra = 1
+    exclude = ("deleted_at",)
+
+
+@admin.register(PartnerCard)
+class PartnerCardAdmin(admin.ModelAdmin):
+    list_display = ("name", "created_at")
+    search_fields = ("name",)
+    list_filter = ("created_at",)
+    readonly_fields = ("created_at", "updated_at", "deleted_at")
+    inlines = [CardBenefitInline]
+
+    queryset = PartnerCard.objects.filter(deleted_at__isnull=True).prefetch_related(
+        Prefetch(
+            "benefits",
+            queryset=CardBenefit.objects.filter(deleted_at__isnull=True),
+        )
+    )
+
+
+@admin.register(CustomImage)
+class CustomImageAdmin(commonAdmin):
+    pass
+
+
+@admin.register(Event)
+class EventAdmin(commonAdmin):
+    from mdeditor.widgets import MDEditorWidget
+
+    formfield_overrides = {models.TextField: {"widget": MDEditorWidget}}
