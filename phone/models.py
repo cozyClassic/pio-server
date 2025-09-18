@@ -528,6 +528,7 @@ class CardBenefit(SoftDeleteModel):
 
 class Event(SoftDeleteModel):
     title = models.CharField(max_length=100)
+    thumbnail = models.ImageField(upload_to="event_thumbnails/", null=True, blank=True)
     description = MDTextField(null=True, blank=True)
     start_date = models.DateField()
     end_date = models.DateField()
