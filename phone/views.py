@@ -404,5 +404,15 @@ class PartnerCardViewSet(ReadOnlyModelViewSet):
 
 
 class EventViewSet(ReadOnlyModelViewSet):
-    serializer_class = EventSerializer
+    serializer_class = EventSimpleSerializer
     queryset = Event.objects.all().filter(deleted_at__isnull=True, is_active=True)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset().order_by("-start_date"))
+
+        return super().list(request, *args, **kwargs)
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = EventSerializer(instance)
+        return Response(serializer.data)
