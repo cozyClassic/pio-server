@@ -398,7 +398,9 @@ class PartnerCardViewSet(ReadOnlyModelViewSet):
     ).prefetch_related(
         Prefetch(
             "card_benefits",
-            queryset=CardBenefit.objects.filter(deleted_at__isnull=True),
+            queryset=CardBenefit.objects.filter(
+                deleted_at__isnull=True, is_optional=False
+            ),
         )
     )
 

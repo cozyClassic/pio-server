@@ -406,27 +406,29 @@ class CardBenefitSimpleSerializer(serializers.ModelSerializer):
 
 
 class PartnerCardSerializer(serializers.ModelSerializer):
-    benefits = CardBenefitSimpleSerializer(many=True, read_only=True)
+    card_benefits = CardBenefitSimpleSerializer(many=True, read_only=True)
 
     class Meta:
         model = PartnerCard
         fields = [
             "id",
+            "name",
             "carrier",
             "benefit_type",
             "image",
             "link",
-            "benefits",
+            "card_benefits",
             "contact",
         ]
         read_only_fields = [
             "id",
+            "name",
             "carrier",
             "benefit_type",
             "image",
             "link",
             "sort_order",
-            "benefits",
+            "card_benefits",
             "contact",
         ]
 
