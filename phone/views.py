@@ -9,6 +9,7 @@ from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import mixins, status
 from django.db.models import Prefetch
+from .external_services.channel_talk import send_order_alert
 
 
 # Create your views here.
@@ -233,6 +234,11 @@ ORDER BY o.id, ci.id;
             ga4_id=body.get("ga4_id", ""),
         )
         new_order.save()
+        send_order_alert(
+            order_id=new_order.id,
+            customer_name=new_order.customer_name,
+            customer_phone=new_order.customer_phone,
+        )
         return Response({"id": new_order.id}, status=201)
 
     def retrieve(self, request, *args, **kwargs):
