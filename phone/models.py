@@ -117,6 +117,15 @@ class DeviceVariant(SoftDeleteModel):
     )
     storage_capacity = models.CharField(max_length=100)
     device_price = models.IntegerField(default=0, help_text="Price in KRW")
+    name_sk = models.CharField(
+        max_length=100, help_text="SK 모델명", blank=True, default="", null=True
+    )
+    name_kt = models.CharField(
+        max_length=100, help_text="KT 모델명", blank=True, default="", null=True
+    )
+    name_lg = models.CharField(
+        max_length=100, help_text="LG 모델명", blank=True, default="", null=True
+    )
 
     def __str__(self):
         return f"{self.id}"
