@@ -8,6 +8,7 @@ from django.contrib import admin, messages
 from django.urls import path
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
+from django.utils.html import format_html
 
 import nested_admin
 from simple_history.admin import SimpleHistoryAdmin
@@ -535,6 +536,106 @@ class ProductOptionsAdmin(commonAdmin):
     queryset = ProductOption.objects.filter(deleted_at__isnull=True).select_related(
         "plan", "device_variant"
     )
+    change_list_template = "admin/productoption_changelist.html"
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "upload_sk_jungchaek/",
+                self.upload_sk_jungchaek_view,
+                name="upload_sk_jungchaek",
+            ),
+            path(
+                "process_upload_sk_jungchaek/",
+                self.upload_sk_jungchaek,
+                name="process_upload_sk_jungchaek",
+            ),
+            path(
+                "upload_lg_jungchaek/",
+                self.upload_lg_jungchaek_view,
+                name="upload_lg_jungchaek",
+            ),
+            path(
+                "process_upload_lg_jungchaek/",
+                self.upload_lg_jungchaek,
+                name="process_upload_lg_jungchaek",
+            ),
+            path(
+                "upload_kt_jungchaek/",
+                self.upload_kt_jungchaek_view,
+                name="upload_kt_jungchaek",
+            ),
+            path(
+                "process_upload_kt_jungchaek/",
+                self.upload_kt_jungchaek,
+                name="process_upload_kt_jungchaek",
+            ),
+        ]
+        return custom_urls + urls
+
+    def upload_sk_jungchaek_view(self, request):
+        if request.method == "GET":
+            return render(request, "admin/upload_excel_sk_jungchaek_html.html")
+
+    def upload_lg_jungchaek_view(self, request):
+        if request.method == "GET":
+            return render(request, "admin/upload_excel_lg_jungchaek_html.html")
+
+    def upload_kt_jungchaek_view(self, request):
+        if request.method == "GET":
+            return render(request, "admin/upload_excel_kt_jungchaek_html.html")
+
+    def upload_kt_jungchaek(self, request):
+        if request.method == "POST" and request.FILES.get("excel_file"):
+            from .product_option_update.excel_kt_first import (
+                update_product_option_kt_subsidy_addtional,
+            )
+
+            excel_file = request.FILES["excel_file"].read()
+
+            try:
+                result = update_product_option_kt_subsidy_addtional(excel_file)
+                messages.info(request, result)
+            except Exception as e:
+                messages.error(request, f"Error processing file: {str(e)}")
+                return HttpResponseRedirect("../")
+
+        return HttpResponseRedirect("../")
+
+    def upload_sk_jungchaek(self, request):
+        if request.method == "POST" and request.FILES.get("excel_file"):
+            from .product_option_update.excel_sk_smartel import (
+                update_product_option_SK_subsidy_addtional,
+            )
+
+            excel_file = request.FILES["excel_file"].read()
+
+            try:
+                result = update_product_option_SK_subsidy_addtional(excel_file)
+                messages.info(request, result)
+            except Exception as e:
+                messages.error(request, f"Error processing file: {str(e)}")
+                return HttpResponseRedirect("../")
+
+        return HttpResponseRedirect("../")
+
+    def upload_lg_jungchaek(self, request):
+        if request.method == "POST" and request.FILES.get("excel_file"):
+            from .product_option_update.excel_lg_hutel import (
+                update_product_option_LG_subsidy_addtional,
+            )
+
+            excel_file = request.FILES["excel_file"].read()
+
+            try:
+                result = update_product_option_LG_subsidy_addtional(excel_file)
+                messages.info(request, result)
+            except Exception as e:
+                messages.error(request, f"Error processing file: {str(e)}")
+                return HttpResponseRedirect("../")
+
+        return HttpResponseRedirect("../")
 
 
 @admin.register(ProductDetailImage)

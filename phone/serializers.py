@@ -144,7 +144,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
                 "rating": review.rating,
                 "comment": review.comment,
                 "created_at": review.created_at,
-                "image": str(review.image),
+                "image": str(review.image.url) if review.image else "",
             }
             for review in reviews
         ]

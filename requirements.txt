@@ -24,6 +24,7 @@ django-simple-history==3.10.1
 django-storages==1.14.6
 djangorestframework==3.16.1
 drf-yasg==1.21.10
+et_xmlfile==2.0.0
 fabric==3.2.2
 flatbuffers==25.2.10
 humanfriendly==10.0
@@ -42,6 +43,7 @@ numba==0.61.2
 numpy==2.2.6
 onnxruntime==1.22.0
 opencv-python-headless==4.12.0.88
+openpyxl==3.1.5
 packaging==24.2
 pandas==2.3.2
 paramiko==4.0.0
