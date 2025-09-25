@@ -1,8 +1,6 @@
-from itertools import chain
 import openpyxl
 import io
-from django.db.models import Q
-from ..models import Product, Device, ProductOption, DeviceVariant, Plan
+from ..models import ProductOption
 
 
 HEADERS = {
@@ -27,9 +25,11 @@ HEADERS = {
 PLAN_START_COL = HEADERS.keys().__iter__().__next__()
 PLAN_START_ROW = 9
 PLAN_END_ROW = 57
+PRICE_UNIT = 1000
+MODEL_NAME_COL = "B"
 
 
-def update_product_option_SK_subsidy_addtional(file: bytes) -> None:
+def update_product_option_SK_subsidy_addtional(file: bytes) -> str:
     wb = openpyxl.load_workbook(io.BytesIO(file))
     ws = wb.active
 
@@ -71,9 +71,9 @@ def update_product_option_SK_subsidy_addtional(file: bytes) -> None:
             db_option_dict[key] = [option]
 
     for i in range(PLAN_START_ROW, PLAN_END_ROW + 1):
-        model_name = ws[f"B{i}"].value
+        model_name = ws[f"{MODEL_NAME_COL}{i}"].value
         for col, header in HEADERS.items():
-            jungchaek = int(ws[f"{col}{i}"].value) * 1000
+            jungchaek = int(ws[f"{col}{i}"].value) * PRICE_UNIT
             key = f"{header}_{model_name}"
             if key in db_option_dict:
                 options = db_option_dict[key]

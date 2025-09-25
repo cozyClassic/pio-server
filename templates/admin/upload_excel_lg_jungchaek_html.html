@@ -1,0 +1,24 @@
+{% extends "admin/base_site.html" %} {% load static %} {% block title %}Excel
+업로드{% endblock %} {% block content %}
+<h1>상품 Excel 업로드</h1>
+
+<div class="module">
+  <h2>업로드 안내</h2>
+</div>
+
+<form
+  method="post"
+  action="../process_upload_lg_jungchaek/"
+  enctype="multipart/form-data"
+>
+  {% csrf_token %}
+  <div class="form-row">
+    <label for="excel_file">excel 파일:</label>
+    <input type="file" name="excel_file" accept=".xlsx" required />
+  </div>
+  <div class="submit-row">
+    <input type="submit" value="업로드" class="default" />
+    <a href="../" class="button">취소</a>
+  </div>
+</form>
+{% endblock %}

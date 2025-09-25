@@ -551,12 +551,26 @@ class ProductOptionsAdmin(commonAdmin):
                 self.upload_sk_jungchaek,
                 name="process_upload_sk_jungchaek",
             ),
+            path(
+                "upload_lg_jungchaek/",
+                self.upload_lg_jungchaek_view,
+                name="upload_lg_jungchaek",
+            ),
+            path(
+                "process_upload_lg_jungchaek/",
+                self.upload_lg_jungchaek,
+                name="process_upload_lg_jungchaek",
+            ),
         ]
         return custom_urls + urls
 
     def upload_sk_jungchaek_view(self, request):
         if request.method == "GET":
             return render(request, "admin/upload_excel_sk_jungchaek_html.html")
+
+    def upload_lg_jungchaek_view(self, request):
+        if request.method == "GET":
+            return render(request, "admin/upload_excel_lg_jungchaek_html.html")
 
     def upload_sk_jungchaek(self, request):
         if request.method == "POST" and request.FILES.get("excel_file"):
@@ -568,6 +582,23 @@ class ProductOptionsAdmin(commonAdmin):
 
             try:
                 result = update_product_option_SK_subsidy_addtional(excel_file)
+                messages.info(request, result)
+            except Exception as e:
+                messages.error(request, f"Error processing file: {str(e)}")
+                return HttpResponseRedirect("../")
+
+        return HttpResponseRedirect("../")
+
+    def upload_lg_jungchaek(self, request):
+        if request.method == "POST" and request.FILES.get("excel_file"):
+            from .product_option_update.excel_lg_hutel import (
+                update_product_option_LG_subsidy_addtional,
+            )
+
+            excel_file = request.FILES["excel_file"].read()
+
+            try:
+                result = update_product_option_LG_subsidy_addtional(excel_file)
                 messages.info(request, result)
             except Exception as e:
                 messages.error(request, f"Error processing file: {str(e)}")
