@@ -9,7 +9,7 @@ from .serializers import *
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import mixins, status
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 from .external_services.channel_talk import send_order_alert
 
 
@@ -49,6 +49,20 @@ class ProductViewSet(ReadOnlyModelViewSet):
                 type=openapi.TYPE_STRING,
                 required=False,
             ),
+            openapi.Parameter(
+                "series",
+                openapi.IN_QUERY,
+                description="시리즈(갤럭시S/아이폰)",
+                type=openapi.TYPE_STRING,
+                required=False,
+            ),
+            openapi.Parameter(
+                "carrier",
+                openapi.IN_QUERY,
+                description="이전 통신사(SK/KT/LG)",
+                type=openapi.TYPE_STRING,
+                required=False,
+            ),
         ],
     )
     def list(self, request, *args, **kwargs):
@@ -60,6 +74,7 @@ class ProductViewSet(ReadOnlyModelViewSet):
             base_queryset = base_queryset.filter(device__brand=brand_query)
         if series_query := self.request.query_params.get("series", None):
             base_queryset = base_queryset.filter(series__name=series_query)
+        prev_carrier = self.request.query_params.get("carrier", None)
 
         if not base_queryset.exists():
             return Response(status=status.HTTP_404_NOT_FOUND)
@@ -68,17 +83,40 @@ class ProductViewSet(ReadOnlyModelViewSet):
             base_queryset.select_related(
                 "device",
             )
-            .prefetch_related(
-                "options", "options__plan", "options__device_variant", "thumbnails"
-            )
+            .prefetch_related("thumbnails")
             .order_by("-sort_order")
         )
+
+        if prev_carrier in ["SK", "KT", "LG"]:
+            # 1. productOption 에서 contract_type이 '기기변경' + plan.carrier = prev_carrier
+            # 또는 2. contract_type이 '번호이동' + plan.carrier != prev_carrier
+            queryset = queryset.prefetch_related(
+                Prefetch(
+                    "options",
+                    queryset=ProductOption.objects.filter(deleted_at__isnull=True)
+                    .select_related("plan", "device_variant")
+                    .filter(
+                        Q(Q(contract_type="기기변경") & Q(plan__carrier=prev_carrier))
+                        | Q(
+                            Q(contract_type="번호이동") & ~Q(plan__carrier=prev_carrier)
+                        )
+                    ),
+                )
+            )
+        else:
+            queryset = queryset.prefetch_related(
+                Prefetch(
+                    "options",
+                    queryset=ProductOption.objects.filter(
+                        deleted_at__isnull=True
+                    ).select_related("plan", "device_variant"),
+                )
+            )
 
         serializer = ProductListSerializer(queryset, many=True)
         return Response(serializer.data)
 
     def retrieve(self, request, *args, **kwargs):
-
         base_queryset = self.get_queryset().filter(id=kwargs.get("pk"))
 
         if not base_queryset.exists():
