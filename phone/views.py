@@ -117,26 +117,52 @@ class ProductViewSet(ReadOnlyModelViewSet):
         serializer = ProductListSerializer(queryset, many=True)
         return Response(serializer.data)
 
+    @swagger_auto_schema(
+        operation_description="상품 상세 조회",
+        manual_parameters=[
+            openapi.Parameter(
+                "carrier",
+                openapi.IN_QUERY,
+                description="이전 통신사(SK/KT/LG)",
+                type=openapi.TYPE_STRING,
+                required=False,
+            ),
+        ],
+    )
     def retrieve(self, request, *args, **kwargs):
         base_queryset = self.get_queryset().filter(id=kwargs.get("pk"))
+        prev_carrier = self.request.query_params.get("carrier", None)
 
         if not base_queryset.exists():
             return Response(status=status.HTTP_404_NOT_FOUND)
+        if prev_carrier in CarrierChoices.VALUES:
+            base_queryset = base_queryset.prefetch_related(
+                Prefetch(
+                    "options",
+                    queryset=ProductOption.objects.filter(deleted_at__isnull=True)
+                    .select_related("plan", "device_variant")
+                    .filter(
+                        Q(Q(contract_type="기기변경") & Q(plan__carrier=prev_carrier))
+                        | Q(
+                            Q(contract_type="번호이동") & ~Q(plan__carrier=prev_carrier)
+                        )
+                    ),
+                )
+            )
+        else:
+            base_queryset = base_queryset.prefetch_related(
+                Prefetch(
+                    "options",
+                    queryset=ProductOption.objects.filter(
+                        deleted_at__isnull=True
+                    ).select_related("plan", "device_variant"),
+                )
+            )
 
         instance = (
             base_queryset.select_related(
                 "device",
             ).prefetch_related(
-                Prefetch(
-                    "options",
-                    queryset=ProductOption.objects.filter(deleted_at__isnull=True),
-                ),
-                Prefetch(
-                    "options__plan",
-                    queryset=Plan.objects.filter(deleted_at__isnull=True).order_by(
-                        "-price"
-                    ),
-                ),
                 Prefetch(
                     "device__variants",
                     queryset=DeviceVariant.objects.filter(deleted_at__isnull=True),
