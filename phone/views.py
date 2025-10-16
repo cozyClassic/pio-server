@@ -4,6 +4,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.viewsets import ReadOnlyModelViewSet, GenericViewSet
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
+from rest_framework.filters import OrderingFilter
 from .serializers import *
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -305,6 +306,8 @@ class BannerViewSet(ReadOnlyModelViewSet):
         .filter(deleted_at__isnull=True, is_active=True)
         .order_by("-sort_order")
     )
+    filter_backends = [OrderingFilter]
+    ordering_fields = ["sort_order", "sort_order_test"]
 
 
 class ReviewViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewSet):

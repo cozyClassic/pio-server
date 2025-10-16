@@ -5,6 +5,7 @@ from django.db.models import QuerySet
 from simple_history.models import HistoricalRecords
 from threading import local
 import pandas as pd
+from .managers import SoftDeleteManager
 
 from mdeditor.fields import MDTextField
 
@@ -25,12 +26,14 @@ class SoftDeleteModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
+    objects = SoftDeleteManager()
 
     class Meta:
         abstract = True
         indexes = [
             models.Index(fields=["created_at"]),
         ]
+        default_manager_name = "objects"
 
     def delete(self, *args, **kwargs):
         self.deleted_at = timezone.now()
@@ -47,6 +50,12 @@ class SoftDeleteImageModel(SoftDeleteModel):
         if self.image:
             self.image.delete(save=False)
         super().delete(*args, **kwargs)
+
+
+class PlanPremiumChoices(SoftDeleteImageModel):
+    carrier = models.CharField(max_length=10)
+    name = models.CharField(max_length=100, help_text="넷플릭스, 유튜브 등")
+    description = models.TextField()
 
 
 class Plan(SoftDeleteModel):
@@ -68,6 +77,8 @@ class Plan(SoftDeleteModel):
     call_allowance = models.CharField(max_length=100, help_text="Call minutes limit")
     sms_allowance = models.CharField(max_length=100, help_text="sms_allowance limit")
     sort_order = models.IntegerField(default=0)
+    membership_level = models.CharField(max_length=100, default="")
+    # many to many: PlanPremiumChoices
 
     def __str__(self):
         return f"{self.carrier} / {self.name} - {self.price}"
@@ -282,6 +293,30 @@ class ProductDetailImage(SoftDeleteImageModel):
         )
 
 
+class ProductImages(SoftDeleteImageModel):
+    product = models.ForeignKey(
+        "Product", on_delete=models.CASCADE, related_name="product_images"
+    )
+    image = models.ImageField(upload_to="product_images/")
+    type = models.CharField(
+        max_length=25, choices=[("pc", "pc"), ("mobile", "mobile")], default="pc"
+    )
+    description = models.CharField(max_length=255, blank=True)
+    sort_order = models.IntegerField(default=0)
+
+    def __str__(self):
+        return (
+            f"Image for {self.product.name} - {self.description[:20]}..."
+            if self.description
+            else f"Image for {self.product.name}"
+        )
+
+
+class ProductSeries(SoftDeleteModel):
+    # 하나의 상품이 여러개의 Series에 포함될 수 있다 -> M to M 관계
+    name = models.CharField(max_length=100)
+
+
 class Product(SoftDeleteModel):
     name = models.CharField(max_length=100)
     device = models.ForeignKey(
@@ -301,6 +336,7 @@ class Product(SoftDeleteModel):
     sort_order = models.IntegerField(default=0, help_text="정렬 순서")
     is_featured = models.BooleanField(default=False, help_text="추천 상품 여부")
     is_active = models.BooleanField(default=False, help_text="활성화 여부")
+    series = models.ManyToManyField(ProductSeries, related_name="products")
 
     def __str__(self):
         return f"{self.name}"
@@ -471,13 +507,24 @@ class Notice(SoftDeleteModel):
         return self.title
 
 
+class DecoratorTag(SoftDeleteModel):
+    name = models.CharField(max_length=100)
+    text_color = models.CharField(max_length=7)
+    tag_color = models.CharField(max_length=7)
+    product = models.ManyToManyField("Product")
+    productOption = models.ManyToManyField("ProductOption")
+    # product에도, product option에도 추가할 수 있음
+
+
 class Banner(SoftDeleteImageModel):
-    title = models.CharField(max_length=100)
+    title = models.CharField(max_length=100, default="")
     image_pc = models.ImageField(upload_to="banners/", default="")
     image_mobile = models.ImageField(upload_to="banners/", default="")
     link = models.URLField(blank=True, null=True, help_text="배너 클릭 시 이동할 링크")
     sort_order = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True, help_text="배너 활성화 여부")
+    sort_order_test = models.IntegerField(default=0)
+    location = models.CharField(max_length=100, default="")
     # remove field 'image'
 
     def __str__(self):
