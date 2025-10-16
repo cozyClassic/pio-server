@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from .models import *
+from .constants import CarrierChoices
 
 
 class ProductOptionSimpleSerializer(serializers.ModelSerializer):
@@ -46,7 +47,11 @@ class ProductListSerializer(serializers.ModelSerializer):
 
     def get_options(self, obj):
         options = obj.options.all()
-        best_options = {"SK": None, "KT": None, "LG": None}
+        best_options = {
+            CarrierChoices.SK: None,
+            CarrierChoices.KT: None,
+            CarrierChoices.LG: None,
+        }
         best_price = 99999999
 
         for option in options:

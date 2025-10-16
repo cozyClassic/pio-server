@@ -9,6 +9,7 @@ from .managers import SoftDeleteManager
 
 from mdeditor.fields import MDTextField
 from .utils import UniqueFilePathGenerator
+from .constants import CarrierChoices
 
 # Thread-local storage for tracking products that need updates
 _thread_locals = local()
@@ -55,14 +56,14 @@ class SoftDeleteImageModel(SoftDeleteModel):
 
 
 class PlanPremiumChoices(SoftDeleteImageModel):
-    carrier = models.CharField(max_length=10)
+    carrier = models.CharField(max_length=10, choices=CarrierChoices.CHOICES)
     name = models.CharField(max_length=100, help_text="넷플릭스, 유튜브 등")
     description = models.TextField()
 
 
 class Plan(SoftDeleteModel):
     name = models.CharField(max_length=100)
-    carrier = models.CharField(max_length=100)
+    carrier = models.CharField(max_length=100, choices=CarrierChoices.CHOICES)
     category_1 = models.CharField(max_length=100, help_text="e.g., 5G, LTE, 3G")
     category_2 = models.CharField(
         max_length=100, help_text="통신사 별 요금제 구분 (5GX, 0청년 등)"
@@ -575,7 +576,9 @@ class PolicyDocument(SoftDeleteModel):
 
 
 class PartnerCard(SoftDeleteImageModel):
-    carrier = models.CharField(max_length=100, null=True)
+    carrier = models.CharField(
+        max_length=100, null=True, choices=CarrierChoices.CHOICES
+    )
     benefit_type = models.CharField(max_length=100, null=True)
     name = models.CharField(max_length=100, null=True)
     contact = models.CharField(max_length=100, null=True)

@@ -11,6 +11,7 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework import mixins, status
 from django.db.models import Prefetch, Q
 from .external_services.channel_talk import send_order_alert
+from .constants import CarrierChoices
 
 
 # Create your views here.
@@ -87,7 +88,7 @@ class ProductViewSet(ReadOnlyModelViewSet):
             .order_by("-sort_order")
         )
 
-        if prev_carrier in ["SK", "KT", "LG"]:
+        if prev_carrier in CarrierChoices.VALUES:
             # 1. productOption 에서 contract_type이 '기기변경' + plan.carrier = prev_carrier
             # 또는 2. contract_type이 '번호이동' + plan.carrier != prev_carrier
             queryset = queryset.prefetch_related(
