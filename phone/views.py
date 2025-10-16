@@ -9,7 +9,7 @@ from .serializers import *
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import mixins, status
-from django.db.models import Prefetch, Q
+from django.db.models import Prefetch, Q, F
 from .external_services.channel_talk import send_order_alert
 from .constants import CarrierChoices
 
@@ -131,10 +131,13 @@ class ProductViewSet(ReadOnlyModelViewSet):
     )
     def retrieve(self, request, *args, **kwargs):
         base_queryset = self.get_queryset().filter(id=kwargs.get("pk"))
-        prev_carrier = self.request.query_params.get("carrier", None)
 
         if not base_queryset.exists():
             return Response(status=status.HTTP_404_NOT_FOUND)
+
+        base_queryset.update(views=F("views") + 1)
+
+        prev_carrier = self.request.query_params.get("carrier", None)
         if prev_carrier in CarrierChoices.VALUES:
             base_queryset = base_queryset.prefetch_related(
                 Prefetch(

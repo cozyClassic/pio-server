@@ -342,6 +342,7 @@ class Product(SoftDeleteModel):
     is_featured = models.BooleanField(default=False, help_text="추천 상품 여부")
     is_active = models.BooleanField(default=False, help_text="활성화 여부")
     series = models.ManyToManyField(ProductSeries, related_name="products")
+    views = models.IntegerField(default=0, help_text="조회수")
 
     def __str__(self):
         return f"{self.name}"
