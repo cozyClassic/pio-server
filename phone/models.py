@@ -1,5 +1,7 @@
 from django.db import models
 
+import os
+
 from django.utils import timezone
 from django.db.models import QuerySet
 from simple_history.models import HistoricalRecords
@@ -13,7 +15,18 @@ from mdeditor.fields import MDTextField
 _thread_locals = local()
 
 
-# Create your models here.
+def rand_file_path(path: str) -> str:
+    def get_unique_filepath(instance, filename):
+        name, ext = filename.rsplit(".", 1)
+        today = timezone.now()
+
+        new_filename = f"{today.strftime(f"{path}/{name}-%Y%m%d%H%M%S%f")}.{ext}"
+        return new_filename
+
+    # 최종 경로와 파일 이름 반환
+    return get_unique_filepath
+
+
 def get_int_or_zero(value):
     return 0 if value is None or pd.isna(value) else int(value)
 
@@ -41,7 +54,9 @@ class SoftDeleteModel(models.Model):
 
 
 class SoftDeleteImageModel(SoftDeleteModel):
-    image = models.ImageField(upload_to="images/", null=True, blank=True)
+    image = models.ImageField(
+        upload_to=rand_file_path("images/"), null=True, blank=True
+    )
 
     class Meta:
         abstract = True
@@ -113,7 +128,7 @@ class DevicesColorImage(SoftDeleteImageModel):
     device_color = models.ForeignKey(
         DeviceColor, on_delete=models.CASCADE, related_name="images"
     )
-    image = models.ImageField(upload_to="device_color_images/")
+    image = models.ImageField(upload_to=rand_file_path("device_color_images/"))
     description = models.CharField(max_length=255, blank=True)
 
     def __str__(self):
@@ -278,7 +293,7 @@ class ProductDetailImage(SoftDeleteImageModel):
     product = models.ForeignKey(
         "Product", on_delete=models.CASCADE, related_name="images"
     )
-    image = models.ImageField(upload_to="product_images/")
+    image = models.ImageField(upload_to=rand_file_path("product_images/"))
     type = models.CharField(
         max_length=25, choices=[("pc", "pc"), ("mobile", "mobile")], default="pc"
     )
@@ -297,7 +312,7 @@ class ProductImages(SoftDeleteImageModel):
     product = models.ForeignKey(
         "Product", on_delete=models.CASCADE, related_name="product_images"
     )
-    image = models.ImageField(upload_to="product_images/")
+    image = models.ImageField(upload_to=rand_file_path("product_images/"))
     type = models.CharField(
         max_length=25, choices=[("pc", "pc"), ("mobile", "mobile")], default="pc"
     )
@@ -331,7 +346,9 @@ class Product(SoftDeleteModel):
         blank=True,
         related_name="best_price_option",
     )
-    image_main = models.ImageField(upload_to="product_images/", blank=True)
+    image_main = models.ImageField(
+        upload_to=rand_file_path("product_images/"), blank=True
+    )
     description = models.TextField(default="", blank=True)
     sort_order = models.IntegerField(default=0, help_text="정렬 순서")
     is_featured = models.BooleanField(default=False, help_text="추천 상품 여부")
@@ -518,8 +535,8 @@ class DecoratorTag(SoftDeleteModel):
 
 class Banner(SoftDeleteImageModel):
     title = models.CharField(max_length=100, default="")
-    image_pc = models.ImageField(upload_to="banners/", default="")
-    image_mobile = models.ImageField(upload_to="banners/", default="")
+    image_pc = models.ImageField(upload_to=rand_file_path("banners/"), default="")
+    image_mobile = models.ImageField(upload_to=rand_file_path("banners/"), default="")
     link = models.URLField(blank=True, null=True, help_text="배너 클릭 시 이동할 링크")
     sort_order = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True, help_text="배너 활성화 여부")
@@ -539,7 +556,10 @@ class Review(SoftDeleteModel):
     rating = models.IntegerField(default=0, help_text="Rating from 1 to 5")
     comment = models.TextField(blank=True, null=True)
     image = models.ImageField(
-        upload_to="review_images/", blank=True, null=True, help_text="Review image"
+        upload_to=rand_file_path("review_images/"),
+        blank=True,
+        null=True,
+        help_text="Review image",
     )
     is_public = models.BooleanField(default=False, help_text="Is the review public?")
 
@@ -556,7 +576,7 @@ class PolicyDocument(SoftDeleteModel):
         max_length=20,
         default="terms",
     )
-    content = models.FileField(upload_to="policy_documents/")
+    content = models.FileField(upload_to=rand_file_path("policy_documents/"))
     effective_date = models.DateField(help_text="Effective date of the policy")
 
     def __str__(self):
@@ -584,7 +604,9 @@ class CardBenefit(SoftDeleteModel):
 
 class Event(SoftDeleteModel):
     title = models.CharField(max_length=100)
-    thumbnail = models.ImageField(upload_to="event_thumbnails/", null=True, blank=True)
+    thumbnail = models.ImageField(
+        upload_to=rand_file_path("event_thumbnails/"), null=True, blank=True
+    )
     description = MDTextField(null=True, blank=True)
     start_date = models.DateField()
     end_date = models.DateField()
