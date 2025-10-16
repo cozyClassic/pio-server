@@ -3,36 +3,80 @@ from rest_framework import serializers
 from .models import *
 
 
+class ProductOptionSimpleSerializer(serializers.ModelSerializer):
+    carrier = serializers.SerializerMethodField()
+    is_best = serializers.BooleanField(default=False)
+
+    class Meta:
+        model = ProductOption
+        fields = [
+            "id",
+            "final_price",
+            "carrier",
+            "contract_type",
+            "discount_type",
+            "is_best",
+        ]
+
+    def get_carrier(self, obj):
+        return obj.plan.carrier
+
+
+class ProductImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImages
+        fields = ["image", "type", "sort_order"]
+
+
 class ProductListSerializer(serializers.ModelSerializer):
-    best_price_option = serializers.SerializerMethodField()
-    brand = serializers.CharField(source="device.brand")
     series = serializers.CharField(source="device.series")
+    options = serializers.SerializerMethodField()
+    thumbnails = ProductImageSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
         fields = [
             "id",
             "name",
-            "image_main",
-            "best_price_option",
-            "brand",
             "series",
             "is_featured",
-            "description",
+            "options",
+            "thumbnails",
         ]
 
-    def get_best_price_option(self, obj):
-        if obj.best_price_option is None:
-            return {}
-        option = {
-            "device_price": obj.best_price_option.device_variant.device_price,
-            "final_price": obj.best_price_option.final_price,
-            "carrier": obj.best_price_option.plan.carrier,
-            "plan": obj.best_price_option.plan.name,
-            "discount_type": obj.best_price_option.discount_type,
-            "contract_type": obj.best_price_option.contract_type,
-        }
-        return option
+    def get_options(self, obj):
+        options = obj.options.all()
+        best_options = {"SK": None, "KT": None, "LG": None}
+        best_price = 99999999
+
+        for option in options:
+            carrier = option.plan.carrier
+            if carrier not in best_options:
+                continue
+
+            current = best_options[carrier]
+
+            # 첫 번째 옵션이거나, final_price가 더 낮거나,
+            # final_price가 같고 plan.price가 더 낮은 경우
+            if (
+                current is None
+                or option.final_price < current.final_price
+                or (
+                    option.final_price == current.final_price
+                    and option.plan.price < current.plan.price
+                )
+            ):
+                best_options[carrier] = option
+                if option.final_price < best_price:
+                    best_price = option.final_price
+
+        for carrier, option in best_options.items():
+            if option is not None and option.final_price == best_price:
+                option.is_best = True
+
+        return list(
+            ProductOptionSimpleSerializer(best_options.values(), many=True).data
+        )
 
 
 class ProductDetailSerializer(serializers.ModelSerializer):

@@ -20,6 +20,11 @@ class commonAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at", "deleted_at")
 
 
+@admin.register(ProductImages)
+class ProductImagesAdmin(commonAdmin):
+    pass
+
+
 @admin.register(Plan)
 class PlanAdmin(commonAdmin):
     list_display = (

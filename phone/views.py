@@ -58,16 +58,21 @@ class ProductViewSet(ReadOnlyModelViewSet):
         base_queryset = self.get_queryset().filter(best_price_option_id__isnull=False)
         if brand_query := self.request.query_params.get("brand", None):
             base_queryset = base_queryset.filter(device__brand=brand_query)
+        if series_query := self.request.query_params.get("series", None):
+            base_queryset = base_queryset.filter(series__name=series_query)
 
         if not base_queryset.exists():
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        queryset = base_queryset.select_related(
-            "device",
-            "best_price_option",
-            "best_price_option__plan",
-            "best_price_option__device_variant",
-        ).order_by("-sort_order")
+        queryset = (
+            base_queryset.select_related(
+                "device",
+            )
+            .prefetch_related(
+                "options", "options__plan", "options__device_variant", "thumbnails"
+            )
+            .order_by("-sort_order")
+        )
 
         serializer = ProductListSerializer(queryset, many=True)
         return Response(serializer.data)
