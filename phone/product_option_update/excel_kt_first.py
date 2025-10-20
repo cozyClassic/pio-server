@@ -24,7 +24,7 @@ PRICE_UNIT = 10000
 MODEL_NAME_COL = "B"
 
 
-def update_product_option_kt_subsidy_addtional(file: bytes) -> None:
+def update_product_option_kt_subsidy_addtional(file: bytes, margin=0) -> None:
     """기능
     - 공시지원금은 별도로 관리하기 위해 여기에서 관리하지 않는다.
     1. product option을 db로부터 읽어온다.
@@ -67,14 +67,19 @@ def update_product_option_kt_subsidy_addtional(file: bytes) -> None:
 
     for i in range(PLAN_START_ROW, PLAN_END_ROW + 1):
         model_name = ws[f"{MODEL_NAME_COL}{i}"].value
+        if not model_name:
+            continue
         for col, header in HEADERS.items():
-            jungchaek = int(eval(ws[f"{col}{i}"].value)) * PRICE_UNIT
+            jungchaek = max(int(eval(ws[f"{col}{i}"].value)) * PRICE_UNIT - margin, 0)
             key = f"{header}_{model_name}"
             if key in db_option_dict:
                 options = db_option_dict[key]
-                print(key, jungchaek)
                 for option in options:
                     option.additional_discount = jungchaek
+                    option.final_price = option._get_final_price()
+                    if option.final_price < 0:
+                        option.additional_discount += option.final_price
+                        option.final_price = 0
                     updates.append(option)
                     update_device_variants.add(
                         option.device_variant.device.model_name
@@ -82,7 +87,7 @@ def update_product_option_kt_subsidy_addtional(file: bytes) -> None:
                         + option.device_variant.storage_capacity
                     )
 
-    ProductOption.objects.bulk_update(updates, ["additional_discount"])
+    ProductOption.objects.bulk_update(updates, ["additional_discount", "final_price"])
     update_device_variants = sorted(list(update_device_variants))
 
     return f"{ws.title} 시트의 {update_device_variants}의 kt 추가지원금 {len(updates)}건 업데이트 완료"

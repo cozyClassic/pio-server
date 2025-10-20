@@ -14,6 +14,12 @@
   {% csrf_token %}
   <div class="form-row">
     <label for="excel_file">excel 파일:</label>
+    <input
+      type="number"
+      name="margin"
+      placeholder="마진(광고비+인건비+화사마진) 입력 (예: 120000)"
+      required
+    />
     <input type="file" name="excel_file" accept=".xlsx" required />
   </div>
   <div class="submit-row">
