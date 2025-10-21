@@ -67,6 +67,9 @@ def update_product_option_LG_subsidy_addtional(file: bytes, margin=0) -> None:
 
     for i in range(PLAN_START_ROW, PLAN_END_ROW + 1):
         model_name = ws[f"{MODEL_NAME_COL}{i}"].value
+        if not model_name:
+            continue
+
         for col, header in HEADERS.items():
             jungchaek = max(int(ws[f"{col}{i}"].value) * PRICE_UNIT - margin, 0)
             key = f"{header}_{model_name}"
