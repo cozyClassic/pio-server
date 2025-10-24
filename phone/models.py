@@ -489,6 +489,18 @@ class Order(SoftDeleteModel):
         max_length=255, blank=True, help_text="GA4 ID", default=""
     )
 
+    prev_carrier = models.CharField(
+        max_length=50,
+        choices=[
+            ("SK", "SK"),
+            ("KT", "KT"),
+            ("LG", "LG"),
+        ],
+        blank=True,
+        null=True,
+        help_text="이전 통신사",
+    )
+
     history = HistoricalRecords()
 
     def __str__(self):

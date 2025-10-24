@@ -309,6 +309,7 @@ class OrderCreateSerializer(serializers.ModelSerializer):
             "zipcode",
             "payment_period",
             "ga4_id",
+            "prev_carrier",
         ]
 
 

@@ -307,6 +307,7 @@ ORDER BY o.id, ci.id;
             shipping_address_detail=body.get("shipping_address_detail"),
             zipcode=body.get("zipcode"),
             ga4_id=body.get("ga4_id", ""),
+            prev_carrier=body.get("prev_carrier", ""),
         )
         new_order.save()
         send_order_alert(
