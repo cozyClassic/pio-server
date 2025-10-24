@@ -115,6 +115,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         }
         result = {}
 
+        # discount_type을 안으로 넣고, plan을 위로 올리기
         for op in options:
             dv_id = op.device_variant_id
             storage_capacity = device_variants[dv_id]["storage_capacity"]
@@ -126,32 +127,36 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             if op.contract_type not in result[storage_capacity][plan.carrier]:
                 result[storage_capacity][plan.carrier][op.contract_type] = {}
             if (
-                op.discount_type
+                op.plan_id
                 not in result[storage_capacity][plan.carrier][op.contract_type]
             ):
                 result[storage_capacity][plan.carrier][op.contract_type][
-                    op.discount_type
+                    op.plan_id
                 ] = []
-            result[storage_capacity][plan.carrier][op.contract_type][
+            result[storage_capacity][plan.carrier][op.contract_type][op.plan_id] = {
+                "plan_id": op.plan_id,
+                "name": op.plan.name,
+                "price": op.plan.price,
+                "data_allowance": op.plan.data_allowance,
+                "call_allowance": op.plan.call_allowance,
+                "sms_allowance": op.plan.sms_allowance,
+                "description": op.plan.description,
+            }
+            if (
                 op.discount_type
-            ].append(
-                {
+                not in result[storage_capacity][plan.carrier][op.contract_type][
+                    op.plan_id
+                ]
+            ):
+                result[storage_capacity][plan.carrier][op.contract_type][op.plan_id][
+                    op.discount_type
+                ] = {
                     "option_id": op.id,
                     "final_price": op.final_price,
-                    "plan": {
-                        "id": op.plan.id,
-                        "name": op.plan.name,
-                        "price": op.plan.price,
-                        "data_allowance": op.plan.data_allowance,
-                        "call_allowance": op.plan.call_allowance,
-                        "sms_allowance": op.plan.sms_allowance,
-                        "description": op.plan.description,
-                    },
-                    "subsidy_standard": op.subsidy_amount,
-                    "subsidy_mnp": op.subsidy_amount_mnp,
                     "additional_discount": op.additional_discount,
+                    "subsidy_amount": op.subsidy_amount,
+                    "subsidy_amount_mnp": op.subsidy_amount_mnp,
                 }
-            )
 
         return result
 
