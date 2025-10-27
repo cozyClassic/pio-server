@@ -56,7 +56,7 @@ class ProductListSerializer(serializers.ModelSerializer):
         ]
 
     def get_thumbnails(self, obj):
-        return [img.image.url for img in obj.images.all()]
+        return [obj.image_main.url if obj.image_main else None]
 
     def get_series(self, obj):
         return obj.product_series.name if obj.product_series else None
@@ -393,14 +393,14 @@ class NoticeSerializer(serializers.ModelSerializer):
 class BannerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Banner
-        fields = ["id", "link", "title", "image_pc", "image_mobile", "created_at"]
+        fields = ["id", "link", "title", "image_pc", "image_mobile", "location"]
         read_only_fields = [
             "id",
             "link",
             "title",
             "image_pc",
             "image_mobile",
-            "created_at",
+            "location",
         ]
 
 
