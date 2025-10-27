@@ -316,8 +316,12 @@ class ProductImages(SoftDeleteImageModel):
 
 
 class ProductSeries(SoftDeleteModel):
-    # 하나의 상품이 여러개의 Series에 포함될 수 있다 -> M to M 관계
+    # 하나의 시리즈는 여러 제품에 속할 수 있음
+    # 하나의 제품은 하나의 시리즈에만 속함
     name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.name
 
 
 class Product(SoftDeleteModel):
@@ -341,8 +345,14 @@ class Product(SoftDeleteModel):
     sort_order = models.IntegerField(default=0, help_text="정렬 순서")
     is_featured = models.BooleanField(default=False, help_text="추천 상품 여부")
     is_active = models.BooleanField(default=False, help_text="활성화 여부")
-    series = models.ManyToManyField(ProductSeries, related_name="products")
     views = models.IntegerField(default=0, help_text="조회수")
+    product_series = models.ForeignKey(
+        ProductSeries,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="productseries",
+    )
 
     def __str__(self):
         return f"{self.name}"

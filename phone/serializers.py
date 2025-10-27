@@ -30,7 +30,7 @@ class ProductImageSerializer(serializers.ModelSerializer):
 
 
 class ProductListSerializer(serializers.ModelSerializer):
-    series = serializers.CharField(source="device.series")
+    series = serializers.SerializerMethodField()
     options = serializers.SerializerMethodField()
     thumbnails = ProductImageSerializer(many=True, read_only=True)
 
@@ -44,6 +44,9 @@ class ProductListSerializer(serializers.ModelSerializer):
             "options",
             "thumbnails",
         ]
+
+    def get_series(self, obj):
+        return obj.product_series.name if obj.product_series else None
 
     def get_options(self, obj):
         options = obj.options.all()

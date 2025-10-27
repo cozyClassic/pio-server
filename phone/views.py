@@ -74,7 +74,7 @@ class ProductViewSet(ReadOnlyModelViewSet):
         if brand_query := self.request.query_params.get("brand", None):
             base_queryset = base_queryset.filter(device__brand=brand_query)
         if series_query := self.request.query_params.get("series", None):
-            base_queryset = base_queryset.filter(series__name=series_query)
+            base_queryset = base_queryset.filter(product_series__name=series_query)
         prev_carrier = self.request.query_params.get("carrier", None)
 
         if not base_queryset.exists():

@@ -754,3 +754,8 @@ class EventAdmin(commonAdmin):
 @admin.register(PlanPremiumChoices)
 class PlanPremiumChoicesAdmin(commonAdmin):
     pass
+
+
+@admin.register(ProductSeries)
+class ProductSeriesAdmin(commonAdmin):
+    pass
