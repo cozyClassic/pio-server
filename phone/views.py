@@ -64,6 +64,13 @@ class ProductViewSet(ReadOnlyModelViewSet):
                 type=openapi.TYPE_STRING,
                 required=False,
             ),
+            openapi.Parameter(
+                "is_featured",
+                openapi.IN_QUERY,
+                description="추천 상품 여부 (true/false)",
+                type=openapi.TYPE_BOOLEAN,
+                required=False,
+            ),
         ],
     )
     def list(self, request, *args, **kwargs):
@@ -75,7 +82,15 @@ class ProductViewSet(ReadOnlyModelViewSet):
             base_queryset = base_queryset.filter(device__brand=brand_query)
         if series_query := self.request.query_params.get("series", None):
             base_queryset = base_queryset.filter(product_series__name=series_query)
-        prev_carrier = self.request.query_params.get("carrier", None)
+        if (
+            prev_carrier := self.request.query_params.get("carrier", None)
+        ) in CarrierChoices.VALUES:
+            pass  # handled later
+        if is_featured := self.request.query_params.get("is_featured", None):
+            if is_featured.lower() == "true":
+                base_queryset = base_queryset.filter(is_featured=True)
+            elif is_featured.lower() == "false":
+                base_queryset = base_queryset.filter(is_featured=False)
 
         if not base_queryset.exists():
             return Response(status=status.HTTP_404_NOT_FOUND)

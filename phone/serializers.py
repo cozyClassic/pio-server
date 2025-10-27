@@ -7,6 +7,8 @@ from .constants import CarrierChoices
 class ProductOptionSimpleSerializer(serializers.ModelSerializer):
     carrier = serializers.SerializerMethodField()
     is_best = serializers.BooleanField(default=False)
+    device_price = serializers.SerializerMethodField()
+    device_name = serializers.SerializerMethodField()
 
     class Meta:
         model = ProductOption
@@ -17,10 +19,18 @@ class ProductOptionSimpleSerializer(serializers.ModelSerializer):
             "contract_type",
             "discount_type",
             "is_best",
+            "device_price",
+            "device_name",
         ]
 
     def get_carrier(self, obj):
         return obj.plan.carrier
+
+    def get_device_price(self, obj):
+        return obj.device_variant.device_price
+
+    def get_device_name(self, obj):
+        return obj.product.device.model_name
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
@@ -32,7 +42,7 @@ class ProductImageSerializer(serializers.ModelSerializer):
 class ProductListSerializer(serializers.ModelSerializer):
     series = serializers.SerializerMethodField()
     options = serializers.SerializerMethodField()
-    thumbnails = ProductImageSerializer(many=True, read_only=True)
+    thumbnails = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -44,6 +54,9 @@ class ProductListSerializer(serializers.ModelSerializer):
             "options",
             "thumbnails",
         ]
+
+    def get_thumbnails(self, obj):
+        return [img.image.url for img in obj.images.all()]
 
     def get_series(self, obj):
         return obj.product_series.name if obj.product_series else None
