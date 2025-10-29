@@ -372,8 +372,24 @@ class NoticeViewSet(ReadOnlyModelViewSet):
         Notice.objects.all().filter(deleted_at__isnull=True).order_by("-created_at")
     )
 
+    @swagger_auto_schema(
+        operation_description="공지사항 조회",
+        manual_parameters=[
+            openapi.Parameter(
+                "type",
+                openapi.IN_QUERY,
+                description="공지사항 유형(필수)",
+                type=openapi.TYPE_STRING,
+                required=True,
+                enum=["caution", "event", "general"],
+            ),
+        ],
+    )
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
+        notice_type = request.query_params.get("type", None)
+        if notice_type:
+            queryset = queryset.filter(type=notice_type)
 
         page = self.paginate_queryset(queryset)
         if page is not None:

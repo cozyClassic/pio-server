@@ -530,6 +530,11 @@ class FAQ(SoftDeleteModel):
 class Notice(SoftDeleteModel):
     title = models.CharField(max_length=100)
     content = models.TextField()
+    type = models.CharField(
+        max_length=25,
+        choices=[("caution", "caution"), ("event", "event"), ("general", "general")],
+        default="general",
+    )
 
     def __str__(self):
         return self.title
