@@ -1,1 +1,1 @@
-web: gunicorn --bind :8000 --workers 3 phoneinone_server.wsgi:application
+web: gunicorn phoneinone_server.wsgi:application --bind 0.0.0.0:$PORT
