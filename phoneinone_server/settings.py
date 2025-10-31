@@ -65,7 +65,7 @@ ALLOWED_HOSTS = [
     "dev.phoneinone.com",
     "*.myekmjwu.ap-northeast-2.elasticbeanstalk.com",
     "test-1.eba-myekmjwu.ap-northeast-2.elasticbeanstalk.com",
-    "https://web-production-a365.up.railway.app",
+    "web-production-a365.up.railway.app",
     SERVER_HOST.replace("http://", "").replace("https://", "").rstrip("/"),
 ]
 
