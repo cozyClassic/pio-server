@@ -5,14 +5,16 @@ from django.db.models import QuerySet
 from simple_history.models import HistoricalRecords
 from threading import local
 import pandas as pd
+from .managers import SoftDeleteManager
 
 from mdeditor.fields import MDTextField
+from .utils import UniqueFilePathGenerator
+from .constants import CarrierChoices
 
 # Thread-local storage for tracking products that need updates
 _thread_locals = local()
 
 
-# Create your models here.
 def get_int_or_zero(value):
     return 0 if value is None or pd.isna(value) else int(value)
 
@@ -25,12 +27,14 @@ class SoftDeleteModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
+    objects = SoftDeleteManager()
 
     class Meta:
         abstract = True
         indexes = [
             models.Index(fields=["created_at"]),
         ]
+        default_manager_name = "objects"
 
     def delete(self, *args, **kwargs):
         self.deleted_at = timezone.now()
@@ -38,7 +42,9 @@ class SoftDeleteModel(models.Model):
 
 
 class SoftDeleteImageModel(SoftDeleteModel):
-    image = models.ImageField(upload_to="images/", null=True, blank=True)
+    image = models.ImageField(
+        upload_to=UniqueFilePathGenerator("images/"), null=True, blank=True
+    )
 
     class Meta:
         abstract = True
@@ -49,9 +55,15 @@ class SoftDeleteImageModel(SoftDeleteModel):
         super().delete(*args, **kwargs)
 
 
+class PlanPremiumChoices(SoftDeleteImageModel):
+    carrier = models.CharField(max_length=10, choices=CarrierChoices.CHOICES)
+    name = models.CharField(max_length=100, help_text="넷플릭스, 유튜브 등")
+    description = models.TextField()
+
+
 class Plan(SoftDeleteModel):
     name = models.CharField(max_length=100)
-    carrier = models.CharField(max_length=100)
+    carrier = models.CharField(max_length=100, choices=CarrierChoices.CHOICES)
     category_1 = models.CharField(max_length=100, help_text="e.g., 5G, LTE, 3G")
     category_2 = models.CharField(
         max_length=100, help_text="통신사 별 요금제 구분 (5GX, 0청년 등)"
@@ -68,6 +80,8 @@ class Plan(SoftDeleteModel):
     call_allowance = models.CharField(max_length=100, help_text="Call minutes limit")
     sms_allowance = models.CharField(max_length=100, help_text="sms_allowance limit")
     sort_order = models.IntegerField(default=0)
+    membership_level = models.CharField(max_length=100, default="")
+    # many to many: PlanPremiumChoices
 
     def __str__(self):
         return f"{self.carrier} / {self.name} - {self.price}"
@@ -102,7 +116,7 @@ class DevicesColorImage(SoftDeleteImageModel):
     device_color = models.ForeignKey(
         DeviceColor, on_delete=models.CASCADE, related_name="images"
     )
-    image = models.ImageField(upload_to="device_color_images/")
+    image = models.ImageField(upload_to=UniqueFilePathGenerator("device_color_images/"))
     description = models.CharField(max_length=255, blank=True)
 
     def __str__(self):
@@ -267,7 +281,7 @@ class ProductDetailImage(SoftDeleteImageModel):
     product = models.ForeignKey(
         "Product", on_delete=models.CASCADE, related_name="images"
     )
-    image = models.ImageField(upload_to="product_images/")
+    image = models.ImageField(upload_to=UniqueFilePathGenerator("product_images/"))
     type = models.CharField(
         max_length=25, choices=[("pc", "pc"), ("mobile", "mobile")], default="pc"
     )
@@ -280,6 +294,34 @@ class ProductDetailImage(SoftDeleteImageModel):
             if self.description
             else f"Image for {self.product.name}"
         )
+
+
+class ProductImages(SoftDeleteImageModel):
+    product = models.ForeignKey(
+        "Product", on_delete=models.CASCADE, related_name="thumbnails"
+    )
+    image = models.ImageField(upload_to=UniqueFilePathGenerator("product_images/"))
+    type = models.CharField(
+        max_length=25, choices=[("pc", "pc"), ("mobile", "mobile")], default="pc"
+    )
+    description = models.CharField(max_length=255, blank=True)
+    sort_order = models.IntegerField(default=0)
+
+    def __str__(self):
+        return (
+            f"Image for {self.product.name} - {self.description[:20]}..."
+            if self.description
+            else f"Image for {self.product.name}"
+        )
+
+
+class ProductSeries(SoftDeleteModel):
+    # 하나의 시리즈는 여러 제품에 속할 수 있음
+    # 하나의 제품은 하나의 시리즈에만 속함
+    name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.name
 
 
 class Product(SoftDeleteModel):
@@ -296,11 +338,21 @@ class Product(SoftDeleteModel):
         blank=True,
         related_name="best_price_option",
     )
-    image_main = models.ImageField(upload_to="product_images/", blank=True)
+    image_main = models.ImageField(
+        upload_to=UniqueFilePathGenerator("product_images/"), blank=True
+    )
     description = models.TextField(default="", blank=True)
     sort_order = models.IntegerField(default=0, help_text="정렬 순서")
     is_featured = models.BooleanField(default=False, help_text="추천 상품 여부")
     is_active = models.BooleanField(default=False, help_text="활성화 여부")
+    views = models.IntegerField(default=0, help_text="조회수")
+    product_series = models.ForeignKey(
+        ProductSeries,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="productseries",
+    )
 
     def __str__(self):
         return f"{self.name}"
@@ -447,6 +499,18 @@ class Order(SoftDeleteModel):
         max_length=255, blank=True, help_text="GA4 ID", default=""
     )
 
+    prev_carrier = models.CharField(
+        max_length=50,
+        choices=[
+            ("SK", "SK"),
+            ("KT", "KT"),
+            ("LG", "LG"),
+        ],
+        blank=True,
+        null=True,
+        help_text="이전 통신사",
+    )
+
     history = HistoricalRecords()
 
     def __str__(self):
@@ -466,18 +530,38 @@ class FAQ(SoftDeleteModel):
 class Notice(SoftDeleteModel):
     title = models.CharField(max_length=100)
     content = models.TextField()
+    type = models.CharField(
+        max_length=25,
+        choices=[("caution", "caution"), ("event", "event"), ("general", "general")],
+        default="general",
+    )
 
     def __str__(self):
         return self.title
 
 
+class DecoratorTag(SoftDeleteModel):
+    name = models.CharField(max_length=100)
+    text_color = models.CharField(max_length=7)
+    tag_color = models.CharField(max_length=7)
+    product = models.ManyToManyField("Product")
+    productOption = models.ManyToManyField("ProductOption")
+    # product에도, product option에도 추가할 수 있음
+
+
 class Banner(SoftDeleteImageModel):
-    title = models.CharField(max_length=100)
-    image_pc = models.ImageField(upload_to="banners/", default="")
-    image_mobile = models.ImageField(upload_to="banners/", default="")
+    title = models.CharField(max_length=100, default="")
+    image_pc = models.ImageField(
+        upload_to=UniqueFilePathGenerator("banners/"), default=""
+    )
+    image_mobile = models.ImageField(
+        upload_to=UniqueFilePathGenerator("banners/"), default=""
+    )
     link = models.URLField(blank=True, null=True, help_text="배너 클릭 시 이동할 링크")
     sort_order = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True, help_text="배너 활성화 여부")
+    sort_order_test = models.IntegerField(default=0)
+    location = models.CharField(max_length=100, default="")
     # remove field 'image'
 
     def __str__(self):
@@ -492,7 +576,10 @@ class Review(SoftDeleteModel):
     rating = models.IntegerField(default=0, help_text="Rating from 1 to 5")
     comment = models.TextField(blank=True, null=True)
     image = models.ImageField(
-        upload_to="review_images/", blank=True, null=True, help_text="Review image"
+        upload_to=UniqueFilePathGenerator("review_images/"),
+        blank=True,
+        null=True,
+        help_text="Review image",
     )
     is_public = models.BooleanField(default=False, help_text="Is the review public?")
 
@@ -509,7 +596,7 @@ class PolicyDocument(SoftDeleteModel):
         max_length=20,
         default="terms",
     )
-    content = models.FileField(upload_to="policy_documents/")
+    content = models.FileField(upload_to=UniqueFilePathGenerator("policy_documents/"))
     effective_date = models.DateField(help_text="Effective date of the policy")
 
     def __str__(self):
@@ -517,7 +604,9 @@ class PolicyDocument(SoftDeleteModel):
 
 
 class PartnerCard(SoftDeleteImageModel):
-    carrier = models.CharField(max_length=100, null=True)
+    carrier = models.CharField(
+        max_length=100, null=True, choices=CarrierChoices.CHOICES
+    )
     benefit_type = models.CharField(max_length=100, null=True)
     name = models.CharField(max_length=100, null=True)
     contact = models.CharField(max_length=100, null=True)
@@ -537,7 +626,9 @@ class CardBenefit(SoftDeleteModel):
 
 class Event(SoftDeleteModel):
     title = models.CharField(max_length=100)
-    thumbnail = models.ImageField(upload_to="event_thumbnails/", null=True, blank=True)
+    thumbnail = models.ImageField(
+        upload_to=UniqueFilePathGenerator("event_thumbnails/"), null=True, blank=True
+    )
     description = MDTextField(null=True, blank=True)
     start_date = models.DateField()
     end_date = models.DateField()

@@ -4,12 +4,14 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.viewsets import ReadOnlyModelViewSet, GenericViewSet
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
+from rest_framework.filters import OrderingFilter
 from .serializers import *
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import mixins, status
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q, F
 from .external_services.channel_talk import send_order_alert
+from .constants import CarrierChoices
 
 
 # Create your views here.
@@ -48,6 +50,27 @@ class ProductViewSet(ReadOnlyModelViewSet):
                 type=openapi.TYPE_STRING,
                 required=False,
             ),
+            openapi.Parameter(
+                "series",
+                openapi.IN_QUERY,
+                description="시리즈(갤럭시S/아이폰)",
+                type=openapi.TYPE_STRING,
+                required=False,
+            ),
+            openapi.Parameter(
+                "carrier",
+                openapi.IN_QUERY,
+                description="이전 통신사(SK/KT/LG)",
+                type=openapi.TYPE_STRING,
+                required=False,
+            ),
+            openapi.Parameter(
+                "is_featured",
+                openapi.IN_QUERY,
+                description="추천 상품 여부 (true/false)",
+                type=openapi.TYPE_BOOLEAN,
+                required=False,
+            ),
         ],
     )
     def list(self, request, *args, **kwargs):
@@ -57,41 +80,108 @@ class ProductViewSet(ReadOnlyModelViewSet):
         base_queryset = self.get_queryset().filter(best_price_option_id__isnull=False)
         if brand_query := self.request.query_params.get("brand", None):
             base_queryset = base_queryset.filter(device__brand=brand_query)
+        if series_query := self.request.query_params.get("series", None):
+            base_queryset = base_queryset.filter(product_series__name=series_query)
+        if (
+            prev_carrier := self.request.query_params.get("carrier", None)
+        ) in CarrierChoices.VALUES:
+            pass  # handled later
+        if is_featured := self.request.query_params.get("is_featured", None):
+            if is_featured.lower() == "true":
+                base_queryset = base_queryset.filter(is_featured=True)
+            elif is_featured.lower() == "false":
+                base_queryset = base_queryset.filter(is_featured=False)
 
         if not base_queryset.exists():
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        queryset = base_queryset.select_related(
-            "device",
-            "best_price_option",
-            "best_price_option__plan",
-            "best_price_option__device_variant",
-        ).order_by("-sort_order")
+        queryset = (
+            base_queryset.select_related(
+                "device",
+            )
+            .prefetch_related("thumbnails")
+            .order_by("-sort_order")
+        )
+
+        if prev_carrier in CarrierChoices.VALUES:
+            # 1. productOption 에서 contract_type이 '기기변경' + plan.carrier = prev_carrier
+            # 또는 2. contract_type이 '번호이동' + plan.carrier != prev_carrier
+            queryset = queryset.prefetch_related(
+                Prefetch(
+                    "options",
+                    queryset=ProductOption.objects.filter(deleted_at__isnull=True)
+                    .select_related("plan", "device_variant")
+                    .filter(
+                        Q(Q(contract_type="기기변경") & Q(plan__carrier=prev_carrier))
+                        | Q(
+                            Q(contract_type="번호이동") & ~Q(plan__carrier=prev_carrier)
+                        )
+                    ),
+                )
+            )
+        else:
+            queryset = queryset.prefetch_related(
+                Prefetch(
+                    "options",
+                    queryset=ProductOption.objects.filter(
+                        deleted_at__isnull=True
+                    ).select_related("plan", "device_variant"),
+                )
+            )
 
         serializer = ProductListSerializer(queryset, many=True)
         return Response(serializer.data)
 
+    @swagger_auto_schema(
+        operation_description="상품 상세 조회",
+        manual_parameters=[
+            openapi.Parameter(
+                "carrier",
+                openapi.IN_QUERY,
+                description="이전 통신사(SK/KT/LG)",
+                type=openapi.TYPE_STRING,
+                required=False,
+            ),
+        ],
+    )
     def retrieve(self, request, *args, **kwargs):
-
         base_queryset = self.get_queryset().filter(id=kwargs.get("pk"))
 
         if not base_queryset.exists():
             return Response(status=status.HTTP_404_NOT_FOUND)
 
+        base_queryset.update(views=F("views") + 1)
+
+        prev_carrier = self.request.query_params.get("carrier", None)
+        if prev_carrier in CarrierChoices.VALUES:
+            base_queryset = base_queryset.prefetch_related(
+                Prefetch(
+                    "options",
+                    queryset=ProductOption.objects.filter(deleted_at__isnull=True)
+                    .exclude(additional_discount=0)
+                    .select_related("plan", "device_variant")
+                    .filter(
+                        Q(Q(contract_type="기기변경") & Q(plan__carrier=prev_carrier))
+                        | Q(
+                            Q(contract_type="번호이동") & ~Q(plan__carrier=prev_carrier)
+                        )
+                    ),
+                )
+            )
+        else:
+            base_queryset = base_queryset.prefetch_related(
+                Prefetch(
+                    "options",
+                    queryset=ProductOption.objects.filter(deleted_at__isnull=True)
+                    .exclude(additional_discount=0)
+                    .select_related("plan", "device_variant"),
+                )
+            )
+
         instance = (
             base_queryset.select_related(
                 "device",
             ).prefetch_related(
-                Prefetch(
-                    "options",
-                    queryset=ProductOption.objects.filter(deleted_at__isnull=True),
-                ),
-                Prefetch(
-                    "options__plan",
-                    queryset=Plan.objects.filter(deleted_at__isnull=True).order_by(
-                        "-price"
-                    ),
-                ),
                 Prefetch(
                     "device__variants",
                     queryset=DeviceVariant.objects.filter(deleted_at__isnull=True),
@@ -232,6 +322,7 @@ ORDER BY o.id, ci.id;
             shipping_address_detail=body.get("shipping_address_detail"),
             zipcode=body.get("zipcode"),
             ga4_id=body.get("ga4_id", ""),
+            prev_carrier=body.get("prev_carrier", ""),
         )
         new_order.save()
         send_order_alert(
@@ -281,8 +372,24 @@ class NoticeViewSet(ReadOnlyModelViewSet):
         Notice.objects.all().filter(deleted_at__isnull=True).order_by("-created_at")
     )
 
+    @swagger_auto_schema(
+        operation_description="공지사항 조회",
+        manual_parameters=[
+            openapi.Parameter(
+                "type",
+                openapi.IN_QUERY,
+                description="공지사항 유형(필수)",
+                type=openapi.TYPE_STRING,
+                required=True,
+                enum=["caution", "event", "general"],
+            ),
+        ],
+    )
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
+        notice_type = request.query_params.get("type", None)
+        if notice_type:
+            queryset = queryset.filter(type=notice_type)
 
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -305,6 +412,8 @@ class BannerViewSet(ReadOnlyModelViewSet):
         .filter(deleted_at__isnull=True, is_active=True)
         .order_by("-sort_order")
     )
+    filter_backends = [OrderingFilter]
+    ordering_fields = ["sort_order", "sort_order_test"]
 
 
 class ReviewViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewSet):

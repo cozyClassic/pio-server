@@ -29,7 +29,7 @@ PRICE_UNIT = 1000
 MODEL_NAME_COL = "B"
 
 
-def update_product_option_SK_subsidy_addtional(file: bytes) -> str:
+def update_product_option_SK_subsidy_addtional(file: bytes, margin=0) -> str:
     wb = openpyxl.load_workbook(io.BytesIO(file))
     ws = wb.active
 
@@ -72,13 +72,19 @@ def update_product_option_SK_subsidy_addtional(file: bytes) -> str:
 
     for i in range(PLAN_START_ROW, PLAN_END_ROW + 1):
         model_name = ws[f"{MODEL_NAME_COL}{i}"].value
+        if not model_name:
+            continue
         for col, header in HEADERS.items():
-            jungchaek = int(ws[f"{col}{i}"].value) * PRICE_UNIT
+            jungchaek = max(int(ws[f"{col}{i}"].value) * PRICE_UNIT - margin, 0)
             key = f"{header}_{model_name}"
             if key in db_option_dict:
                 options = db_option_dict[key]
                 for option in options:
                     option.additional_discount = jungchaek
+                    option.final_price = option._get_final_price()
+                    if option.final_price < 0:
+                        option.additional_discount += option.final_price
+                        option.final_price = 0
                     updates.append(option)
                     update_device_variants.add(
                         option.device_variant.device.model_name
@@ -86,7 +92,7 @@ def update_product_option_SK_subsidy_addtional(file: bytes) -> str:
                         + option.device_variant.storage_capacity
                     )
 
-    ProductOption.objects.bulk_update(updates, ["additional_discount"])
+    ProductOption.objects.bulk_update(updates, ["additional_discount", "final_price"])
     update_device_variants = sorted(list(update_device_variants))
 
     return f"{ws.title} 시트의 {update_device_variants}의 SK 추가지원금 {len(updates)}건 업데이트 완료"

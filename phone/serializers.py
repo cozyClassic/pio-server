@@ -1,38 +1,103 @@
 from rest_framework import serializers
 
 from .models import *
+from .constants import CarrierChoices
+
+
+class ProductOptionSimpleSerializer(serializers.ModelSerializer):
+    carrier = serializers.SerializerMethodField()
+    is_best = serializers.BooleanField(default=False)
+    device_price = serializers.SerializerMethodField()
+    device_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProductOption
+        fields = [
+            "id",
+            "final_price",
+            "carrier",
+            "contract_type",
+            "discount_type",
+            "is_best",
+            "device_price",
+            "device_name",
+        ]
+
+    def get_carrier(self, obj):
+        return obj.plan.carrier
+
+    def get_device_price(self, obj):
+        return obj.device_variant.device_price
+
+    def get_device_name(self, obj):
+        return obj.product.device.model_name
+
+
+class ProductImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImages
+        fields = ["image", "type", "sort_order"]
 
 
 class ProductListSerializer(serializers.ModelSerializer):
-    best_price_option = serializers.SerializerMethodField()
-    brand = serializers.CharField(source="device.brand")
-    series = serializers.CharField(source="device.series")
+    series = serializers.SerializerMethodField()
+    options = serializers.SerializerMethodField()
+    thumbnails = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         fields = [
             "id",
             "name",
-            "image_main",
-            "best_price_option",
-            "brand",
             "series",
             "is_featured",
-            "description",
+            "options",
+            "thumbnails",
         ]
 
-    def get_best_price_option(self, obj):
-        if obj.best_price_option is None:
-            return {}
-        option = {
-            "device_price": obj.best_price_option.device_variant.device_price,
-            "final_price": obj.best_price_option.final_price,
-            "carrier": obj.best_price_option.plan.carrier,
-            "plan": obj.best_price_option.plan.name,
-            "discount_type": obj.best_price_option.discount_type,
-            "contract_type": obj.best_price_option.contract_type,
+    def get_thumbnails(self, obj):
+        return [obj.image_main.url if obj.image_main else None]
+
+    def get_series(self, obj):
+        return obj.product_series.name if obj.product_series else None
+
+    def get_options(self, obj):
+        options = obj.options.all()
+        best_options = {
+            CarrierChoices.SK: None,
+            CarrierChoices.KT: None,
+            CarrierChoices.LG: None,
         }
-        return option
+        best_price = 99999999
+
+        for option in options:
+            carrier = option.plan.carrier
+            if carrier not in best_options:
+                continue
+
+            current = best_options[carrier]
+
+            # 첫 번째 옵션이거나, final_price가 더 낮거나,
+            # final_price가 같고 plan.price가 더 낮은 경우
+            if (
+                current is None
+                or option.final_price < current.final_price
+                or (
+                    option.final_price == current.final_price
+                    and option.plan.price < current.plan.price
+                )
+            ):
+                best_options[carrier] = option
+                if option.final_price < best_price:
+                    best_price = option.final_price
+
+        for carrier, option in best_options.items():
+            if option is not None and option.final_price == best_price:
+                option.is_best = True
+
+        return list(
+            ProductOptionSimpleSerializer(best_options.values(), many=True).data
+        )
 
 
 class ProductDetailSerializer(serializers.ModelSerializer):
@@ -66,6 +131,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         }
         result = {}
 
+        # discount_type을 안으로 넣고, plan을 위로 올리기
         for op in options:
             dv_id = op.device_variant_id
             storage_capacity = device_variants[dv_id]["storage_capacity"]
@@ -77,32 +143,36 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             if op.contract_type not in result[storage_capacity][plan.carrier]:
                 result[storage_capacity][plan.carrier][op.contract_type] = {}
             if (
-                op.discount_type
+                op.plan_id
                 not in result[storage_capacity][plan.carrier][op.contract_type]
             ):
                 result[storage_capacity][plan.carrier][op.contract_type][
-                    op.discount_type
+                    op.plan_id
                 ] = []
-            result[storage_capacity][plan.carrier][op.contract_type][
+            result[storage_capacity][plan.carrier][op.contract_type][op.plan_id] = {
+                "plan_id": op.plan_id,
+                "name": op.plan.name,
+                "price": op.plan.price,
+                "data_allowance": op.plan.data_allowance,
+                "call_allowance": op.plan.call_allowance,
+                "sms_allowance": op.plan.sms_allowance,
+                "description": op.plan.description,
+            }
+            if (
                 op.discount_type
-            ].append(
-                {
+                not in result[storage_capacity][plan.carrier][op.contract_type][
+                    op.plan_id
+                ]
+            ):
+                result[storage_capacity][plan.carrier][op.contract_type][op.plan_id][
+                    op.discount_type
+                ] = {
                     "option_id": op.id,
                     "final_price": op.final_price,
-                    "plan": {
-                        "id": op.plan.id,
-                        "name": op.plan.name,
-                        "price": op.plan.price,
-                        "data_allowance": op.plan.data_allowance,
-                        "call_allowance": op.plan.call_allowance,
-                        "sms_allowance": op.plan.sms_allowance,
-                        "description": op.plan.description,
-                    },
-                    "subsidy_standard": op.subsidy_amount,
-                    "subsidy_mnp": op.subsidy_amount_mnp,
                     "additional_discount": op.additional_discount,
+                    "subsidy_amount": op.subsidy_amount,
+                    "subsidy_amount_mnp": op.subsidy_amount_mnp,
                 }
-            )
 
         return result
 
@@ -255,6 +325,7 @@ class OrderCreateSerializer(serializers.ModelSerializer):
             "zipcode",
             "payment_period",
             "ga4_id",
+            "prev_carrier",
         ]
 
 
@@ -322,14 +393,14 @@ class NoticeSerializer(serializers.ModelSerializer):
 class BannerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Banner
-        fields = ["id", "link", "title", "image_pc", "image_mobile", "created_at"]
+        fields = ["id", "link", "title", "image_pc", "image_mobile", "location"]
         read_only_fields = [
             "id",
             "link",
             "title",
             "image_pc",
             "image_mobile",
-            "created_at",
+            "location",
         ]
 
 

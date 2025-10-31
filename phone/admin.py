@@ -20,6 +20,11 @@ class commonAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at", "deleted_at")
 
 
+@admin.register(ProductImages)
+class ProductImagesAdmin(commonAdmin):
+    pass
+
+
 @admin.register(Plan)
 class PlanAdmin(commonAdmin):
     list_display = (
@@ -593,9 +598,10 @@ class ProductOptionsAdmin(commonAdmin):
             )
 
             excel_file = request.FILES["excel_file"].read()
+            margin = int(request.POST.get("margin", 0))
 
             try:
-                result = update_product_option_kt_subsidy_addtional(excel_file)
+                result = update_product_option_kt_subsidy_addtional(excel_file, margin)
                 messages.info(request, result)
             except Exception as e:
                 messages.error(request, f"Error processing file: {str(e)}")
@@ -610,9 +616,10 @@ class ProductOptionsAdmin(commonAdmin):
             )
 
             excel_file = request.FILES["excel_file"].read()
+            margin = int(request.POST.get("margin", 0))
 
             try:
-                result = update_product_option_SK_subsidy_addtional(excel_file)
+                result = update_product_option_SK_subsidy_addtional(excel_file, margin)
                 messages.info(request, result)
             except Exception as e:
                 messages.error(request, f"Error processing file: {str(e)}")
@@ -627,9 +634,10 @@ class ProductOptionsAdmin(commonAdmin):
             )
 
             excel_file = request.FILES["excel_file"].read()
+            margin = int(request.POST.get("margin", 0))
 
             try:
-                result = update_product_option_LG_subsidy_addtional(excel_file)
+                result = update_product_option_LG_subsidy_addtional(excel_file, margin)
                 messages.info(request, result)
             except Exception as e:
                 messages.error(request, f"Error processing file: {str(e)}")
@@ -741,3 +749,13 @@ class EventAdmin(commonAdmin):
     from mdeditor.widgets import MDEditorWidget
 
     formfield_overrides = {models.TextField: {"widget": MDEditorWidget}}
+
+
+@admin.register(PlanPremiumChoices)
+class PlanPremiumChoicesAdmin(commonAdmin):
+    pass
+
+
+@admin.register(ProductSeries)
+class ProductSeriesAdmin(commonAdmin):
+    pass
