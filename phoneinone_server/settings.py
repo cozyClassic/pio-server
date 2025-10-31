@@ -25,6 +25,8 @@ DB_PASSWORD = env("DB_PASSWORD", default="1234")
 DB_HOST = env("DB_HOST", default="localhost")
 DB_PORT = env("DB_PORT", default="5432")
 DEBUG = env("DEBUG", default="False") == True
+CHANENLTALK_ACCESS_KEY = env("CHANENLTALK_ACCESS_KEY")
+CHANENLTALK_ACCESS_SECRET = env("CHANENLTALK_ACCESS_SECRET")
 
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 STATIC_URL = f"https://{AWS_CLOUDFRONT_DOMAIN}/static/"
