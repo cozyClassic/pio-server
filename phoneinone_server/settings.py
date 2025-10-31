@@ -25,8 +25,6 @@ DB_PASSWORD = env("DB_PASSWORD", default="1234")
 DB_HOST = env("DB_HOST", default="localhost")
 DB_PORT = env("DB_PORT", default="5432")
 DEBUG = env("DEBUG", default="False") == True
-CHANENLTALK_ACCESS_KEY = env("CHANENLTALK_ACCESS_KEY", default="")
-CHANENLTALK_ACCESS_SECRET = env("CHANENLTALK_ACCESS_SECRET", default="")
 
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 STATIC_URL = f"https://{AWS_CLOUDFRONT_DOMAIN}/static/"
@@ -42,6 +40,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://settings.phoneinone.com",
     "https://test.phoneinone.com",
     "https://dev.phoneinone.com",
+    "https://web-production-a365.up.railway.app",
 ]
 
 CORS_ALLOWED_METHODS = ["GET", "POST"]
@@ -53,6 +52,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://phoneinone.com",
     "https://www.phoneinone.com",
     "https://dev.phoneinone.com",
+    "https://web-production-a365.up.railway.app",
     "http://" + SERVER_HOST + "",
 ]
 
@@ -63,6 +63,7 @@ ALLOWED_HOSTS = [
     "dev.phoneinone.com",
     "*.myekmjwu.ap-northeast-2.elasticbeanstalk.com",
     "test-1.eba-myekmjwu.ap-northeast-2.elasticbeanstalk.com",
+    "https://web-production-a365.up.railway.app",
     SERVER_HOST.replace("http://", "").replace("https://", "").rstrip("/"),
 ]
 
@@ -102,7 +103,6 @@ INSTALLED_APPS = [
     "phone",
     "nested_admin",
     "simple_history",
-    "mdeditor",
 ]
 
 MIDDLEWARE = [
@@ -241,78 +241,3 @@ STORAGES = {
 }
 
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 2000
-
-
-X_FRAME_OPTIONS = "SAMEORIGIN"
-
-MDEDITOR_CONFIGS = {
-    "default": {
-        "width": "90% ",  # Custom edit box width
-        "height": 500,  # Custom edit box height
-        "toolbar": [
-            "undo",
-            "redo",
-            "|",
-            "bold",
-            "del",
-            "italic",
-            "quote",
-            "ucwords",
-            "uppercase",
-            "lowercase",
-            "|",
-            "h1",
-            "h2",
-            "h3",
-            "h5",
-            "h6",
-            "|",
-            "list-ul",
-            "list-ol",
-            "hr",
-            "|",
-            "link",
-            "reference-link",
-            "image",
-            "code",
-            "preformatted-text",
-            "code-block",
-            "table",
-            "datetime",
-            "emoji",
-            "html-entities",
-            "pagebreak",
-            "goto-line",
-            "|",
-            "help",
-            "info",
-            "||",
-            "preview",
-            "watch",
-            "fullscreen",
-        ],  # custom edit box toolbar
-        "upload_image_formats": [
-            "jpg",
-            "jpeg",
-            "gif",
-            "png",
-            "bmp",
-            "webp",
-        ],  # image upload format type
-        "upload_require_auth": False,  # image upload authentication requirement
-        "image_folder": "editor",  # image save the folder name
-        "theme": "default",  # edit box theme, dark / default
-        "preview_theme": "default",  # Preview area theme, dark / default
-        "editor_theme": "default",  # edit area theme, pastel-on-dark / default
-        "toolbar_autofixed": True,  # Whether the toolbar capitals
-        "search_replace": True,  # Whether to open the search for replacement
-        "emoji": True,  # whether to open the expression function
-        "tex": True,  # whether to open the tex chart function
-        "flow_chart": True,  # whether to open the flow chart function
-        "sequence": True,  # Whether to open the sequence diagram function
-        "watch": True,  # Live preview
-        "lineWrapping": False,  # lineWrapping
-        "lineNumbers": False,  # lineNumbers
-        "language": "zh",  # zh / en / es
-    }
-}
