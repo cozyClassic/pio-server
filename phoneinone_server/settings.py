@@ -42,7 +42,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://settings.phoneinone.com",
     "https://test.phoneinone.com",
     "https://dev.phoneinone.com",
-    "https://web-production-a365.up.railway.app",
+    "https://api.phoneinone.com",
 ]
 
 CORS_ALLOWED_METHODS = ["GET", "POST"]
@@ -54,7 +54,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://phoneinone.com",
     "https://www.phoneinone.com",
     "https://dev.phoneinone.com",
-    "https://web-production-a365.up.railway.app",
+    "https://api.phoneinone.com",
     "http://" + SERVER_HOST + "",
 ]
 
@@ -65,7 +65,7 @@ ALLOWED_HOSTS = [
     "dev.phoneinone.com",
     "*.myekmjwu.ap-northeast-2.elasticbeanstalk.com",
     "test-1.eba-myekmjwu.ap-northeast-2.elasticbeanstalk.com",
-    "web-production-a365.up.railway.app",
+    "api.phoneinone.com",
     SERVER_HOST.replace("http://", "").replace("https://", "").rstrip("/"),
 ]
 
