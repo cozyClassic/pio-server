@@ -144,15 +144,15 @@ class ProductDetailSerializer(serializers.ModelSerializer):
                 result[storage_capacity][plan.carrier][op.contract_type][
                     op.plan_id
                 ] = []
-            result[storage_capacity][plan.carrier][op.contract_type][op.plan_id] = {
-                "plan_id": op.plan_id,
-                "name": op.plan.name,
-                "price": op.plan.price,
-                "data_allowance": op.plan.data_allowance,
-                "call_allowance": op.plan.call_allowance,
-                "sms_allowance": op.plan.sms_allowance,
-                "description": op.plan.description,
-            }
+                result[storage_capacity][plan.carrier][op.contract_type][op.plan_id] = {
+                    "plan_id": op.plan_id,
+                    "name": op.plan.name,
+                    "price": op.plan.price,
+                    "data_allowance": op.plan.data_allowance,
+                    "call_allowance": op.plan.call_allowance,
+                    "sms_allowance": op.plan.sms_allowance,
+                    "description": op.plan.description,
+                }
             if (
                 op.discount_type
                 not in result[storage_capacity][plan.carrier][op.contract_type][
