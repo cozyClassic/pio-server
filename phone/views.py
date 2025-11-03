@@ -77,7 +77,13 @@ class ProductViewSet(ReadOnlyModelViewSet):
         """
         Override the list method to return products with their best price options.
         """
-        base_queryset = self.get_queryset().filter(best_price_option_id__isnull=False)
+        base_queryset = (
+            self.get_queryset()
+            .filter(best_price_option_id__isnull=False)
+            .select_related(
+                "product_series",
+            )
+        )
         if brand_query := self.request.query_params.get("brand", None):
             base_queryset = base_queryset.filter(device__brand=brand_query)
         if series_query := self.request.query_params.get("series", None):
@@ -422,6 +428,7 @@ class ReviewViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewS
         Review.objects.all()
         .filter(deleted_at__isnull=True, is_public=True)
         .select_related("product")
+        .prefetch_related("product__images")
         .order_by("-created_at")
     )
     parser_classes = [MultiPartParser, FormParser]

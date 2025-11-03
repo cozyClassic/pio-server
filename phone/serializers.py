@@ -452,13 +452,12 @@ class ReviewSerializer(serializers.ModelSerializer):
     def get_product(self, obj):
         if obj.product is None or obj.product.deleted_at is not None:
             return None
-
         return {
             "id": obj.product.id,
             "name": obj.product.name,
             "image": (
-                obj.product.images.first().image.url
-                if obj.product.images.exists()
+                obj.product.images.all()[0].image.url
+                if obj.product.images.all()
                 else None
             ),
         }
