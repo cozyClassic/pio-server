@@ -99,7 +99,7 @@ class ProductViewSet(ReadOnlyModelViewSet):
             base_queryset.select_related(
                 "device",
             )
-            .prefetch_related("thumbnails")
+            .prefetch_related("images")
             .order_by("-sort_order")
         )
 
