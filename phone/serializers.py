@@ -457,7 +457,9 @@ class ReviewSerializer(serializers.ModelSerializer):
             "id": obj.product.id,
             "name": obj.product.name,
             "image": (
-                obj.product.images.first().url if obj.product.images.exists() else None
+                obj.product.images.first().image.url
+                if obj.product.images.exists()
+                else None
             ),
         }
 
