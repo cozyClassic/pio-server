@@ -33,12 +33,6 @@ class ProductOptionSimpleSerializer(serializers.ModelSerializer):
         return obj.product.device.model_name
 
 
-class ProductImageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ProductImages
-        fields = ["image", "type", "sort_order"]
-
-
 class ProductListSerializer(serializers.ModelSerializer):
     series = serializers.SerializerMethodField()
     options = serializers.SerializerMethodField()

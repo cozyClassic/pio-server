@@ -283,30 +283,11 @@ class ProductDetailImage(SoftDeleteImageModel):
     )
     image = models.ImageField(upload_to=UniqueFilePathGenerator("product_images/"))
     type = models.CharField(
-        max_length=25, choices=[("pc", "pc"), ("mobile", "mobile")], default="pc"
-    )
-    description = models.CharField(max_length=255, blank=True)
-    sort_order = models.IntegerField(default=0)
-
-    def __str__(self):
-        return (
-            f"Image for {self.product.name} - {self.description[:20]}..."
-            if self.description
-            else f"Image for {self.product.name}"
-        )
-
-
-class ProductImages(SoftDeleteImageModel):
-    product = models.ForeignKey(
-        "Product", on_delete=models.CASCADE, related_name="thumbnails"
-    )
-    image = models.ImageField(upload_to=UniqueFilePathGenerator("product_images/"))
-    type = models.CharField(
         max_length=25,
         choices=[("pc", "pc"), ("mobile", "mobile"), ("detail", "detail")],
         default="pc",
     )
-    description = models.TextField(max_length=255, blank=True)
+    description = models.CharField(max_length=255, blank=True)
     sort_order = models.IntegerField(default=0)
 
     def __str__(self):
