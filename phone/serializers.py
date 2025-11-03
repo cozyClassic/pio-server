@@ -55,6 +55,7 @@ class ProductListSerializer(serializers.ModelSerializer):
     def get_series(self, obj):
         return obj.product_series.name if obj.product_series else None
 
+    # 통신사별로 단말기 할인이 제일 많이 되는 옵션을 (번호이동, 기기변경)에 따라 보여주기
     def get_options(self, obj):
         options = obj.options.all()
         best_options = {
@@ -112,6 +113,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "reviews",
             "images",
             "best_option_id",
+            "description",
         ]
 
     def get_options(self, obj):
