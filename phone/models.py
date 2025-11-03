@@ -302,9 +302,11 @@ class ProductImages(SoftDeleteImageModel):
     )
     image = models.ImageField(upload_to=UniqueFilePathGenerator("product_images/"))
     type = models.CharField(
-        max_length=25, choices=[("pc", "pc"), ("mobile", "mobile")], default="pc"
+        max_length=25,
+        choices=[("pc", "pc"), ("mobile", "mobile"), ("detail", "detail")],
+        default="pc",
     )
-    description = models.CharField(max_length=255, blank=True)
+    description = models.TextField(max_length=255, blank=True)
     sort_order = models.IntegerField(default=0)
 
     def __str__(self):
@@ -337,9 +339,6 @@ class Product(SoftDeleteModel):
         null=True,
         blank=True,
         related_name="best_price_option",
-    )
-    image_main = models.ImageField(
-        upload_to=UniqueFilePathGenerator("product_images/"), blank=True
     )
     description = models.TextField(default="", blank=True)
     sort_order = models.IntegerField(default=0, help_text="정렬 순서")

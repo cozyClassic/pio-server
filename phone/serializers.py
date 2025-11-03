@@ -56,7 +56,7 @@ class ProductListSerializer(serializers.ModelSerializer):
         ]
 
     def get_thumbnails(self, obj):
-        return [obj.image_main.url if obj.image_main else None]
+        return [img.image.url for img in obj.thumbnails.all()]
 
     def get_series(self, obj):
         return obj.product_series.name if obj.product_series else None
@@ -113,7 +113,6 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             "id",
-            "image_main",
             "options",
             "device",
             "reviews",
@@ -231,9 +230,14 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 
 
 class ProductSimpleSerializer(serializers.ModelSerializer):
+    thumbnails = serializers.SerializerMethodField()
+
     class Meta:
         model = Product
-        fields = ["id", "name", "image_main"]
+        fields = ["id", "name", "thumbnails"]
+
+    def get_thumbnails(self, obj):
+        return [thumbnail.image.url for thumbnail in obj.thumbnails.all()]
 
 
 class PlanSimpleSerializer(serializers.ModelSerializer):
@@ -458,7 +462,11 @@ class ReviewSerializer(serializers.ModelSerializer):
         return {
             "id": obj.product.id,
             "name": obj.product.name,
-            "image": obj.product.image_main.url if obj.product.image_main else None,
+            "image": (
+                obj.product.thumbnails.first().url
+                if obj.product.thumbnails.exists()
+                else None
+            ),
         }
 
 
