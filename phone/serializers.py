@@ -33,16 +33,10 @@ class ProductOptionSimpleSerializer(serializers.ModelSerializer):
         return obj.product.device.model_name
 
 
-class ProductImageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ProductImages
-        fields = ["image", "type", "sort_order"]
-
-
 class ProductListSerializer(serializers.ModelSerializer):
     series = serializers.SerializerMethodField()
     options = serializers.SerializerMethodField()
-    thumbnails = serializers.SerializerMethodField()
+    images = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -52,11 +46,11 @@ class ProductListSerializer(serializers.ModelSerializer):
             "series",
             "is_featured",
             "options",
-            "thumbnails",
+            "images",
         ]
 
-    def get_thumbnails(self, obj):
-        return [img.image.url for img in obj.thumbnails.all()]
+    def get_images(self, obj):
+        return [img.image.url for img in obj.images.all()]
 
     def get_series(self, obj):
         return obj.product_series.name if obj.product_series else None
@@ -230,14 +224,14 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 
 
 class ProductSimpleSerializer(serializers.ModelSerializer):
-    thumbnails = serializers.SerializerMethodField()
+    images = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
-        fields = ["id", "name", "thumbnails"]
+        fields = ["id", "name", "images"]
 
-    def get_thumbnails(self, obj):
-        return [thumbnail.image.url for thumbnail in obj.thumbnails.all()]
+    def get_images(self, obj):
+        return [image.image.url for image in obj.images.all()]
 
 
 class PlanSimpleSerializer(serializers.ModelSerializer):
@@ -463,9 +457,7 @@ class ReviewSerializer(serializers.ModelSerializer):
             "id": obj.product.id,
             "name": obj.product.name,
             "image": (
-                obj.product.thumbnails.first().url
-                if obj.product.thumbnails.exists()
-                else None
+                obj.product.images.first().url if obj.product.images.exists() else None
             ),
         }
 
