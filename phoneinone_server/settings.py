@@ -38,10 +38,6 @@ SESSION_COOKIE_DOMAIN = None
 CORS_ALLOWED_ORIGINS = [
     "https://www.phoneinone.com",
     "https://phoneinone.com",
-    "https://server.phoneinone.com",
-    "https://settings.phoneinone.com",
-    "https://test.phoneinone.com",
-    "https://dev.phoneinone.com",
     "https://api.phoneinone.com",
 ]
 
@@ -49,22 +45,14 @@ CORS_ALLOWED_METHODS = ["GET", "POST"]
 
 # HTTP 환경에서도 작동하도록 설정
 CSRF_TRUSTED_ORIGINS = [
-    "https://server.phoneinone.com",
-    "https://test.phoneinone.com",
     "https://phoneinone.com",
     "https://www.phoneinone.com",
-    "https://dev.phoneinone.com",
     "https://api.phoneinone.com",
     "http://" + SERVER_HOST + "",
 ]
 
 ALLOWED_HOSTS = [
-    "server.phoneinone.com",
-    "test.phoneinone.com",
     "phoneinone.com",
-    "dev.phoneinone.com",
-    "*.myekmjwu.ap-northeast-2.elasticbeanstalk.com",
-    "test-1.eba-myekmjwu.ap-northeast-2.elasticbeanstalk.com",
     "api.phoneinone.com",
     SERVER_HOST.replace("http://", "").replace("https://", "").rstrip("/"),
 ]
