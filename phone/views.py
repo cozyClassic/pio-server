@@ -167,9 +167,8 @@ class ProductViewSet(ReadOnlyModelViewSet):
                 Prefetch(
                     "options",
                     queryset=ProductOption.objects.filter(deleted_at__isnull=True)
-                    .exclude(additional_discount=0)
-                    .select_related("plan", "device_variant")
-                    .filter(
+                    # .exclude(additional_discount=0)
+                    .select_related("plan", "device_variant").filter(
                         Q(Q(contract_type="기기변경") & Q(plan__carrier=prev_carrier))
                         | Q(
                             Q(contract_type="번호이동") & ~Q(plan__carrier=prev_carrier)
