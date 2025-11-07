@@ -196,7 +196,9 @@ class ProductViewSet(ReadOnlyModelViewSet):
                 ),
                 Prefetch(
                     "device__colors",
-                    queryset=DeviceColor.objects.filter(deleted_at__isnull=True),
+                    queryset=DeviceColor.objects.filter(
+                        deleted_at__isnull=True
+                    ).order_by("sort_order"),
                 ),
                 Prefetch(
                     "device__colors__images",

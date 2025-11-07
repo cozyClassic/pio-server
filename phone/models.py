@@ -107,6 +107,7 @@ class DeviceColor(SoftDeleteModel):
     color_code = models.CharField(
         max_length=7, help_text="Hex color code, e.g., #FFFFFF"
     )
+    sort_order = models.IntegerField(default=0)
 
     def __str__(self):
         return f"{self.color} / {self.device.model_name}"
