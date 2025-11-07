@@ -754,3 +754,20 @@ class PlanPremiumChoicesAdmin(commonAdmin):
 @admin.register(ProductSeries)
 class ProductSeriesAdmin(commonAdmin):
     pass
+
+
+class ProductTagInline(nested_admin.NestedStackedInline):
+    model = DecoratorTag.product.through
+    extra = 1  # 기본으로 1개의 빈 폼을 더 보여줍니다.
+    # SoftDeleteModel의 deleted_at 필드를 숨깁니다.
+
+
+@admin.register(DecoratorTag)
+class DecoratorTagAdmin(nested_admin.NestedModelAdmin):
+    inlines = [ProductTagInline]
+
+    fields = (
+        "name",
+        "text_color",
+        "tag_color",
+    )
