@@ -33,10 +33,21 @@ class ProductOptionSimpleSerializer(serializers.ModelSerializer):
         return obj.product.device.model_name
 
 
+class DecoratorTagSimpleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DecoratorTag
+        fields = [
+            "name",
+            "text_color",
+            "tag_color",
+        ]
+
+
 class ProductListSerializer(serializers.ModelSerializer):
     series = serializers.SerializerMethodField()
     options = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
+    tags = DecoratorTagSimpleSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
@@ -47,6 +58,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             "is_featured",
             "options",
             "images",
+            "tags",
         ]
 
     def get_images(self, obj):

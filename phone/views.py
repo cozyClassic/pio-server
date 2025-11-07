@@ -83,6 +83,9 @@ class ProductViewSet(ReadOnlyModelViewSet):
             .select_related(
                 "product_series",
             )
+            .prefetch_related(
+                "tags",
+            )
         )
         if brand_query := self.request.query_params.get("brand", None):
             base_queryset = base_queryset.filter(device__brand=brand_query)
