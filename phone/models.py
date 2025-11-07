@@ -524,9 +524,11 @@ class DecoratorTag(SoftDeleteModel):
     name = models.CharField(max_length=100)
     text_color = models.CharField(max_length=7)
     tag_color = models.CharField(max_length=7)
-    product = models.ManyToManyField("Product")
-    productOption = models.ManyToManyField("ProductOption")
+    product = models.ManyToManyField("Product", related_name="tags", blank=True)
     # product에도, product option에도 추가할 수 있음
+
+    def __str__(self):
+        return f"{self.name} {self.text_color} {self.tag_color}"
 
 
 class Banner(SoftDeleteImageModel):
