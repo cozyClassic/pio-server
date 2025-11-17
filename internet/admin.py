@@ -23,21 +23,56 @@ class BundleDiscountInline(nested_admin.NestedStackedInline):
 @admin.register(BundleCondition)
 class BundleConditionAdmin(nested_admin.NestedModelAdmin):
     inlines = [BundleDiscountInline, BundlePromotionInline]
+    list_filter = ("carrier", "mobile_type")
+
+    class Media:
+        js = ("js/dependent_dropdown.js",)
+
+
+class CarrierNameFilter(admin.SimpleListFilter):
+    title = "통신사 이름"
+    parameter_name = "carrier_filter"
+
+    def lookups(self, request, model_admin):
+        carriers = InternetCarrier.objects.values_list("id", "name").all()
+        return [(c[0], c[1]) for c in carriers]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(carrier_id=self.value())
+        return queryset
+
+
+class MobileTypeFilter(admin.SimpleListFilter):
+    title = "모바일 결합 유형"
+    parameter_name = "mobile_type"
+
+    def lookups(self, request, model_admin):
+        return (
+            ("MNO", "MNO"),
+            ("MVNO", "MVNO"),
+            ("None", "None"),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(mobile_type=self.value())
+        return queryset
 
 
 @admin.register(CombinedDataView)
 class CombinedDataAdmin(admin.ModelAdmin):
+    list_filter = (CarrierNameFilter, MobileTypeFilter)
     list_display = (
         "carrier_name",
         "mobile_type",
         "internet_plan_name",
         "internet_plan_sum",
-        "internet_plan_discount_list",
         "tv_plan_name",
         "tv_plan_sum",
-        "tv_plan_discount_list",
         "total_sum",
     )
+
     readonly_fields = (
         "carrier_name",
         "mobile_type",
@@ -48,7 +83,16 @@ class CombinedDataAdmin(admin.ModelAdmin):
         "tv_plan_sum",
         "tv_plan_discount_list",
         "total_sum",
+        "additional_info",
     )
+
+    def additional_info(self, obj):
+        tables = [
+            f"모바일 요금제 할인 -{dc.discount_amount}원"
+            for dc in obj.bundle_discounts.all()
+            if dc.discount_type == BundleDiscount.DISCOUNT_TYPES[0][0]
+        ]
+        return ",\n ".join(tables) if tables else "N/A"
 
     def mobile_type(self, obj):
         return obj.mobile_type if obj.mobile_type else "N/A"
@@ -134,8 +178,6 @@ class CombinedDataAdmin(admin.ModelAdmin):
 
     def has_view_permission(self, request, obj=None):
         return True
-
-    # 3. 데이터 표시를 위한 메서드 (list_display에 사용)
 
     def get_queryset(self, request):
         return BundleCondition.objects.select_related(
