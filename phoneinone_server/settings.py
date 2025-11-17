@@ -91,6 +91,7 @@ INSTALLED_APPS = [
     "drf_yasg",
     "rest_framework",
     "phone",
+    "internet",
     "nested_admin",
     "simple_history",
 ]
