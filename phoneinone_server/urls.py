@@ -1,20 +1,3 @@
-"""
-URL configuration for phoneinone_server project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.2/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
-
 from django.contrib import admin
 from django.http import HttpResponse, JsonResponse
 from django.urls import path, re_path, include
@@ -23,7 +6,6 @@ from drf_yasg import openapi, views
 from rest_framework import permissions
 from django.db import connection
 import logging
-
 
 schema_view = views.get_schema_view(
     openapi.Info(
@@ -64,6 +46,8 @@ def env_check(request):
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include(("phone.urls", "api"))),
+    path("phone/", include(("phone.urls", "phone"))),
+    path("internet/", include(("internet.urls", "internet"))),
     path("db-check", db_check),
     path("env-check", env_check),
     path("", health_check),
