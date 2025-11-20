@@ -9,6 +9,11 @@ admin.site.register(InternetPlan)
 admin.site.register(TVPlan)
 
 
+@admin.register(InstallationOption)
+class InstallationOptionAdmin(admin.ModelAdmin):
+    pass
+
+
 class BundlePromotionInline(nested_admin.NestedStackedInline):
     model = BundlePromotion
     min_num = 1

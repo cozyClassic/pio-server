@@ -1,8 +1,8 @@
-from django.shortcuts import render
-
 # Create your views here.
 
 from rest_framework.viewsets import ReadOnlyModelViewSet
+from rest_framework.views import APIView
+from rest_framework.response import Response
 from django.db.models import Prefetch
 from .models import InternetCarrier, InternetPlan
 from .serializers import *
@@ -13,19 +13,20 @@ class InternetCarrierViewSet(ReadOnlyModelViewSet):
     serializer_class = InternetCarrierSerializer
 
 
-class InternetPlanViewSet(ReadOnlyModelViewSet):
-    queryset = InternetPlan.objects.prefetch_related(
-        Prefetch(
-            "bundle_coditions",
-            queryset=BundleCondition.objects.prefetch_related(
-                "bundle_discounts", "bundle_promotions"
-            ),
+class InternetPlanView(APIView):
+    queryset = InternetPlan.objects.all()
+
+    def get(self, request, format=None):
+        queryset = self.queryset.prefetch_related(
+            Prefetch(
+                "bundle_conditions",
+                queryset=BundleCondition.objects.prefetch_related(
+                    "bundle_discounts", "bundle_promotions"
+                ).select_related("tv_plan"),
+            )
+        ).select_related("carrier")
+
+        serializer = InternetPlanSerializer(
+            queryset,
         )
-    ).all()
-
-    serializer_class = InternetPlanSerializer
-
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context.update({"request": self.request})
-        return context
+        return Response(serializer.data)
