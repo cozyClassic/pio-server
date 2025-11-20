@@ -41,7 +41,7 @@ class InternetPlan(models.Model):
     is_wifi_router_selectable = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.speed}({self.name})"
+        return f"{self.speed}({self.name})({self.carrier.name})"
 
 
 class TVPlan(models.Model):
@@ -73,7 +73,11 @@ class BundleCondition(models.Model):
         InternetPlan, on_delete=models.CASCADE, related_name="bundle_conditions"
     )
     tv_plan = models.ForeignKey(
-        TVPlan, on_delete=models.CASCADE, related_name="bundle_conditions"
+        TVPlan,
+        on_delete=models.CASCADE,
+        related_name="bundle_conditions",
+        null=True,
+        blank=True,
     )
     mobile_price_min = models.IntegerField(default=0)
     mobile_type = models.CharField(
