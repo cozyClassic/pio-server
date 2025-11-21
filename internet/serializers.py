@@ -21,7 +21,7 @@ class BCSerializer(serializers.BaseSerializer):
     def get_IT(
         cls,
         bundle_condition: BundleCondition,
-        installment_fee_dict,
+        installation_fee_dict,
     ):
         if len(bundle_condition.bundle_promotions.all()) == 0:
             return {}
@@ -34,14 +34,14 @@ class BCSerializer(serializers.BaseSerializer):
             "month_discount": month_discount,
             "cash": promotion.cash_amount,
             "coupon": promotion.coupon_amount,
-            "installment_fee": installment_fee_dict[bundle_condition.carrier_id]["IT"],
+            "installation_fee": installation_fee_dict[bundle_condition.carrier_id]["IT"],
         }
 
     @classmethod
     def get_I(
         cls,
         bundle_condition: BundleCondition,
-        installment_fee_dict,
+        installation_fee_dict,
     ):
         if len(bundle_condition.bundle_promotions.all()) == 0:
             return {}
@@ -54,14 +54,14 @@ class BCSerializer(serializers.BaseSerializer):
             "month_discount": month_discount,
             "cash": promotion.cash_amount,
             "coupon": promotion.coupon_amount,
-            "installment_fee": installment_fee_dict[bundle_condition.carrier_id]["I"],
+            "installation_fee": installation_fee_dict[bundle_condition.carrier_id]["I"],
         }
 
     @classmethod
     def get_IM(
         cls,
         bundle_condition: BundleCondition,
-        installment_fee_dict,
+        installation_fee_dict,
     ):
         if len(bundle_condition.bundle_promotions.all()) == 0:
             return {}
@@ -73,14 +73,14 @@ class BCSerializer(serializers.BaseSerializer):
             "month_discount": month_discount,
             "cash": promotion.cash_amount,
             "coupon": promotion.coupon_amount,
-            "installment_fee": installment_fee_dict[bundle_condition.carrier_id]["I"],
+            "installation_fee": installation_fee_dict[bundle_condition.carrier_id]["I"],
         }
 
     @classmethod
     def get_IMT(
         cls,
         bundle_condition: BundleCondition,
-        installment_fee_dict,
+        installation_fee_dict,
     ):
         if len(bundle_condition.bundle_promotions.all()) == 0:
             return {}
@@ -93,7 +93,7 @@ class BCSerializer(serializers.BaseSerializer):
             "month_discount": month_discount,
             "cash": promotion.cash_amount,
             "coupon": promotion.coupon_amount,
-            "installment_fee": installment_fee_dict[bundle_condition.carrier_id]["IT"],
+            "installation_fee": installation_fee_dict[bundle_condition.carrier_id]["IT"],
         }
 
 
@@ -154,7 +154,7 @@ class InternetPlanSerializer(serializers.Serializer):
         #  INTERNET_PLAN = { id,  }
         #  combines: { "I": {}, "IT": {}, "IM": {}, "IMT": {} }
         #    KEY: "internet_plan_id,tv_plan_id_mobile_type"
-        #    VALUE: { bundle_discount_id, price_per_month, cash, coupon, installment_fee, internet_price, tv_price }
+        #    VALUE: { bundle_discount_id, price_per_month, cash, coupon, installation_fee, internet_price, tv_price }
 
         carriers = InternetCarrier.objects.all()
         carrier_dict = {c.id: c.name for c in carriers}
@@ -184,11 +184,11 @@ class InternetPlanSerializer(serializers.Serializer):
                 SimpleInternetPlanSerializer(internet_plan).data
             )
 
-        # setup installment dict
-        installment_fee_dict = DefaultDict(dict)
-        installment_fees = InstallationOption.objects.all()
-        for install_fee in installment_fees:
-            installment_fee_dict[install_fee.carrier_id][
+        # setup installation dict
+        installation_fee_dict = DefaultDict(dict)
+        installation_fees = InstallationOption.objects.all()
+        for install_fee in installation_fees:
+            installation_fee_dict[install_fee.carrier_id][
                 install_fee.installation_type
             ] = install_fee.installation_fee
 
@@ -200,12 +200,12 @@ class InternetPlanSerializer(serializers.Serializer):
             for bc in plan.bundle_conditions.all():
                 key = f"{plan.id},{bc.mobile_type},{bc.tv_plan_id}".replace("None", "")
                 if bc.tv_plan is None and bc.mobile_type == "None":
-                    combines[key] = BCSerializer.get_I(bc, installment_fee_dict)
+                    combines[key] = BCSerializer.get_I(bc, installation_fee_dict)
                 elif bc.tv_plan is not None and bc.mobile_type == "None":
-                    combines[key] = BCSerializer.get_IT(bc, installment_fee_dict)
+                    combines[key] = BCSerializer.get_IT(bc, installation_fee_dict)
                 elif bc.tv_plan is None and bc.mobile_type in ["MNO", "MVNO"]:
-                    combines[key] = BCSerializer.get_IM(bc, installment_fee_dict)
+                    combines[key] = BCSerializer.get_IM(bc, installation_fee_dict)
                 elif bc.tv_plan is not None and bc.mobile_type in ["MNO", "MVNO"]:
-                    combines[key] = BCSerializer.get_IMT(bc, installment_fee_dict)
+                    combines[key] = BCSerializer.get_IMT(bc, installation_fee_dict)
 
         return result
