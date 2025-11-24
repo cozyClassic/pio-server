@@ -33,6 +33,13 @@ class BundleConditionAdmin(nested_admin.NestedModelAdmin):
     class Media:
         js = ("js/dependent_dropdown.js",)
 
+    def get_queryset(self, request):
+        return (
+            super()
+            .get_queryset(request)
+            .select_related("internet_plan", "tv_plan", "internet_plan__carrier")
+        )
+
 
 class CarrierNameFilter(admin.SimpleListFilter):
     title = "통신사 이름"

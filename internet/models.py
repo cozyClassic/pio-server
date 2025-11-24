@@ -88,7 +88,7 @@ class BundleCondition(models.Model):
         unique_together = ("carrier", "internet_plan", "tv_plan", "mobile_type")
 
     def __str__(self):
-        return f"{self.carrier.name}/인터넷 {self.internet_plan}/TV {self.tv_plan}/모바일 {self.mobile_type}"
+        return f"{self.internet_plan}/{self.tv_plan}/{self.mobile_type}"
 
 
 class BundleDiscount(models.Model):
