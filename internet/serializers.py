@@ -14,7 +14,17 @@ class BCSerializer(serializers.BaseSerializer):
     @staticmethod
     def get_bundle_discount_amount(bundle_condition: BundleCondition):
         bundle_discount: List[BundleDiscount] = bundle_condition.bundle_discounts.all()
-        total_month_discount = sum([b.discount_amount for b in bundle_discount])
+        total_month_discount = sum(
+            [b.discount_amount for b in bundle_discount if b.discount_type != "Mobile"]
+        )
+        return total_month_discount
+
+    @staticmethod
+    def get_mobile_discount(bundle_condition: BundleCondition):
+        bundle_discount: List[BundleDiscount] = bundle_condition.bundle_discounts.all()
+        total_month_discount = sum(
+            [b.discount_amount for b in bundle_discount if b.discount_type == "Mobile"]
+        )
         return total_month_discount
 
     @classmethod
@@ -37,6 +47,7 @@ class BCSerializer(serializers.BaseSerializer):
             "installation_fee": installation_fee_dict[bundle_condition.carrier_id][
                 "IT"
             ],
+            "mobile_discount": cls.get_mobile_discount(bundle_condition),
         }
 
     @classmethod
@@ -57,6 +68,7 @@ class BCSerializer(serializers.BaseSerializer):
             "cash": promotion.cash_amount,
             "coupon": promotion.coupon_amount,
             "installation_fee": installation_fee_dict[bundle_condition.carrier_id]["I"],
+            "mobile_discount": cls.get_mobile_discount(bundle_condition),
         }
 
     @classmethod
@@ -76,6 +88,7 @@ class BCSerializer(serializers.BaseSerializer):
             "cash": promotion.cash_amount,
             "coupon": promotion.coupon_amount,
             "installation_fee": installation_fee_dict[bundle_condition.carrier_id]["I"],
+            "mobile_discount": cls.get_mobile_discount(bundle_condition),
         }
 
     @classmethod
@@ -98,6 +111,7 @@ class BCSerializer(serializers.BaseSerializer):
             "installation_fee": installation_fee_dict[bundle_condition.carrier_id][
                 "IT"
             ],
+            "mobile_discount": cls.get_mobile_discount(bundle_condition),
         }
 
 
