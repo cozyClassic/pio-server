@@ -34,7 +34,9 @@ class BCSerializer(serializers.BaseSerializer):
             "month_discount": month_discount,
             "cash": promotion.cash_amount,
             "coupon": promotion.coupon_amount,
-            "installation_fee": installation_fee_dict[bundle_condition.carrier_id]["IT"],
+            "installation_fee": installation_fee_dict[bundle_condition.carrier_id][
+                "IT"
+            ],
         }
 
     @classmethod
@@ -93,7 +95,9 @@ class BCSerializer(serializers.BaseSerializer):
             "month_discount": month_discount,
             "cash": promotion.cash_amount,
             "coupon": promotion.coupon_amount,
-            "installation_fee": installation_fee_dict[bundle_condition.carrier_id]["IT"],
+            "installation_fee": installation_fee_dict[bundle_condition.carrier_id][
+                "IT"
+            ],
         }
 
 
@@ -168,8 +172,9 @@ class InternetPlanSerializer(serializers.Serializer):
             }
             for carrier in carriers
         }
-
-        tv_plans = TVPlan.objects.all()
+        tv_plans = TVPlan.objects.select_related("carrier").order_by(
+            "tv_price_per_month"
+        )
 
         # setup base tv plan list
         for tv_plan in tv_plans:

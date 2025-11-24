@@ -14,7 +14,7 @@ class InternetCarrierViewSet(ReadOnlyModelViewSet):
 
 
 class InternetPlanView(APIView):
-    queryset = InternetPlan.objects.all()
+    queryset = InternetPlan.objects.all().order_by("internet_price_per_month")
 
     def get(self, request, format=None):
         queryset = self.queryset.prefetch_related(
