@@ -303,6 +303,7 @@ class ProductSeries(SoftDeleteModel):
     # 하나의 시리즈는 여러 제품에 속할 수 있음
     # 하나의 제품은 하나의 시리즈에만 속함
     name = models.CharField(max_length=100)
+    sort_order = models.IntegerField(default=0)
 
     def __str__(self):
         return self.name

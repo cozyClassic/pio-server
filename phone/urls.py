@@ -9,6 +9,7 @@ router = routers.DefaultRouter()
 urlpatterns = [
     path("products", ProductViewSet.as_view({"get": "list"})),
     path("products/<int:pk>", ProductViewSet.as_view({"get": "retrieve"})),
+    path("product-series", ProductSeriesViewSet.as_view({"get": "list"})),
     path("orders", OrderViewSet.as_view({"get": "list", "post": "create"})),
     path("orders/<int:pk>", OrderViewSet.as_view({"get": "retrieve"})),
     path("faqs", FAQViewSet.as_view({"get": "list"})),

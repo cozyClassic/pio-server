@@ -415,7 +415,21 @@ class NoticeViewSet(ReadOnlyModelViewSet):
         return Response(serializer.data)
 
 
+class ProductSeriesViewSet(ReadOnlyModelViewSet):
+    queryset = ProductSeries.objects.prefetch_related(
+        "productseries", "productseries__device", "productseries__images"
+    ).all()
+
+    serializer_class = ProductSeriesSerializer
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset().order_by("name")
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+
 class BannerViewSet(ReadOnlyModelViewSet):
+
     serializer_class = BannerSerializer
     queryset = (
         Banner.objects.all()

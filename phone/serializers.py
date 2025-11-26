@@ -531,3 +531,30 @@ class EventSerializer(serializers.ModelSerializer):
         model = Event
         fields = ["id", "title", "description"]
         read_only_fields = ["id", "title", "description"]
+
+
+class ProductSimpleSerializer(serializers.ModelSerializer):
+    model_name = serializers.SerializerMethodField()
+    thumbnail = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Product
+        fields = ["id", "model_name", "thumbnail"]
+        read_only_fields = ["id", "model_name", "thumbnail"]
+
+    def get_model_name(self, obj):
+        return obj.device.model_name
+
+    def get_thumbnail(self, obj):
+        return obj.images.all()[0].image.url if obj.images.all() else None
+
+
+class ProductSeriesSerializer(serializers.ModelSerializer):
+    products = ProductSimpleSerializer(
+        many=True, read_only=True, source="productseries"
+    )
+
+    class Meta:
+        model = ProductSeries
+        fields = ["id", "name", "products"]
+        read_only_fields = ["id", "name", "products"]
