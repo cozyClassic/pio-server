@@ -3,7 +3,8 @@ from django.db import models
 # Create your models here.
 INSTALLATION_TYPES = [
     ("I", "Internet"),
-    ("IT", "Internet + TV"),
+    ("T", "TV"),
+    ("AI", "Additional Internet"),
     ("AT", "Additional TV"),
 ]
 
@@ -12,7 +13,7 @@ class CombinedDataView(models.Model):
     pass
 
     class Meta:
-        managed = False  # ★★★ 이것이 핵심! DB 테이블을 만들지 않습니다.
+        managed = False
         verbose_name = "종합 리포트"
         verbose_name_plural = "종합 리포트"
 
@@ -21,8 +22,6 @@ class InternetCarrier(models.Model):
     name = models.CharField(max_length=100)
     website = models.URLField(blank=True, null=True)
     logo = models.ImageField(upload_to="carrier_logos/", blank=True, null=True)
-    wifi_router_rental_price_per_month = models.IntegerField(default=0)
-    tv_settop_box_rental_price_per_month = models.IntegerField(default=0)
 
     def __str__(self):
         return self.name
@@ -37,11 +36,18 @@ class InternetPlan(models.Model):
     description = models.TextField(blank=True, null=True)
     internet_price_per_month = models.IntegerField(default=0)
     internet_contract_discount = models.IntegerField(default=0)
-    is_wifi_router_free = models.BooleanField(default=False)
-    is_wifi_router_selectable = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.speed}({self.name})({self.carrier.name})"
+
+
+class WifiOption(models.Model):
+    carrier = models.ForeignKey(
+        InternetCarrier, on_delete=models.CASCADE, related_name="wifi_options"
+    )
+    name = models.CharField(max_length=100)
+    rental_price_per_month = models.IntegerField(default=0)
+    description = models.TextField(blank=True, null=True)
 
 
 class TVPlan(models.Model):
@@ -53,11 +59,18 @@ class TVPlan(models.Model):
     description = models.TextField(blank=True, null=True)
     tv_price_per_month = models.IntegerField(default=0)
     tv_contract_discount = models.IntegerField(default=0)
-    is_settop_box_free = models.BooleanField(default=False)
-    is_settop_box_selectable = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.channel_count} ({self.name})"
+
+
+class SettopBoxOption(models.Model):
+    carrier = models.ForeignKey(
+        InternetCarrier, on_delete=models.CASCADE, related_name="settop_box_options"
+    )
+    name = models.CharField(max_length=100)
+    rental_price_per_month = models.IntegerField(default=0)
+    description = models.TextField(blank=True, null=True)
 
 
 class BundleCondition(models.Model):
@@ -74,6 +87,20 @@ class BundleCondition(models.Model):
     )
     tv_plan = models.ForeignKey(
         TVPlan,
+        on_delete=models.CASCADE,
+        related_name="bundle_conditions",
+        null=True,
+        blank=True,
+    )
+    wifi_option = models.ForeignKey(
+        WifiOption,
+        on_delete=models.CASCADE,
+        related_name="bundle_conditions",
+        null=True,
+        blank=True,
+    )
+    settop_box_option = models.ForeignKey(
+        SettopBoxOption,
         on_delete=models.CASCADE,
         related_name="bundle_conditions",
         null=True,
@@ -96,6 +123,10 @@ class BundleDiscount(models.Model):
         ("Mobile", "Mobile"),
         ("Internet", "Internet"),
         ("TV", "TV"),
+        ("Internet_Install", "Internet Install"),
+        ("TV_Install", "TV Install"),
+        ("Wifi", "Wifi"),
+        ("TV_Settop", "TV Settop"),
     ]
     bundle_condition = models.ForeignKey(
         BundleCondition, on_delete=models.CASCADE, related_name="bundle_discounts"
