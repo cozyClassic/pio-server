@@ -49,6 +49,9 @@ class WifiOption(models.Model):
     rental_price_per_month = models.IntegerField(default=0)
     description = models.TextField(blank=True, null=True)
 
+    def __str__(self):
+        return f"{self.name}"
+
 
 class TVPlan(models.Model):
     carrier = models.ForeignKey(
@@ -72,12 +75,14 @@ class SettopBoxOption(models.Model):
     rental_price_per_month = models.IntegerField(default=0)
     description = models.TextField(blank=True, null=True)
 
+    def __str__(self):
+        return f"{self.name}"
+
 
 class BundleCondition(models.Model):
     MOBILE_TYPES = [
         ("MNO", "MNO"),
         ("MVNO", "MVNO"),
-        ("None", "None"),
     ]
     carrier = models.ForeignKey(
         InternetCarrier, on_delete=models.CASCADE, related_name="bundle_conditions"
@@ -112,10 +117,17 @@ class BundleCondition(models.Model):
     )
 
     class Meta:
-        unique_together = ("carrier", "internet_plan", "tv_plan", "mobile_type")
+        unique_together = (
+            "carrier",
+            "internet_plan",
+            "tv_plan",
+            "mobile_type",
+            "wifi_option",
+            "settop_box_option",
+        )
 
     def __str__(self):
-        return f"{self.internet_plan}/{self.tv_plan}/{self.mobile_type}"
+        return f"{self.internet_plan_id}/{self.tv_plan_id}/{self.mobile_type}"
 
 
 class BundleDiscount(models.Model):
@@ -137,6 +149,13 @@ class BundleDiscount(models.Model):
 
     def __str__(self):
         return f"{self.bundle_name} ({self.discount_type})"
+
+    class Meta:
+        unique_together = (
+            "bundle_condition",
+            "bundle_name",
+            "discount_type",
+        )
 
 
 class BundlePromotion(models.Model):
