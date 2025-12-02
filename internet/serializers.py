@@ -96,6 +96,7 @@ class SimpleInternetPlanSerializer(serializers.ModelSerializer):
             "description",
             "internet_price_per_month",
             "internet_contract_discount",
+            "isWifiIncluded",
         ]
 
 

@@ -36,6 +36,7 @@ class InternetPlan(models.Model):
     description = models.TextField(blank=True, null=True)
     internet_price_per_month = models.IntegerField(default=0)
     internet_contract_discount = models.IntegerField(default=0)
+    isWifiIncluded = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.speed}({self.name})({self.carrier.name})"
