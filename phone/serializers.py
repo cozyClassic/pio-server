@@ -238,11 +238,19 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 
 
 class ProductSimpleSerializer(serializers.ModelSerializer):
-    images = serializers.SerializerMethodField()
+    model_name = serializers.SerializerMethodField()
+    thumbnail = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
-        fields = ["id", "name", "images"]
+        fields = ["id", "model_name", "thumbnail", "images"]
+        read_only_fields = ["id", "model_name", "thumbnail", "images"]
+
+    def get_model_name(self, obj):
+        return obj.device.model_name
+
+    def get_thumbnail(self, obj):
+        return obj.images.all()[0].image.url if obj.images.all() else None
 
     def get_images(self, obj):
         return [image.image.url for image in obj.images.all()]
@@ -531,22 +539,6 @@ class EventSerializer(serializers.ModelSerializer):
         model = Event
         fields = ["id", "title", "description"]
         read_only_fields = ["id", "title", "description"]
-
-
-class ProductSimpleSerializer(serializers.ModelSerializer):
-    model_name = serializers.SerializerMethodField()
-    thumbnail = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Product
-        fields = ["id", "model_name", "thumbnail"]
-        read_only_fields = ["id", "model_name", "thumbnail"]
-
-    def get_model_name(self, obj):
-        return obj.device.model_name
-
-    def get_thumbnail(self, obj):
-        return obj.images.all()[0].image.url if obj.images.all() else None
 
 
 class ProductSeriesSerializer(serializers.ModelSerializer):
