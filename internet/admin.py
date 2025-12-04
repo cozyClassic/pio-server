@@ -40,6 +40,12 @@ class BundleConditionAdmin(nested_admin.NestedModelAdmin):
             .select_related("internet_plan", "tv_plan", "internet_plan__carrier")
         )
 
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "internet_plan":
+            kwargs["queryset"] = InternetPlan.objects.select_related("carrier")
+
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
 
 class CarrierNameFilter(admin.SimpleListFilter):
     title = "통신사 이름"

@@ -179,3 +179,33 @@ class InstallationOption(models.Model):
 
     def __str__(self):
         return f"{self.carrier.name} - {self.get_installation_type_display()}"
+
+
+class Inquiry(models.Model):
+    name = models.CharField(max_length=100)
+    contact = models.CharField(max_length=100)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(
+        max_length=50,
+        choices=[
+            ("주문접수", "주문접수"),
+            ("해피콜진행중", "해피콜진행중"),
+            ("해피콜완료", "해피콜완료"),
+            ("설치요청", "설치요청"),
+            ("설치중", "설치중"),
+            ("배송완료", "배송완료"),
+            ("개통대기", "개통대기"),
+            ("개통완료", "개통완료"),
+            ("사은품지급완료", "사은품지급완료"),
+            ("취소요청", "취소요청"),
+            ("취소완료", "취소완료"),
+        ],
+        default="주문접수",
+    )
+    bundle_condition = models.ForeignKey(
+        BundleCondition, on_delete=models.CASCADE, related_name="inquiries"
+    )
+
+    def __str__(self):
+        return f"Inquiry from {self.name} ({self.contact}) at {self.created_at}"
