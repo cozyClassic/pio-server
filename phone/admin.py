@@ -741,9 +741,14 @@ class CustomImageAdmin(commonAdmin):
 
 @admin.register(Event)
 class EventAdmin(commonAdmin):
-    from mdeditor.widgets import MDEditorWidget
 
-    formfield_overrides = {models.TextField: {"widget": MDEditorWidget}}
+    class Meta:
+        from tinymce.widgets import TinyMCE
+
+        model = Event
+        widgets = {
+            "description": TinyMCE(),
+        }
 
 
 @admin.register(PlanPremiumChoices)

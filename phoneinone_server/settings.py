@@ -90,6 +90,7 @@ INSTALLED_APPS = [
     "ebhealthcheck.apps.EBHealthCheckConfig",
     "drf_yasg",
     "rest_framework",
+    "tinymce",
     "phone",
     "internet",
     "nested_admin",
@@ -232,3 +233,4 @@ STORAGES = {
 }
 
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 2000
+TINYMCE_JS_URL = os.path.join(STATIC_URL, "tinymce/tinymce.min.js")

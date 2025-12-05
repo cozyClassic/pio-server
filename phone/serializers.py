@@ -530,8 +530,7 @@ class PartnerCardSerializer(serializers.ModelSerializer):
 class EventSimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
-        fields = ["id", "title", "thumbnail"]
-        read_only_fields = ["id", "title", "thumbnail"]
+        fields = "__all__"
 
 
 class EventSerializer(serializers.ModelSerializer):

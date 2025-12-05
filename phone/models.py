@@ -7,7 +7,7 @@ from threading import local
 import pandas as pd
 from .managers import SoftDeleteManager
 
-from mdeditor.fields import MDTextField
+from tinymce import models as tinymce_models
 from .utils import UniqueFilePathGenerator
 from .constants import CarrierChoices
 
@@ -613,7 +613,7 @@ class Event(SoftDeleteModel):
     thumbnail = models.ImageField(
         upload_to=UniqueFilePathGenerator("event_thumbnails/"), null=True, blank=True
     )
-    description = MDTextField(null=True, blank=True)
+    description = tinymce_models.HTMLField(default="", blank=True)
     start_date = models.DateField()
     end_date = models.DateField()
     is_active = models.BooleanField(default=True)

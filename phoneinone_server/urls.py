@@ -45,6 +45,7 @@ def env_check(request):
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("tinymce/", include("tinymce.urls")),
     path("api/", include(("phone.urls", "api"))),
     path("phone/", include(("phone.urls", "phone"))),
     path("internet/", include(("internet.urls", "internet"))),
