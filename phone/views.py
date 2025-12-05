@@ -558,3 +558,18 @@ class EventViewSet(ReadOnlyModelViewSet):
         instance = self.get_object()
         serializer = EventSerializer(instance)
         return Response(serializer.data)
+
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+
+@csrf_exempt
+def tinymce_upload(request):
+    if request.method != "POST" or not request.FILES.get("file"):
+        return JsonResponse({"error": "Invalid request"}, status=400)
+
+    file_instance = CustomImage.objects.create(
+        image=request.FILES["file"], name=request.FILES["file"].name
+    )
+    return JsonResponse({"location": file_instance.image.url})

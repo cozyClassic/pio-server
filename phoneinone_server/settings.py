@@ -234,3 +234,30 @@ STORAGES = {
 
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 2000
 TINYMCE_JS_URL = os.path.join(STATIC_URL, "tinymce/tinymce.min.js")
+
+TINYMCE_DEFAULT_CONFIG = {
+    "height": 490,
+    "promotion": False,
+    "menubar": False,
+    "width": "full",
+    "plugins": "advlist autolink lists link image media charmap preview anchor pagebreak directionality emoticons fullscreen table visualblocks code codesample",
+    "toolbar1": "fullscreen preview | undo redo | fontfamily fontsize | numlist bullist accordion | indent outdent ltr rtl | blocks",
+    "toolbar2": (
+        "pagebreak footnotes | bold italic underline strikethrough subscript superscript | formatpainter backcolor forecolor removeformat |"
+        "align lineheight | charmap emoticons link image media table codesample | code visualblocks"
+    ),
+    # Add these two lines
+    "images_upload_url": "/phone/tinymce/upload/",
+    "file_picker_callback": "filePickerCallback",
+}
+
+TINYMCE_EXTRA_MEDIA = {
+    "css": {
+        "all": [],
+    },
+    "js": [
+        "https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js",
+        # Path to the script
+        "admin/js/tinymce-upload.js",  # change it accordingly
+    ],
+}
