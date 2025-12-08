@@ -511,7 +511,7 @@ class FAQ(SoftDeleteModel):
 
 class Notice(SoftDeleteModel):
     title = models.CharField(max_length=100)
-    content = models.TextField()
+    content = tinymce_models.HTMLField(default="", blank=True)
     type = models.CharField(
         max_length=25,
         choices=[("caution", "caution"), ("event", "event"), ("general", "general")],
