@@ -236,7 +236,7 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 2000
 TINYMCE_JS_URL = os.path.join(STATIC_URL, "tinymce/tinymce.min.js")
 
 TINYMCE_DEFAULT_CONFIG = {
-    "height": 490,
+    "height": 700,
     "promotion": False,
     "menubar": False,
     "width": "full",

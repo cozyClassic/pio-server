@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from .models import *
 from .constants import CarrierChoices
+from phoneinone_server.settings import AWS_CLOUDFRONT_DOMAIN
 
 
 class ProductOptionSimpleSerializer(serializers.ModelSerializer):
@@ -313,7 +314,7 @@ class OrderSerializer(serializers.ModelSerializer):
         return {
             "color": obj.color,
             "color_code": obj.color_code,
-            "image": obj.image,
+            "image": f"https://{AWS_CLOUDFRONT_DOMAIN}/{obj.image}",
         }
 
 
@@ -536,8 +537,7 @@ class EventSimpleSerializer(serializers.ModelSerializer):
 class EventSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
-        fields = ["id", "title", "description"]
-        read_only_fields = ["id", "title", "description"]
+        fields = "__all__"
 
 
 class ProductSeriesSerializer(serializers.ModelSerializer):
