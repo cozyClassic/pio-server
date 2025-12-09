@@ -1,6 +1,6 @@
 # Create your views here.
 
-from rest_framework.viewsets import ReadOnlyModelViewSet
+from rest_framework.viewsets import ReadOnlyModelViewSet, ModelViewSet
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.db.models import Prefetch
@@ -30,3 +30,15 @@ class InternetPlanView(APIView):
             queryset,
         )
         return Response(serializer.data)
+
+
+class InquiryCreateView(ModelViewSet):
+    queryset = Inquiry.objects.all()
+    serializer_class = InquiryCreateSerializer
+
+    def post(self, request, format=None):
+        serializer = InquiryCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Inquiry created successfully."}, status=201)
+        return Response(serializer.errors, status=400)

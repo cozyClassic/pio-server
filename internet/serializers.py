@@ -187,3 +187,9 @@ class InternetPlanSerializer(serializers.Serializer):
                 )
 
         return result
+
+
+class InquiryCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Inquiry
+        fields = "__all__"
