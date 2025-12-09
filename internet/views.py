@@ -3,6 +3,7 @@
 from rest_framework.viewsets import ReadOnlyModelViewSet, ModelViewSet
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
 from django.db.models import Prefetch
 from .models import InternetCarrier, InternetPlan
 from .serializers import *
@@ -35,6 +36,7 @@ class InternetPlanView(APIView):
 class InquiryCreateView(ModelViewSet):
     queryset = Inquiry.objects.all()
     serializer_class = InquiryCreateSerializer
+    permission_classes = [AllowAny]
 
     def post(self, request, format=None):
         serializer = InquiryCreateSerializer(data=request.data)
