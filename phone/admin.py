@@ -169,6 +169,22 @@ class ProductOptionsInline(nested_admin.NestedTabularInline):
         이렇게 하면 커스텀 필드에서 obj.plan.carrier 같은 접근이 추가 쿼리를 발생시키지 않음
         """
         queryset = super().get_queryset(request)
+        request.GET = request.GET.copy()
+        carrier = request.GET.get("plan_carrier", None)
+        discount_type = request.GET.get("discount_type", None)
+        contract_type = request.GET.get("contract_type", None)
+        if carrier:
+            queryset = queryset.filter(
+                plan__carrier__iexact=carrier,
+            )
+        if discount_type:
+            queryset = queryset.filter(
+                discount_type__iexact=discount_type,
+            )
+        if contract_type:
+            queryset = queryset.filter(
+                contract_type__iexact=contract_type,
+            )
         return (
             queryset.select_related(
                 "device_variant__device",  # device_variant와 device 함께 로드
@@ -178,6 +194,12 @@ class ProductOptionsInline(nested_admin.NestedTabularInline):
                 # 추가로 필요한 관계가 있다면 여기에 추가
             )
             .filter(deleted_at__isnull=True)
+            .order_by(
+                "plan__carrier",
+                "discount_type",
+                "contract_type",
+                "plan__price",
+            )
         )
 
 
