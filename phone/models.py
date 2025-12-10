@@ -277,6 +277,14 @@ class ProductOption(SoftDeleteModel):
         # 처리 완료 후 초기화
         _thread_locals.pending_products.clear()
 
+    @property
+    def monthly_payment(self):
+        return int(
+            self.plan.price
+            + (self.plan.price * 0.25 if self.discount_type == "선택약정" else 0)
+            + self.final_price * (1.0625 / 24)
+        )
+
 
 class ProductDetailImage(SoftDeleteImageModel):
     product = models.ForeignKey(

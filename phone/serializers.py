@@ -22,6 +22,8 @@ class ProductOptionSimpleSerializer(serializers.ModelSerializer):
             "is_best",
             "device_price",
             "device_name",
+            "monthly_payment",
+            "plan_id",
         ]
 
     def get_carrier(self, obj):
@@ -260,51 +262,48 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             carrier = op.plan.carrier
             curr_device_price_option = result["device_price"][carrier]
             curr_monthly_payment_option = result["monthly_payment"][carrier]
-            op_monthly_payment = op.plan.price
-            if op.discount_type == "선택약정":
-                op_monthly_payment *= 0.75
-            op_monthly_payment = int(
-                op_monthly_payment + (op.final_price / 24 * 1.0625)
-            )
             if (
                 curr_device_price_option is None
-                or op.final_price < curr_device_price_option[1]
+                or op.final_price < curr_device_price_option.final_price
+            ) or (
+                op.final_price == curr_device_price_option.final_price
+                and op.monthly_payment < curr_device_price_option.monthly_payment
             ):
-                result["device_price"][carrier] = (
-                    op.id,
-                    op.final_price,
-                    op_monthly_payment,
-                )
-            elif (
-                op.final_price == curr_device_price_option[1]
-                and op_monthly_payment < curr_device_price_option[2]
-            ):
-                result["device_price"][carrier] = (
-                    op.id,
-                    op.final_price,
-                    op_monthly_payment,
-                )
+                result["device_price"][carrier] = op
 
             if (
                 curr_monthly_payment_option is None
-                or op_monthly_payment < curr_monthly_payment_option[2]
+                or op.monthly_payment < curr_monthly_payment_option.monthly_payment
+            ) or (
+                op.monthly_payment == curr_monthly_payment_option.monthly_payment
+                and op.final_price < curr_monthly_payment_option.final_price
             ):
-                result["monthly_payment"][carrier] = (
-                    op.id,
-                    op.final_price,
-                    op_monthly_payment,
-                )
-            elif (
-                op_monthly_payment == curr_monthly_payment_option[2]
-                and op.final_price < curr_monthly_payment_option[1]
-            ):
-                result["monthly_payment"][carrier] = (
-                    op.id,
-                    op.final_price,
-                    op_monthly_payment,
-                )
+                result["monthly_payment"][carrier] = op
 
-        return result
+        return {
+            "device_price": {
+                CarrierChoices.SK: ProductOptionSimpleSerializer(
+                    result["device_price"][CarrierChoices.SK]
+                ).data,
+                CarrierChoices.KT: ProductOptionSimpleSerializer(
+                    result["device_price"][CarrierChoices.KT]
+                ).data,
+                CarrierChoices.LG: ProductOptionSimpleSerializer(
+                    result["device_price"][CarrierChoices.LG]
+                ).data,
+            },
+            "monthly_payment": {
+                CarrierChoices.SK: ProductOptionSimpleSerializer(
+                    result["monthly_payment"][CarrierChoices.SK]
+                ).data,
+                CarrierChoices.KT: ProductOptionSimpleSerializer(
+                    result["monthly_payment"][CarrierChoices.KT]
+                ).data,
+                CarrierChoices.LG: ProductOptionSimpleSerializer(
+                    result["monthly_payment"][CarrierChoices.LG]
+                ).data,
+            },
+        }
 
 
 class ProductSimpleSerializer(serializers.ModelSerializer):
