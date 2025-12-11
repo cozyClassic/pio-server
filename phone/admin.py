@@ -16,6 +16,12 @@ from simple_history.admin import SimpleHistoryAdmin
 from .models import *
 
 
+def format_price(num: int):
+    if num is None:
+        return "0"
+    return f"{num:,}"
+
+
 class commonAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at", "deleted_at")
 
@@ -114,14 +120,15 @@ class ProductOptionsInline(nested_admin.NestedTabularInline):
     exclude = ("deleted_at",)
     readonly_fields = (
         "device_storage",
-        "final_price",
+        "final_price_display",
         "custom_plan_carrier",
         "custom_plan_name",
         "discount_type",
         "contract_type",
-        "subsidy_amount",
-        "subsidy_amount_mnp",
-        "additional_discount",
+        "subsidy_amount_display",
+        "subsidy_amount_mnp_display",
+        "additional_discount_display",
+        "monthly_payment_display",
     )
 
     # 필드 순서 지정 (커스텀 필드들 포함)
@@ -131,10 +138,11 @@ class ProductOptionsInline(nested_admin.NestedTabularInline):
         "discount_type",
         "contract_type",
         "custom_plan_name",
-        "subsidy_amount",
-        "subsidy_amount_mnp",
-        "additional_discount",
-        "final_price",
+        "subsidy_amount_display",
+        "subsidy_amount_mnp_display",
+        "additional_discount_display",
+        "final_price_display",
+        "monthly_payment_display",
     )
 
     def custom_plan_carrier(self, obj):
@@ -201,6 +209,26 @@ class ProductOptionsInline(nested_admin.NestedTabularInline):
                 "plan__price",
             )
         )
+
+    @admin.display(description="할부원금")
+    def final_price_display(self, obj):
+        return format_price(obj.final_price)
+
+    @admin.display(description="월 청구금액")
+    def monthly_payment_display(self, obj):
+        return format_price(obj.monthly_payment)
+
+    @admin.display(description="공시지원금")
+    def subsidy_amount_display(self, obj):
+        return format_price(obj.subsidy_amount)
+
+    @admin.display(description="전환지원금")
+    def subsidy_amount_mnp_display(self, obj):
+        return format_price(obj.subsidy_amount_mnp)
+
+    @admin.display(description="추가지원금")
+    def additional_discount_display(self, obj):
+        return format_price(obj.additional_discount)
 
 
 @admin.register(Product)

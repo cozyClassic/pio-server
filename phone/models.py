@@ -300,11 +300,7 @@ class ProductDetailImage(SoftDeleteImageModel):
     sort_order = models.IntegerField(default=0)
 
     def __str__(self):
-        return (
-            f"Image for {self.product.name} - {self.description[:20]}..."
-            if self.description
-            else f"Image for {self.product.name}"
-        )
+        return str(self.id)
 
 
 class ProductSeries(SoftDeleteModel):
