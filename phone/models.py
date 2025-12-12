@@ -279,10 +279,16 @@ class ProductOption(SoftDeleteModel):
 
     @property
     def monthly_payment(self):
+        result = 0
+        if self.final_price:
+            result += self.final_price * (1.0625 / 24)
         return int(
-            self.plan.price
-            + (self.plan.price * 0.25 if self.discount_type == "선택약정" else 0)
-            + self.final_price * (1.0625 / 24)
+            result
+            + (
+                self.plan.price * 0.75
+                if self.discount_type == "선택약정"
+                else self.plan.price
+            )
         )
 
 

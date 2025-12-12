@@ -157,7 +157,7 @@ class ProductOptionsInline(nested_admin.NestedTabularInline):
         """올바른 방법: select_related로 이미 로드된 데이터 사용"""
         if not obj or not obj.plan:
             return "-"
-        return obj.plan.name
+        return f"{obj.plan.name}({format_price(obj.plan.price)}원)"
 
     def device_storage(self, obj):
         """N+1 방지: select_related된 device_variant 사용"""
@@ -181,6 +181,8 @@ class ProductOptionsInline(nested_admin.NestedTabularInline):
         carrier = request.GET.get("plan_carrier", None)
         discount_type = request.GET.get("discount_type", None)
         contract_type = request.GET.get("contract_type", None)
+        capacity = request.GET.get("capacity", None)
+
         if carrier:
             queryset = queryset.filter(
                 plan__carrier__iexact=carrier,
@@ -192,6 +194,10 @@ class ProductOptionsInline(nested_admin.NestedTabularInline):
         if contract_type:
             queryset = queryset.filter(
                 contract_type__iexact=contract_type,
+            )
+        if capacity:
+            queryset = queryset.filter(
+                device_variant__storage_capacity__iexact=capacity,
             )
         return (
             queryset.select_related(
