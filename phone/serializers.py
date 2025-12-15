@@ -68,7 +68,15 @@ class ProductListSerializer(serializers.ModelSerializer):
         return [img.image.url for img in obj.images.all()]
 
     def get_series(self, obj):
-        return obj.product_series.name if obj.product_series else None
+        return (
+            {
+                "name": obj.product_series.name,
+                "id": obj.product_series.id,
+                "sort_order": obj.product_series.sort_order,
+            }
+            if obj.product_series
+            else None
+        )
 
     # 통신사별로 단말기 할인이 제일 많이 되는 옵션을 (번호이동, 기기변경)에 따라 보여주기
     def get_options(self, obj):
