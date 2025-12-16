@@ -28,6 +28,10 @@ DEBUG = env("DEBUG", default="False") == True
 CHANENLTALK_ACCESS_KEY = env("CHANENLTALK_ACCESS_KEY")
 CHANENLTALK_ACCESS_SECRET = env("CHANENLTALK_ACCESS_SECRET")
 
+# Next.js ISR Revalidation
+FRONTEND_URL = env("FRONTEND_URL", default="https://www.phoneinone.com")
+REVALIDATE_SECRET_TOKEN = env("REVALIDATE_SECRET_TOKEN", default="")
+
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 STATIC_URL = f"https://{AWS_CLOUDFRONT_DOMAIN}/static/"
 

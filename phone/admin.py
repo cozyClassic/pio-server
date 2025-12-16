@@ -245,6 +245,7 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
     exclude = ("deleted_at",)
     change_list_template = "admin/product_changelist.html"
     change_form_template = "admin/product_nested_change_form.html"
+    actions = ["revalidate_selected_products"]
 
     readonly_fields = ["best_price_option"]
 
@@ -270,9 +271,57 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
                 self.upload_excel,
                 name="product_process_upload",
             ),
+            path(
+                "revalidate-all/",
+                self.revalidate_all_products,
+                name="product_revalidate_all",
+            ),
+            path(
+                "<path:object_id>/change/revalidate/",
+                self.revalidate_single_product,
+                name="product_revalidate_single",
+            ),
         ]
         # 커스텀 URL을 기본 URL보다 먼저 배치
         return custom_urls + urls
+
+    def revalidate_all_products(self, request):
+        """모든 제품 캐시 revalidate"""
+        from .revalidate import revalidate_products
+
+        success = revalidate_products()
+        if success:
+            messages.success(request, "✅ 모든 제품 캐시가 성공적으로 갱신되었습니다.")
+        else:
+            messages.error(request, "❌ 캐시 갱신에 실패했습니다. 로그를 확인해주세요.")
+
+        return HttpResponseRedirect("../")
+
+    def revalidate_single_product(self, request, object_id):
+        """단일 제품 캐시 revalidate"""
+        from .revalidate import revalidate_products
+
+        success = revalidate_products()
+        if success:
+            messages.success(request, f"✅ 제품 ID {object_id} 캐시가 성공적으로 갱신되었습니다.")
+        else:
+            messages.error(request, "❌ 캐시 갱신에 실패했습니다. 로그를 확인해주세요.")
+
+        return HttpResponseRedirect("../")
+
+    @admin.action(description="선택한 제품 캐시 갱신 (Revalidate)")
+    def revalidate_selected_products(self, request, queryset):
+        """선택된 제품들의 캐시 revalidate (Admin Action)"""
+        from .revalidate import revalidate_products
+
+        success = revalidate_products()
+        if success:
+            messages.success(
+                request,
+                f"✅ {queryset.count()}개 제품의 캐시가 성공적으로 갱신되었습니다."
+            )
+        else:
+            messages.error(request, "❌ 캐시 갱신에 실패했습니다. 로그를 확인해주세요.")
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
