@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 class RevalidateTag(str, Enum):
     """사용 가능한 캐시 태그"""
+
     PRODUCTS = "products"
     PRODUCT_DETAIL = "product-detail"
     BANNERS = "banners"
@@ -37,7 +38,7 @@ class RevalidateTag(str, Enum):
 
 def revalidate_cache(
     tags: Union[RevalidateTag, List[RevalidateTag], str, List[str]],
-    async_call: bool = True
+    async_call: bool = True,
 ) -> bool:
     """
     Next.js ISR 캐시를 revalidate합니다.
@@ -49,11 +50,19 @@ def revalidate_cache(
     Returns:
         성공 여부 (async_call=True면 항상 True)
     """
-    frontend_url = getattr(settings, 'FRONTEND_URL', os.environ.get('FRONTEND_URL', 'https://www.phoneinone.com'))
-    revalidate_token = getattr(settings, 'REVALIDATE_SECRET_TOKEN', os.environ.get('REVALIDATE_SECRET_TOKEN'))
+    frontend_url = getattr(
+        settings,
+        "FRONTEND_URL",
+        os.environ.get("FRONTEND_URL", "https://www.phoneinone.com"),
+    )
+    revalidate_token = getattr(
+        settings, "REVALIDATE_SECRET_TOKEN", os.environ.get("REVALIDATE_SECRET_TOKEN")
+    )
 
     if not revalidate_token:
-        logger.warning("REVALIDATE_SECRET_TOKEN이 설정되지 않았습니다. Revalidation을 건너뜁니다.")
+        logger.warning(
+            "REVALIDATE_SECRET_TOKEN이 설정되지 않았습니다. Revalidation을 건너뜁니다."
+        )
         return False
 
     # 태그 정규화
@@ -65,7 +74,7 @@ def revalidate_cache(
     url = f"{frontend_url}/api/revalidate"
     headers = {
         "Authorization": f"Bearer {revalidate_token}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
     }
     payload = {"tag": tag_list if len(tag_list) > 1 else tag_list[0]}
 
@@ -77,7 +86,9 @@ def revalidate_cache(
             logger.info(f"캐시 revalidation 성공: {tag_list}")
             return True
         else:
-            logger.error(f"캐시 revalidation 실패: {response.status_code} - {response.text}")
+            logger.error(
+                f"캐시 revalidation 실패: {response.status_code} - {response.text}"
+            )
             return False
 
     except requests.exceptions.Timeout:

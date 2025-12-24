@@ -617,3 +617,81 @@ class ProductSeriesSerializer(serializers.ModelSerializer):
         model = ProductSeries
         fields = ["id", "name", "products"]
         read_only_fields = ["id", "name", "products"]
+
+
+class DeviceVairantSimpleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DeviceVariant
+        fields = ["id", "storage_capacity", "device_price"]
+        read_only_fields = ["id", "storage_capacity", "device_price"]
+
+
+class DeviceSerializer(serializers.ModelSerializer):
+    variants = DeviceVairantSimpleSerializer(many=True, read_only=True)
+    first_image_url = serializers.SerializerMethodField(read_only=True, allow_null=True)
+
+    class Meta:
+        model = Device
+        fields = ["id", "model_name", "brand", "variants", "series", "first_image_url"]
+        read_only_fields = [
+            "id",
+            "model_name",
+            "brand",
+            "variants",
+            "series",
+            "first_image_url",
+        ]
+
+    def get_first_image_url(self, obj):
+        return f"https://{AWS_CLOUDFRONT_DOMAIN}/{obj.first_image_url}"
+
+
+class PlanSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Plan
+        fields = [
+            "id",
+            "name",
+            "carrier",
+            "price",
+            "data_allowance",
+            "call_allowance",
+            "sms_allowance",
+            "description",
+        ]
+        read_only_fields = [
+            "id",
+            "name",
+            "carrier",
+            "price",
+            "data_allowance",
+            "call_allowance",
+            "sms_allowance",
+            "description",
+        ]
+
+
+class ProductOptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductOption
+        fields = [
+            "id",
+            "plan_id",
+            "device_variant_id",
+            "contract_type",
+            "discount_type",
+            "additional_discount",
+            "subsidy_amount",
+            "subsidy_amount_mnp",
+        ]
+        read_only_fields = [
+            "id",
+            "id",
+            "plan_id",
+            "device_variant_id",
+            "contract_type",
+            "discount_type",
+            "additional_discount",
+            "subsidy_amount",
+            "subsidy_amount_mnp",
+        ]

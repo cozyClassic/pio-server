@@ -24,4 +24,7 @@ urlpatterns = [
     path("events/<int:pk>", EventViewSet.as_view({"get": "retrieve"})),
     path("partner-cards", PartnerCardViewSet.as_view({"get": "list"})),
     path("tinymce/upload/", tinymce_upload, name="tinymce-upload"),
+    path("devices", DeviceViewSet.as_view({"get": "list"})),
+    path("plans", PhonePlanViewSet.as_view({"get": "list"})),
+    path("product-options", ProductOptionViewSet.as_view({"get": "list"})),
 ]

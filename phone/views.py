@@ -9,7 +9,7 @@ from .serializers import *
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import mixins, status
-from django.db.models import Prefetch, Q, F
+from django.db.models import Prefetch, Q, F, Subquery, OuterRef
 from .external_services.channel_talk import send_order_alert
 from .constants import CarrierChoices
 
@@ -557,6 +557,57 @@ class EventViewSet(ReadOnlyModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = EventSerializer(instance)
+        return Response(serializer.data)
+
+
+class DeviceViewSet(ReadOnlyModelViewSet):
+    serializer_class = DeviceSerializer
+    queryset = (
+        Device.objects.all()
+        .filter(deleted_at__isnull=True)
+        .prefetch_related(
+            Prefetch(
+                "variants",
+                queryset=DeviceVariant.objects.filter(deleted_at__isnull=True),
+            ),
+        )
+        .annotate(
+            first_image_url=Subquery(
+                DevicesColorImage.objects.filter(
+                    device_color__device=OuterRef(
+                        "pk"
+                    ),  # OuterRef는 메인 쿼리(Device)의 PK를 참조
+                    # SoftDeleteModel을 쓰신다고 했으므로 삭제 안 된 것만 필터링 (필요 시)
+                    # deleted_at__isnull=True
+                )
+                .order_by(
+                    "device_color__id",  # 1순위 정렬: 컬러가 먼저 생성된 순서 (colors[0] 효과)
+                    "id",  # 2순위 정렬: 이미지 ID 순서 (images[0] 효과)
+                )
+                .values("image")[:1]  # 이미지 경로 필드(image)만 선택해서 1개 가져옴
+            )
+        )
+    )
+
+
+class PhonePlanViewSet(ReadOnlyModelViewSet):
+    serializer_class = PlanSerializer
+    queryset = Plan.objects.all().filter(deleted_at__isnull=True)
+
+
+class ProductOptionViewSet(ReadOnlyModelViewSet):
+    serializer_class = ProductOptionSerializer
+    queryset = ProductOption.objects.all().filter(deleted_at__isnull=True)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        if dv_id := request.query_params.get("dv_id", None):
+            queryset = queryset.filter(device_variant_id=dv_id)
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
 
