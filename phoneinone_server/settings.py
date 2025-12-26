@@ -97,6 +97,7 @@ INSTALLED_APPS = [
     "tinymce",
     "phone",
     "internet",
+    "scraps",
     "nested_admin",
     "simple_history",
 ]
