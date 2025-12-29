@@ -3,12 +3,13 @@ from io import BytesIO
 import pandas as pd
 
 from django.utils.html import format_html
-from django.db.models import Prefetch
+from django.db.models import Prefetch, F
 from django.contrib import admin, messages
 from django.urls import path
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.utils.html import format_html
+from django.utils import timezone
 
 import nested_admin
 from simple_history.admin import SimpleHistoryAdmin
@@ -281,6 +282,11 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
                 self.revalidate_single_product,
                 name="product_revalidate_single",
             ),
+            path(
+                "save-current-prices/",
+                self.save_current_prices,
+                name="product_save_current_prices",
+            ),
         ]
         # 커스텀 URL을 기본 URL보다 먼저 배치
         return custom_urls + urls
@@ -303,7 +309,9 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
 
         success = revalidate_products()
         if success:
-            messages.success(request, f"✅ 제품 ID {object_id} 캐시가 성공적으로 갱신되었습니다.")
+            messages.success(
+                request, f"✅ 제품 ID {object_id} 캐시가 성공적으로 갱신되었습니다."
+            )
         else:
             messages.error(request, "❌ 캐시 갱신에 실패했습니다. 로그를 확인해주세요.")
 
@@ -318,10 +326,91 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
         if success:
             messages.success(
                 request,
-                f"✅ {queryset.count()}개 제품의 캐시가 성공적으로 갱신되었습니다."
+                f"✅ {queryset.count()}개 제품의 캐시가 성공적으로 갱신되었습니다.",
             )
         else:
             messages.error(request, "❌ 캐시 갱신에 실패했습니다. 로그를 확인해주세요.")
+
+    def save_current_prices(self, request):
+        """
+        모든 활성 상품의 현재 최저가를 PriceHistory에 저장
+        - 각 상품에서 가장 저렴한 deviceVariant 기준
+        - 통신사별로 가장 저렴한 공시지원금 옵션의 final_price 저장
+        """
+
+        today = timezone.now().date()
+        created_count = 0
+        skipped_count = 0
+
+        # 활성 상품 목록
+        products = Product.objects.filter(
+            deleted_at__isnull=True, is_active=True
+        ).prefetch_related("device__variants")
+
+        for product in products:
+            # 가장 저렴한 deviceVariant 찾기 (device_price 기준)
+            cheapest_variant = (
+                DeviceVariant.objects.filter(
+                    device=product.device, deleted_at__isnull=True
+                )
+                .order_by("device_price")
+                .first()
+            )
+
+            if not cheapest_variant:
+                continue
+
+            # 통신사별로 처리
+            for carrier_code, carrier_name in CarrierChoices.CHOICES:
+                # 해당 deviceVariant + 통신사 + 공시지원금 옵션 중 최저가 찾기 - 6개월간 요금이 가장 저렴한 옵션
+                best_option = (
+                    (
+                        ProductOption.objects.filter(
+                            product=product,
+                            device_variant=cheapest_variant,
+                            plan__carrier=carrier_code,
+                            discount_type="공시지원금",
+                            deleted_at__isnull=True,
+                            plan__deleted_at__isnull=True,
+                        )
+                        .select_related("plan")
+                        .annotate(
+                            six_month_total=F("final_price") + F("plan__price") * 6
+                        )
+                    )
+                    .order_by("six_month_total")
+                    .first()
+                )
+
+                if not best_option:
+                    continue
+                # PriceHistory 저장 (이미 오늘 날짜로 존재하면 스킵)
+                price_history, created = PriceHistory.objects.get_or_create(
+                    product=product,
+                    carrier=carrier_code,
+                    price_at=today,
+                    defaults={
+                        "final_price": best_option.final_price,
+                        "plan": best_option.plan,
+                    },
+                )
+
+                if created:
+                    created_count += 1
+                else:
+                    # 이미 존재하면 가격 업데이트
+                    if price_history.final_price != best_option.final_price:
+                        price_history.final_price = best_option.final_price
+                        price_history.plan = best_option.plan
+                        price_history.save()
+                    skipped_count += 1
+
+        messages.success(
+            request,
+            f"✅ 가격 기록 저장 완료: {created_count}개 생성, {skipped_count}개 업데이트/스킵",
+        )
+
+        return HttpResponseRedirect("../")
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
@@ -881,3 +970,15 @@ class DecoratorTagAdmin(nested_admin.NestedModelAdmin):
         "text_color",
         "tag_color",
     )
+
+
+@admin.register(PriceHistory)
+class PriceHistoryAdmin(commonAdmin):
+    list_display = ("product", "carrier", "final_price_display", "plan", "price_at")
+    list_filter = ("carrier", "price_at", "product")
+    search_fields = ("product__name",)
+    ordering = ("-price_at", "product", "carrier")
+
+    @admin.display(description="최종가격")
+    def final_price_display(self, obj):
+        return format_price(obj.final_price)

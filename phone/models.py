@@ -638,3 +638,23 @@ class CustomImage(SoftDeleteImageModel):
 
     def __str__(self):
         return self.name
+
+
+class PriceHistory(SoftDeleteModel):
+    # 공시지원금, 요금제중에 최저가만 기준 잡아서 기록
+    # device 및 device_variant는 product로 알 수 있으므로 따로 저장하지 않음.
+    # capacity가 가장 작고 가장 저렴한 variant를 기준으로 삼음
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name="best_prices"
+    )
+    carrier = models.CharField(max_length=100, choices=CarrierChoices.CHOICES)
+    final_price = models.IntegerField(help_text="최종 가격", null=True, blank=True)
+    plan = models.ForeignKey(Plan, on_delete=models.CASCADE, related_name="best_prices")
+    # created_at과 별도로 저장
+    price_at = models.DateField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.product.name} - {self.price_at}"
+
+    class Meta:
+        unique_together = ("product", "price_at", "carrier")
