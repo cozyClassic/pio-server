@@ -15,20 +15,20 @@ class ChannelTalkAPI:
     ORDER_ALERT_GROUP_ID = "501418" if DEBUG else "501406"
 
     @staticmethod
-    def post(cls, url: str, json: dict) -> dict:
+    def post(url: str, json: dict) -> dict:
         response = requests.post(
             url=url,
             json=json,
-            headers=cls.CHANNELTALK_HEADERS,
+            headers=ChannelTalkAPI.CHANNELTALK_HEADERS,
         )
         return response.json()
 
     @staticmethod
-    def get(cls, url: str, params: dict = None) -> dict:
+    def get(url: str, params: dict = None) -> dict:
         response = requests.get(
             url=url,
             params=params,
-            headers=cls.CHANNELTALK_HEADERS,
+            headers=ChannelTalkAPI.CHANNELTALK_HEADERS,
         )
         return response.json()
 
@@ -47,4 +47,4 @@ def send_order_alert(order_id: str, customer_name: str, customer_phone: str) -> 
             ]
         },
     )
-    return response.json()
+    return response
