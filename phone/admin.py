@@ -430,7 +430,6 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
 
         # 4. 새로 생성할 PriceHistory 수집
         to_create = []
-        breakpoint()
 
         for (product_id, carrier), best_option in best_options_map.items():
             history_key = (product_id, carrier, best_option.plan_id)
