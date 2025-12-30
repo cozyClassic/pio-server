@@ -679,3 +679,10 @@ class PriceNotificationRequest(SoftDeleteModel):
     notified_at = models.DateTimeField(
         null=True, blank=True, help_text="Notification timestamp", default=None
     )
+    channel_talk_user_id = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Channel Talk User ID for notification",
+        default="",
+    )

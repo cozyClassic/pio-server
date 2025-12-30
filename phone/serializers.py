@@ -738,7 +738,13 @@ class PriceNotificationRequestCreateSerializer(serializers.ModelSerializer):
             "product_id",
             "prev_carrier",
             "target_price",
+            "channel_talk_user_id",
         ]
+
+    def validate_channel_talk_user_id(self, value):
+        if value is None:
+            raise serializers.ValidationError("채널톡 사용자 ID는 null일 수 없습니다.")
+        return value
 
     def validate_customer_phone(self, value):
         import re
