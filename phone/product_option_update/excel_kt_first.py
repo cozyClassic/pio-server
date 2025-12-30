@@ -1,6 +1,7 @@
 import openpyxl
 import io
 from ..models import ProductOption
+from django.utils import timezone
 
 HEADERS = {
     "G": "초이스 스페셜_번호이동",
@@ -61,6 +62,7 @@ def update_product_option_kt_subsidy_addtional(file: bytes, margin=0) -> None:
         else:
             db_option_dict[key] = [option]
 
+    now = timezone.now()
     for i in range(PLAN_START_ROW, PLAN_END_ROW + 1):
         model_name = ws[f"{MODEL_NAME_COL}{i}"].value
         if not model_name:
@@ -77,7 +79,7 @@ def update_product_option_kt_subsidy_addtional(file: bytes, margin=0) -> None:
                 options = db_option_dict[key]
                 for option in options:
                     option.additional_discount = jungchaek
-                    option.updated_at = None
+                    option.updated_at = now
                     option.final_price = option._get_final_price()
                     if option.final_price < 0:
                         option.additional_discount += option.final_price
