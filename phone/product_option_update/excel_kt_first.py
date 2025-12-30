@@ -77,6 +77,7 @@ def update_product_option_kt_subsidy_addtional(file: bytes, margin=0) -> None:
                 options = db_option_dict[key]
                 for option in options:
                     option.additional_discount = jungchaek
+                    option.updated_at = None
                     option.final_price = option._get_final_price()
                     if option.final_price < 0:
                         option.additional_discount += option.final_price
@@ -88,7 +89,9 @@ def update_product_option_kt_subsidy_addtional(file: bytes, margin=0) -> None:
                         + option.device_variant.storage_capacity
                     )
 
-    ProductOption.objects.bulk_update(updates, ["additional_discount", "final_price"])
+    ProductOption.objects.bulk_update(
+        updates, ["additional_discount", "final_price", "updated_at"]
+    )
     update_device_variants = sorted(list(update_device_variants))
 
     return f"{ws.title} 시트의 {update_device_variants}의 kt 추가지원금 {len(updates)}건 업데이트 완료"

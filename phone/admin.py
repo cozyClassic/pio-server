@@ -334,80 +334,131 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
     def save_current_prices(self, request):
         """
         모든 활성 상품의 현재 최저가를 PriceHistory에 저장
-        - 각 상품에서 가장 저렴한 deviceVariant 기준
-        - 통신사별로 가장 저렴한 공시지원금 옵션의 final_price 저장
+        - (product, carrier) 조합별로 6개월 총액 기준 가장 저렴한 공시지원금 옵션의 final_price 저장
+        - 이전 가격과 동일하면 저장하지 않음
         """
+        from django.db.models import OuterRef, Subquery
+        from collections import defaultdict
 
         today = timezone.now().date()
         created_count = 0
         skipped_count = 0
 
-        # 활성 상품 목록
-        products = Product.objects.filter(
-            deleted_at__isnull=True, is_active=True
-        ).prefetch_related("device__variants")
+        # 1. 활성 상품 목록 조회 (1 쿼리)
+        products = list(
+            Product.objects.filter(deleted_at__isnull=True, is_active=True).only("id")
+        )
 
-        for product in products:
-            # 가장 저렴한 deviceVariant 찾기 (device_price 기준)
-            cheapest_variant = (
-                DeviceVariant.objects.filter(
-                    device=product.device, deleted_at__isnull=True
-                )
-                .order_by("device_price")
-                .first()
+        if not products:
+            messages.info(request, "활성 상품이 없습니다.")
+            return HttpResponseRedirect("../")
+
+        product_ids = [p.id for p in products]
+
+        # 2. 모든 공시지원금 옵션을 한 번에 조회 (1 쿼리)
+        # 6개월 총액 계산하여 정렬 - (product_id, carrier)별로 최저가 선택
+        all_options = list(
+            ProductOption.objects.filter(
+                product_id__in=product_ids,
+                discount_type="공시지원금",
+                deleted_at__isnull=True,
+                plan__deleted_at__isnull=True,
             )
+            .select_related("plan")
+            .annotate(six_month_total=F("final_price") + F("plan__price") * 6)
+            .order_by("six_month_total")
+        )
 
-            if not cheapest_variant:
+        # (product_id, carrier) -> best_option 매핑 (six_month_total 기준 최저가)
+        best_options_map = {}
+        for opt in all_options:
+            key = (opt.product_id, opt.plan.carrier)
+            if key not in best_options_map:
+                best_options_map[key] = opt
+
+        best_option_dict = defaultdict(defaultdict[str])
+        for opt in best_options_map.values():
+            best_option_dict[opt.product_id][opt.plan.carrier] = {
+                "id": opt.id,
+                "dv_id": opt.device_variant_id,
+                "plan_id": opt.plan_id,
+                "plan_name": opt.plan.name,
+                "final_price": opt.final_price,
+            }
+
+        all_option_dict = defaultdict(defaultdict[str])
+        for opt in all_options:
+            if (
+                opt.plan.carrier in all_option_dict[opt.product_id]
+                and all_option_dict[opt.product_id][opt.plan.carrier] is not None
+            ):
                 continue
+            all_option_dict[opt.product_id][opt.plan.carrier] = {
+                "id": opt.id,
+                "dv_id": opt.device_variant_id,
+                "plan_id": opt.plan_id,
+                "plan_name": opt.plan.name,
+                "final_price": opt.final_price,
+            }
 
-            # 통신사별로 처리
-            for carrier_code, carrier_name in CarrierChoices.CHOICES:
-                # 해당 deviceVariant + 통신사 + 공시지원금 옵션 중 최저가 찾기 - 6개월간 요금이 가장 저렴한 옵션
-                best_option = (
-                    (
-                        ProductOption.objects.filter(
-                            product=product,
-                            device_variant=cheapest_variant,
-                            plan__carrier=carrier_code,
-                            discount_type="공시지원금",
-                            deleted_at__isnull=True,
-                            plan__deleted_at__isnull=True,
-                        )
-                        .select_related("plan")
-                        .annotate(
-                            six_month_total=F("final_price") + F("plan__price") * 6
-                        )
+        # 3. 기존 PriceHistory 중 최신 레코드만 조회 (1 쿼리)
+        carriers = [code for code, _ in CarrierChoices.CHOICES]
+
+        # 최신 price_at을 가진 레코드의 id를 서브쿼리로 조회
+        latest_history_subquery = (
+            PriceHistory.objects.filter(
+                product_id=OuterRef("product_id"),
+                carrier=OuterRef("carrier"),
+                plan_id=OuterRef("plan_id"),
+            )
+            .order_by("-price_at")
+            .values("id")[:1]
+        )
+
+        existing_histories = list(
+            PriceHistory.objects.filter(
+                product_id__in=product_ids,
+                carrier__in=carriers,
+                id=Subquery(latest_history_subquery),
+            ).values("id", "product_id", "carrier", "plan_id", "final_price")
+        )
+
+        # (product_id, carrier, plan_id) -> history 매핑
+        history_map = {
+            (h["product_id"], h["carrier"], h["plan_id"]): h for h in existing_histories
+        }
+
+        # 4. 새로 생성할 PriceHistory 수집
+        to_create = []
+        breakpoint()
+
+        for (product_id, carrier), best_option in best_options_map.items():
+            history_key = (product_id, carrier, best_option.plan_id)
+            existing = history_map.get(history_key)
+
+            if existing and existing["final_price"] == best_option.final_price:
+                # 가격이 동일하면 스킵
+                skipped_count += 1
+            else:
+                # 새 레코드 생성 (가격이 다르거나 기존 기록이 없는 경우)
+                to_create.append(
+                    PriceHistory(
+                        product_id=product_id,
+                        carrier=carrier,
+                        final_price=best_option.final_price,
+                        plan_id=best_option.plan_id,
+                        price_at=today,
                     )
-                    .order_by("six_month_total")
-                    .first()
                 )
+                created_count += 1
 
-                if not best_option:
-                    continue
-                # PriceHistory 저장 (이미 오늘 날짜로 존재하면 스킵)
-                price_history, created = PriceHistory.objects.get_or_create(
-                    product=product,
-                    carrier=carrier_code,
-                    price_at=today,
-                    defaults={
-                        "final_price": best_option.final_price,
-                        "plan": best_option.plan,
-                    },
-                )
-
-                if created:
-                    created_count += 1
-                else:
-                    # 이미 존재하면 가격 업데이트
-                    if price_history.final_price != best_option.final_price:
-                        price_history.final_price = best_option.final_price
-                        price_history.plan = best_option.plan
-                        price_history.save()
-                    skipped_count += 1
+        # 5. bulk_create로 한 번에 저장 (1 쿼리)
+        if to_create:
+            PriceHistory.objects.bulk_create(to_create)
 
         messages.success(
             request,
-            f"✅ 가격 기록 저장 완료: {created_count}개 생성, {skipped_count}개 업데이트/스킵",
+            f"✅ 가격 기록 저장 완료: {created_count}개 생성, {skipped_count}개 스킵",
         )
 
         return HttpResponseRedirect("../")
