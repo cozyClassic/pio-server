@@ -662,3 +662,20 @@ class PriceHistory(SoftDeleteModel):
 
     class Meta:
         unique_together = ("product", "price_at", "carrier")
+
+
+class PriceNotificationRequest(SoftDeleteModel):
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name="price_notifications"
+    )
+    customer_phone = models.CharField(max_length=15)
+    target_price = models.IntegerField(help_text="Target price for notification")
+    prev_carrier = models.CharField(
+        max_length=50,
+        choices=CarrierChoices.CHOICES,
+        help_text="Previous carrier",
+        default=CarrierChoices.MVNO,
+    )
+    notified_at = models.DateTimeField(
+        null=True, blank=True, help_text="Notification timestamp", default=None
+    )
