@@ -27,4 +27,12 @@ urlpatterns = [
     path("devices", DeviceViewSet.as_view({"get": "list"})),
     path("plans", PhonePlanViewSet.as_view({"get": "list"})),
     path("product-options", ProductOptionViewSet.as_view({"get": "list"})),
+    path(
+        "price-notification-requests/<int:pk>",
+        PriceNotificationRequestViewSet.as_view({"delete": "destroy"}),
+    ),
+    path(
+        "price-notification-requests",
+        PriceNotificationRequestViewSet.as_view({"get": "list", "post": "create"}),
+    ),
 ]

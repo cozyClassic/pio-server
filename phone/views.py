@@ -1,7 +1,7 @@
 import re
 from django.http import HttpResponse, HttpRequest
 from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.viewsets import ReadOnlyModelViewSet, GenericViewSet
+from rest_framework.viewsets import ReadOnlyModelViewSet, GenericViewSet, ModelViewSet
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from rest_framework.filters import OrderingFilter
@@ -624,3 +624,60 @@ def tinymce_upload(request):
         image=request.FILES["file"], name=request.FILES["file"].name
     )
     return JsonResponse({"location": file_instance.image.url})
+
+
+class PriceNotificationRequestViewSet(ModelViewSet):
+    serializer_class = PriceNotificationRequestSerializer
+    queryset = PriceNotificationRequest.objects.all().filter(deleted_at__isnull=True)
+
+    @swagger_auto_schema(
+        operation_summary="가격 알림 신청",
+        operation_description="특정 상품이 목표 가격 이하로 내려갔을 때 알림을 받기 위한 신청",
+        request_body=PriceNotificationRequestCreateSerializer,
+        responses={
+            201: PriceNotificationRequestSerializer,
+            400: "유효성 검증 실패 (전화번호 형식, 중복 신청 등)",
+        },
+    )
+    def create(self, request, *args, **kwargs):
+        serializer = PriceNotificationRequestCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @swagger_auto_schema(
+        operation_summary="가격 알림 신청 목록 조회",
+        operation_description="특정 고객의 가격 알림 신청 목록을 조회합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "customer_phone",
+                openapi.IN_QUERY,
+                description="고객 전화번호 (필수)",
+                type=openapi.TYPE_STRING,
+                required=True,
+            ),
+        ],
+        responses={
+            200: PriceNotificationRequestSerializer(many=True),
+            400: "customer_phone 파라미터 누락",
+        },
+    )
+    def list(self, request, *args, **kwargs):
+        if customer_phone := self.request.query_params.get("customer_phone", None):
+            self.queryset = self.queryset.filter(customer_phone=customer_phone)
+            queryset = self.filter_queryset(self.get_queryset())
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+
+        return Response(
+            {"error": "param customer_phone required"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
