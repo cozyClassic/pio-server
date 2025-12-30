@@ -291,6 +291,10 @@ class ProductOption(SoftDeleteModel):
             )
         )
 
+    @property
+    def six_month_total_gongsi(self):
+        return self.plan.price * 6 + self.final_price
+
 
 class ProductDetailImage(SoftDeleteImageModel):
     product = models.ForeignKey(

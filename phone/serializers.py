@@ -264,9 +264,11 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             curr_monthly_payment_option = result["monthly_payment"][carrier]
             if (
                 curr_device_price_option is None
-                or op.final_price < curr_device_price_option.final_price
+                or op.six_month_total_gongsi
+                < curr_device_price_option.six_month_total_gongsi
             ) or (
-                op.final_price == curr_device_price_option.final_price
+                op.six_month_total_gongsi
+                == curr_device_price_option.six_month_total_gongsi
                 and op.monthly_payment < curr_device_price_option.monthly_payment
             ):
                 result["device_price"][carrier] = op
@@ -276,7 +278,8 @@ class ProductDetailSerializer(serializers.ModelSerializer):
                 or op.monthly_payment < curr_monthly_payment_option.monthly_payment
             ) or (
                 op.monthly_payment == curr_monthly_payment_option.monthly_payment
-                and op.final_price < curr_monthly_payment_option.final_price
+                and op.six_month_total_gongsi
+                < curr_monthly_payment_option.six_month_total_gongsi
             ):
                 result["monthly_payment"][carrier] = op
 
