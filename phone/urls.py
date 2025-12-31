@@ -35,4 +35,8 @@ urlpatterns = [
         "price-notification-requests",
         PriceNotificationRequestViewSet.as_view({"get": "list", "post": "create"}),
     ),
+    path(
+        "price-history-chart",
+        PriceHistoryChartViewSet.as_view({"get": "list"}),
+    ),
 ]

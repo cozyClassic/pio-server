@@ -765,20 +765,6 @@ class PriceNotificationRequestCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("존재하지 않거나 비활성화된 상품입니다.")
         return value
 
-    def validate(self, data):
-        # 중복 체크: 같은 고객이 같은 상품에 대해 아직 처리되지 않은 알림 신청이 있는지
-        existing = PriceNotificationRequest.objects.filter(
-            customer_phone=data["customer_phone"],
-            product_id=data["product_id"],
-            deleted_at__isnull=True,
-            notified_at__isnull=True,
-        ).exists()
-        if existing:
-            raise serializers.ValidationError(
-                {"non_field_errors": ["이미 해당 상품에 대한 알림 신청이 존재합니다."]}
-            )
-        return data
-
     def create(self, validated_data):
         product_id = validated_data.pop("product_id")
         return PriceNotificationRequest.objects.create(
