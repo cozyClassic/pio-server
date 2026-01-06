@@ -908,7 +908,8 @@ class OrderAdmin(SimpleHistoryAdmin):
 
     history_list_per_page = 100
 
-    queryset = Order.objects.filter(deleted_at__isnull=True)
+    def get_queryset(self, request):
+        return super().get_queryset(request).filter(deleted_at__isnull=True).exclude(status="취소완료")
 
 
 @admin.register(Review)
