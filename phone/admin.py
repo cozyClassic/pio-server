@@ -648,6 +648,7 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
                         "공시지원금": op.subsidy_amount,
                         "전환지원금": op.subsidy_amount_mnp,
                         "추가지원금": op.additional_discount,
+                        "단말기가격": op.device_price,
                     }
                     for op in product_options_db
                 }
@@ -689,9 +690,7 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
                         instance.subsidy_amount_mnp = row["전환지원금"]
                         instance.additional_discount = row["추가지원금"]
                         instance.final_price = ProductOption.calculate_final_price(
-                            device_price=dv_db_dict[f"{device_id}_{row['용량']}"][
-                                "device_price"
-                            ],
+                            device_price=option_db_dict[key]["단말기가격"],
                             discount_type=row["할인"],
                             contract_type=row["약정"],
                             subsidy_amount=row["공시지원금"],
@@ -715,9 +714,7 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
                                 subsidy_amount_mnp=row["전환지원금"],
                                 additional_discount=row["추가지원금"],
                                 final_price=ProductOption.calculate_final_price(
-                                    device_price=dv_db_dict[
-                                        f"{device_id}_{row['용량']}"
-                                    ]["device_price"],
+                                    device_price=option_db_dict[key]["단말기가격"],
                                     discount_type=row["할인"],
                                     contract_type=row["약정"],
                                     subsidy_amount=row["공시지원금"],
@@ -896,7 +893,14 @@ class ProductDetailImagesAdmin(commonAdmin):
 
 @admin.register(Order)
 class OrderAdmin(SimpleHistoryAdmin):
-    list_display = ("customer_name", "product", "status", "created_at")
+    list_display = (
+        "customer_name",
+        "product",
+        "status",
+        "created_at",
+        "customer_phone",
+        "plan__carrier",
+    )
     search_fields = ("user__username", "product__name")
     list_filter = ("status", "created_at")
     readonly_fields = ("created_at", "updated_at", "deleted_at")
@@ -909,7 +913,13 @@ class OrderAdmin(SimpleHistoryAdmin):
     history_list_per_page = 100
 
     def get_queryset(self, request):
-        return super().get_queryset(request).filter(deleted_at__isnull=True).exclude(status="취소완료")
+        return (
+            super()
+            .get_queryset(request)
+            .filter(deleted_at__isnull=True)
+            .select_related("plan", "product")
+            .exclude(status="취소완료")
+        )
 
 
 @admin.register(Review)

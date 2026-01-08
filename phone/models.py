@@ -176,6 +176,11 @@ class ProductOption(SoftDeleteModel):
         on_delete=models.CASCADE,
         related_name="product_options",
     )
+    device_price = models.IntegerField(
+        help_text="기기 가격",
+        null=True,
+        default=0,
+    )
     plan = models.ForeignKey(
         Plan,
         on_delete=models.CASCADE,
@@ -225,7 +230,7 @@ class ProductOption(SoftDeleteModel):
 
     def _get_final_price(self):
         return self.calculate_final_price(
-            device_price=self.device_variant.device_price,
+            device_price=self.device_price,
             discount_type=self.discount_type,
             contract_type=self.contract_type,
             subsidy_amount=self.subsidy_amount,
