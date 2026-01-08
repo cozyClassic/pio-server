@@ -8,7 +8,6 @@ from phoneinone_server.settings import AWS_CLOUDFRONT_DOMAIN
 class ProductOptionSimpleSerializer(serializers.ModelSerializer):
     carrier = serializers.SerializerMethodField()
     is_best = serializers.BooleanField(default=False)
-    device_price = serializers.SerializerMethodField()
     device_name = serializers.SerializerMethodField()
 
     class Meta:
@@ -28,9 +27,6 @@ class ProductOptionSimpleSerializer(serializers.ModelSerializer):
 
     def get_carrier(self, obj):
         return obj.plan.carrier
-
-    def get_device_price(self, obj):
-        return obj.device_variant.device_price
 
     def get_device_name(self, obj):
         return obj.product.device.model_name
@@ -169,6 +165,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
                 op.plan_id
             ] = {
                 "option_id": op.id,
+                "device_price": op.device_price,
                 "final_price": op.final_price,
                 "additional_discount": op.additional_discount,
                 "subsidy_amount": op.subsidy_amount,
