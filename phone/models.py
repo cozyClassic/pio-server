@@ -135,11 +135,20 @@ class DeviceVariant(SoftDeleteModel):
     name_sk = models.CharField(
         max_length=100, help_text="SK 모델명", blank=True, default="", null=True
     )
+    price_sk = models.IntegerField(
+        help_text="SK 모델 가격", blank=True, default=0, null=True
+    )
     name_kt = models.CharField(
         max_length=100, help_text="KT 모델명", blank=True, default="", null=True
     )
+    price_kt = models.IntegerField(
+        help_text="KT 모델 가격", blank=True, default=0, null=True
+    )
     name_lg = models.CharField(
         max_length=100, help_text="LG 모델명", blank=True, default="", null=True
+    )
+    price_lg = models.IntegerField(
+        help_text="LG 모델 가격", blank=True, default=0, null=True
     )
 
     def __str__(self):
