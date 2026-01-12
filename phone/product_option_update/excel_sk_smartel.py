@@ -79,7 +79,6 @@ def update_product_option_SK_subsidy_addtional(file: bytes, margin=0) -> str:
         for col, header in HEADERS.items():
             jungchaek = max(int(ws[f"{col}{i}"].value) * PRICE_UNIT - margin, 0)
             key = f"{header}_{model_name}"
-            breakpoint()
             if key in db_option_dict:
                 options = db_option_dict[key]
                 for option in options:
