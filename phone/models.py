@@ -9,7 +9,7 @@ from .managers import SoftDeleteManager
 
 from tinymce import models as tinymce_models
 from .utils import UniqueFilePathGenerator
-from .constants import CarrierChoices
+from .constants import CarrierChoices, ContractTypeChoices
 
 # Thread-local storage for tracking products that need updates
 _thread_locals = local()
@@ -196,12 +196,8 @@ class ProductOption(SoftDeleteModel):
     )
     contract_type = models.CharField(
         max_length=50,
-        choices=[
-            ("신규가입", "신규가입"),
-            ("번호이동", "번호이동"),
-            ("기기변경", "기기변경"),
-        ],
-        default=("기기변경", "기기변경"),
+        choices=ContractTypeChoices.CHOICES,
+        default=ContractTypeChoices.CHANGE,
     )
     subsidy_amount = models.IntegerField(
         help_text="공시지원금",
@@ -224,6 +220,21 @@ class ProductOption(SoftDeleteModel):
         blank=True,
     )
     sort_order = models.IntegerField(default=0)
+    delear = models.ForeignKey(
+        "Delearship",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="product_options",
+    )
+    official_contract_link = models.ForeignKey(
+        "OfficialContractLink",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="product_options",
+        default=None,
+    )
 
     def __str__(self):
         return f"{self.id}"
@@ -403,12 +414,8 @@ class Order(SoftDeleteModel):
     )
     contract_type = models.CharField(
         max_length=50,
-        choices=[
-            ("신규가입", "신규가입"),
-            ("번호이동", "번호이동"),
-            ("기기변경", "기기변경"),
-        ],
-        default="기기변경",
+        choices=ContractTypeChoices.CHOICES,
+        default=ContractTypeChoices.CHANGE,
     )
     payment_period = models.CharField(
         max_length=50,
@@ -702,3 +709,44 @@ class PriceNotificationRequest(SoftDeleteModel):
         help_text="Channel Talk User ID for notification",
         default="",
     )
+
+
+class Delearship(SoftDeleteModel):
+    name = models.CharField(max_length=100)
+    carrier = models.CharField(max_length=50, choices=CarrierChoices.CHOICES)
+    contact_number = models.CharField(max_length=20)
+    manager = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.name
+
+
+class OfficialContractLink(SoftDeleteModel):
+    delear = models.ForeignKey(
+        Delearship, on_delete=models.CASCADE, related_name="official_links"
+    )
+    device_variant = models.ForeignKey(
+        DeviceVariant,
+        on_delete=models.CASCADE,
+        related_name="official_links",
+    )
+    contract_type = models.CharField(
+        max_length=50,
+        choices=ContractTypeChoices.CHOICES,
+        default=ContractTypeChoices.CHANGE,
+    )
+    link = models.URLField(help_text="Official contract submission link")
+
+    def __str__(self):
+        return f"{self.delear.name} - {self.link}"
+
+    class Meta:
+        unique_together = ("delear", "device_variant", "contract_type")
+
+
+class CreditCheckAgreement(SoftDeleteModel):
+    carrier = models.CharField(max_length=50, choices=CarrierChoices.CHOICES)
+    link = models.URLField(help_text="Credit check agreement link")
+
+    def __str__(self):
+        return f"Credit Check Agreement for Order {self.order.id}"
