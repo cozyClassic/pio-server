@@ -1043,3 +1043,13 @@ class PriceHistoryAdmin(commonAdmin):
     @admin.display(description="최종가격")
     def final_price_display(self, obj):
         return format_price(obj.final_price)
+
+
+@admin.register(Delearship)
+class DelearshipAdmin(commonAdmin):
+    pass
+
+
+@admin.register(OfficialContractLink)
+class OfficialContractLinkAdmin(commonAdmin):
+    pass
