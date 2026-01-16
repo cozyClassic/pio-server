@@ -1055,8 +1055,8 @@ class PriceHistoryAdmin(commonAdmin):
         return format_price(obj.final_price)
 
 
-@admin.register(Delearship)
-class DelearshipAdmin(commonAdmin):
+@admin.register(Dealership)
+class DealershipAdmin(commonAdmin):
     pass
 
 

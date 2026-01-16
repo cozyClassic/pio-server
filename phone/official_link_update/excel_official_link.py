@@ -1,6 +1,6 @@
 import openpyxl
 import io
-from ..models import DeviceVariant, OfficialContractLink, Delearship
+from ..models import DeviceVariant, OfficialContractLink, Dealership
 from phone.constants import ContractTypeChoices
 from django.utils import timezone
 
@@ -25,7 +25,7 @@ def update_official_contract_link(fileName: str) -> None:
     3. OfficialContractLink가 존재하면 업데이트, 없으면 생성한다.
     """
 
-    dealers = Delearship.objects.all()
+    dealers = Dealership.objects.all()
     sk = dealers.filter(carrier="SK").first()  # 디아이
     kt = dealers.filter(carrier="KT").first()  # 퍼스트
     lg = dealers.filter(carrier="LG").first()  # 휴넷
@@ -47,47 +47,47 @@ def update_official_contract_link(fileName: str) -> None:
         except DeviceVariant.DoesNotExist:
             continue  # DeviceVariant가 없으면 건너뜀
 
-        # default: device_variant, delear, contract_type
+        # default: device_variant, dealer, contract_type
         # update_or_create: link
         if sk_change_link:
             OfficialContractLink.objects.update_or_create(
                 device_variant=device_variant,
-                delear=sk,
+                dealer=sk,
                 contract_type=ContractTypeChoices.CHANGE,
                 defaults={"link": sk_change_link, "updated_at": timezone.now()},
             )
         if sk_mnp_link:
             OfficialContractLink.objects.update_or_create(
                 device_variant=device_variant,
-                delear=sk,
+                dealer=sk,
                 contract_type=ContractTypeChoices.MNP,
                 defaults={"link": sk_mnp_link, "updated_at": timezone.now()},
             )
         if kt_change_link:
             OfficialContractLink.objects.update_or_create(
                 device_variant=device_variant,
-                delear=kt,
+                dealer=kt,
                 contract_type=ContractTypeChoices.CHANGE,
                 defaults={"link": kt_change_link, "updated_at": timezone.now()},
             )
         if kt_mnp_link:
             OfficialContractLink.objects.update_or_create(
                 device_variant=device_variant,
-                delear=kt,
+                dealer=kt,
                 contract_type=ContractTypeChoices.MNP,
                 defaults={"link": kt_mnp_link, "updated_at": timezone.now()},
             )
         if lg_change_link:
             OfficialContractLink.objects.update_or_create(
                 device_variant=device_variant,
-                delear=lg,
+                dealer=lg,
                 contract_type=ContractTypeChoices.CHANGE,
                 defaults={"link": lg_change_link, "updated_at": timezone.now()},
             )
         if lg_mnp_link:
             OfficialContractLink.objects.update_or_create(
                 device_variant=device_variant,
-                delear=lg,
+                dealer=lg,
                 contract_type=ContractTypeChoices.MNP,
                 defaults={"link": lg_mnp_link, "updated_at": timezone.now()},
             )

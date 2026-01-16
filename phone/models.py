@@ -40,6 +40,9 @@ class SoftDeleteModel(models.Model):
         self.deleted_at = timezone.now()
         self.save(update_fields=["deleted_at"])
 
+    def hard_delete(self):
+        return super().delete()
+
 
 class SoftDeleteImageModel(SoftDeleteModel):
     image = models.ImageField(
@@ -220,8 +223,8 @@ class ProductOption(SoftDeleteModel):
         blank=True,
     )
     sort_order = models.IntegerField(default=0)
-    delear = models.ForeignKey(
-        "Delearship",
+    dealer = models.ForeignKey(
+        "Dealership",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -711,7 +714,7 @@ class PriceNotificationRequest(SoftDeleteModel):
     )
 
 
-class Delearship(SoftDeleteModel):
+class Dealership(SoftDeleteModel):
     name = models.CharField(max_length=100)
     carrier = models.CharField(max_length=50, choices=CarrierChoices.CHOICES)
     contact_number = models.CharField(max_length=20)
@@ -722,8 +725,8 @@ class Delearship(SoftDeleteModel):
 
 
 class OfficialContractLink(SoftDeleteModel):
-    delear = models.ForeignKey(
-        Delearship, on_delete=models.CASCADE, related_name="official_links"
+    dealer = models.ForeignKey(
+        Dealership, on_delete=models.CASCADE, related_name="official_links"
     )
     device_variant = models.ForeignKey(
         DeviceVariant,
@@ -737,11 +740,8 @@ class OfficialContractLink(SoftDeleteModel):
     )
     link = models.URLField(help_text="Official contract submission link")
 
-    def __str__(self):
-        return f"{self.delear.name} - {self.link}"
-
     class Meta:
-        unique_together = ("delear", "device_variant", "contract_type")
+        unique_together = ("dealer", "device_variant", "contract_type")
 
 
 class CreditCheckAgreement(SoftDeleteModel):
