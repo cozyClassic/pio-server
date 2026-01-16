@@ -1,0 +1,28 @@
+{% extends "admin/change_list.html" %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+  .sync-btn {
+    background: #007bff !important;
+    color: white !important;
+    padding: 10px 15px;
+    text-decoration: none;
+    border-radius: 4px;
+    display: inline-block;
+    font-weight: bold;
+  }
+  .sync-btn:hover {
+    background: #0056b3 !important;
+  }
+</style>
+{% endblock %}
+
+{% block object-tools-items %}
+<li>
+  <a href="sync-smartel/" class="sync-btn" onclick="return confirm('스마텔 재고를 동기화하시겠습니까?');">
+    🔄 스마텔 재고 동기화
+  </a>
+</li>
+{{ block.super }}
+{% endblock %}

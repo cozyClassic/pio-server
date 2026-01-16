@@ -27,6 +27,7 @@ DB_PORT = env("DB_PORT", default="5432")
 DEBUG = env("DEBUG", default="False") == True
 CHANENLTALK_ACCESS_KEY = env("CHANENLTALK_ACCESS_KEY")
 CHANENLTALK_ACCESS_SECRET = env("CHANENLTALK_ACCESS_SECRET")
+SMARTEL_INVENTORY_API_KEY = env("SMARTEL_INVENTORY_API_KEY")
 
 # Next.js ISR Revalidation
 FRONTEND_URL = env("FRONTEND_URL", default="https://www.phoneinone.com")

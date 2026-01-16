@@ -1063,3 +1063,31 @@ class DealershipAdmin(commonAdmin):
 @admin.register(OfficialContractLink)
 class OfficialContractLinkAdmin(commonAdmin):
     pass
+
+
+@admin.register(Inventory)
+class InventoryAdmin(commonAdmin):
+    change_list_template = "admin/inventory_changelist.html"
+
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "sync-smartel/",
+                self.admin_site.admin_view(self.sync_smartel_inventory_view),
+                name="sync_smartel_inventory",
+            ),
+        ]
+        return custom_urls + urls
+
+    def sync_smartel_inventory_view(self, request):
+        from phone.inventory.api_smartel import sync_smartel_inventory
+
+        try:
+            sync_smartel_inventory()
+            messages.success(request, "스마텔 재고 동기화가 완료되었습니다.")
+        except Exception as e:
+            messages.error(request, f"동기화 중 오류가 발생했습니다: {str(e)}")
+
+        return HttpResponseRedirect("../")
