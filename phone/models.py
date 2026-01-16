@@ -750,3 +750,28 @@ class CreditCheckAgreement(SoftDeleteModel):
 
     def __str__(self):
         return f"Credit Check Agreement for Order {self.order.id}"
+
+
+class Inventory(SoftDeleteImageModel):
+    device_variant = models.ForeignKey(
+        DeviceVariant,
+        on_delete=models.CASCADE,
+        related_name="inventories",
+    )
+    name_in_sheet = models.CharField(max_length=100)
+    dealership = models.ForeignKey(
+        Dealership,
+        on_delete=models.CASCADE,
+        related_name="inventories",
+    )
+    device_color = models.ForeignKey(
+        DeviceColor,
+        on_delete=models.CASCADE,
+        related_name="inventories",
+    )
+    carrier = models.CharField(max_length=50, choices=CarrierChoices.CHOICES)
+    color_in_sheet = models.CharField(max_length=50)
+    stock_count = models.IntegerField(default=0)
+
+    def __str__(self):
+        return f"{self.name_in_sheet} ({self.color_in_sheet})"
