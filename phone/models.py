@@ -113,7 +113,7 @@ class DeviceColor(SoftDeleteModel):
     sort_order = models.IntegerField(default=0)
 
     def __str__(self):
-        return f"{self.color} / {self.device.model_name}"
+        return f"{self.color}"
 
 
 class DevicesColorImage(SoftDeleteImageModel):
@@ -715,6 +715,8 @@ class PriceNotificationRequest(SoftDeleteModel):
 
 
 class Dealership(SoftDeleteModel):
+    """대리점 관리 테이블"""
+
     name = models.CharField(max_length=100)
     carrier = models.CharField(max_length=50, choices=CarrierChoices.CHOICES)
     contact_number = models.CharField(max_length=20)
@@ -725,6 +727,8 @@ class Dealership(SoftDeleteModel):
 
 
 class OfficialContractLink(SoftDeleteModel):
+    """공식신청서 관리 테이블 - (대리점, 단말기(용량), 신규/기변/번이) 별 관리"""
+
     dealer = models.ForeignKey(
         Dealership, on_delete=models.CASCADE, related_name="official_links"
     )
@@ -745,6 +749,8 @@ class OfficialContractLink(SoftDeleteModel):
 
 
 class CreditCheckAgreement(SoftDeleteModel):
+    """신용조회 확인용 링크 테이블"""
+
     carrier = models.CharField(max_length=50, choices=CarrierChoices.CHOICES)
     link = models.URLField(help_text="Credit check agreement link")
 
@@ -752,13 +758,18 @@ class CreditCheckAgreement(SoftDeleteModel):
         return f"Credit Check Agreement for Order {self.order.id}"
 
 
-class Inventory(SoftDeleteImageModel):
+class Inventory(SoftDeleteModel):
+    """각 대리점에서 받는 재고표와 DB에 있는 device_varaint, device_color 정보를 매칭하기 위한 테이블"""
+
     device_variant = models.ForeignKey(
         DeviceVariant,
         on_delete=models.CASCADE,
         related_name="inventories",
     )
-    name_in_sheet = models.CharField(max_length=100)
+    name_in_sheet = models.CharField(
+        max_length=100,
+        help_text="재고표에 있는 모델명. 텍스트 안에 쉼표가 들어가서 여러 모델명이 있을 수 있음",
+    )
     dealership = models.ForeignKey(
         Dealership,
         on_delete=models.CASCADE,
@@ -769,9 +780,23 @@ class Inventory(SoftDeleteImageModel):
         on_delete=models.CASCADE,
         related_name="inventories",
     )
-    carrier = models.CharField(max_length=50, choices=CarrierChoices.CHOICES)
-    color_in_sheet = models.CharField(max_length=50)
-    stock_count = models.IntegerField(default=0)
+    color_in_sheet = models.CharField(
+        max_length=50,
+        help_text="재고표에 있는 색상명. 텍스트 안에 쉼표가 들어가서 여러 색상명이 있을 수 있음",
+    )
+    count = models.IntegerField(default=0)
 
     def __str__(self):
         return f"{self.name_in_sheet} ({self.color_in_sheet})"
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["created_at"]),
+            models.Index(fields=["device_variant", "device_color", "dealership"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["device_variant", "device_color", "dealership"],
+                name="unique_inventory_item",
+            )
+        ]
