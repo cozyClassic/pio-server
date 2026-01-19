@@ -10,6 +10,10 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.utils.html import format_html
 from django.utils import timezone
+from phone.inventory.kt_first.excel_kt_first import (
+    read_inventory_excel,
+    update_inventory,
+)
 
 import nested_admin
 from simple_history.admin import SimpleHistoryAdmin
@@ -1069,7 +1073,6 @@ class OfficialContractLinkAdmin(commonAdmin):
 class InventoryAdmin(commonAdmin):
     change_list_template = "admin/inventory_changelist.html"
 
-
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
@@ -1077,6 +1080,11 @@ class InventoryAdmin(commonAdmin):
                 "sync-smartel/",
                 self.admin_site.admin_view(self.sync_smartel_inventory_view),
                 name="sync_smartel_inventory",
+            ),
+            path(
+                "sync-kt-first/",
+                self.admin_site.admin_view(self.sync_kt_first_inventory_view),
+                name="sync_kt_first_inventory",
             ),
         ]
         return custom_urls + urls
@@ -1091,3 +1099,43 @@ class InventoryAdmin(commonAdmin):
             messages.error(request, f"동기화 중 오류가 발생했습니다: {str(e)}")
 
         return HttpResponseRedirect("../")
+
+    def sync_kt_first_inventory_view(self, request):
+        if request.method == "POST" and request.FILES.get("excel_file"):
+            import tempfile
+            import os
+
+            excel_file = request.FILES["excel_file"]
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
+                for chunk in excel_file.chunks():
+                    tmp.write(chunk)
+                tmp_path = tmp.name
+
+            try:
+                inventory_data = read_inventory_excel(tmp_path)
+                not_matched = update_inventory(None, inventory_data)
+
+                if not_matched:
+                    messages.warning(
+                        request,
+                        f"KT 퍼스트 재고 동기화 완료. 매칭되지 않은 항목: {len(not_matched)}개\n"
+                        + "\n".join(not_matched),
+                    )
+                else:
+                    messages.success(request, "KT 퍼스트 재고 동기화가 완료되었습니다.")
+            except Exception as e:
+                messages.error(request, f"동기화 중 오류가 발생했습니다: {str(e)}")
+            finally:
+                os.unlink(tmp_path)
+
+            return HttpResponseRedirect("../")
+
+        return render(
+            request,
+            "admin/inventory_kt_first_upload.html",
+            {
+                "title": "KT 퍼스트 재고 엑셀 업로드",
+                "opts": self.model._meta,
+            },
+        )
