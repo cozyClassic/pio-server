@@ -22,3 +22,10 @@ class ContractTypeChoices(object):
         (CHANGE, "기기변경"),
     ]
     VALUES = [NEW, MNP, CHANGE]
+
+
+CREDIT_CHECK_AGREE_LINK = {
+    "SK": "",
+    "KT": "https://www.kt.com/creditCheck/creditCheckMain.kt",
+    "LG": "https://www.lguplus.co.kr/creditCheck/creditCheckMain.lguplus",
+}

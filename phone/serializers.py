@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from .models import *
-from .constants import CarrierChoices
+from .constants import CarrierChoices, CREDIT_CHECK_AGREE_LINK
 from phoneinone_server.settings import AWS_CLOUDFRONT_DOMAIN
 
 
@@ -179,6 +179,12 @@ class ProductDetailSerializer(serializers.ModelSerializer):
                 "call_allowance": op.plan.call_allowance,
                 "sms_allowance": op.plan.sms_allowance,
                 "description": op.plan.description,
+                "official_contract_link": (
+                    op.official_contract_link.link
+                    if op.official_contract_link
+                    else None
+                ),
+                "credit_check_agree_link": CREDIT_CHECK_AGREE_LINK[op.plan.carrier],
             }
 
         return result

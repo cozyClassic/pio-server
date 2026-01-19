@@ -184,7 +184,7 @@ class ProductViewSet(ReadOnlyModelViewSet):
                     "options",
                     queryset=ProductOption.objects.filter(deleted_at__isnull=True)
                     .exclude(additional_discount=0)
-                    .select_related("plan", "device_variant"),
+                    .select_related("plan", "device_variant", "official_contract_link"),
                 )
             )
 
