@@ -120,6 +120,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     reviews = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
     best_options = serializers.SerializerMethodField()
+    stock = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -131,6 +132,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "images",
             "description",
             "best_options",
+            "stock",
         ]
 
     def get_options(self, obj):
@@ -304,6 +306,39 @@ class ProductDetailSerializer(serializers.ModelSerializer):
                 ).data,
             },
         }
+
+    def get_stock(self, obj):
+        """
+        재고 정보를 통신사 > 용량 > 색상코드 구조로 반환
+        StockStatus: "in_stock" | "low_stock" | "out_of_stock"
+        """
+        LOW_STOCK_THRESHOLD = 5
+
+        # context에서 미리 조회된 inventory 데이터 사용
+        inventories = self.context.get("inventories", [])
+
+        result = {}
+        for inv in inventories:
+            carrier = inv.dealership.carrier
+            storage = inv.device_variant.storage_capacity
+            color_code = inv.device_color.color_code
+
+            if carrier not in result:
+                result[carrier] = {}
+            if storage not in result[carrier]:
+                result[carrier][storage] = {}
+
+            # 재고 상태 판단
+            if inv.count <= 0:
+                status = "out_of_stock"
+            elif inv.count <= LOW_STOCK_THRESHOLD:
+                status = "low_stock"
+            else:
+                status = "in_stock"
+
+            result[carrier][storage][color_code] = status
+
+        return result
 
 
 class ProductSimpleSerializer(serializers.ModelSerializer):

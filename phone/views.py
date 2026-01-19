@@ -220,7 +220,18 @@ class ProductViewSet(ReadOnlyModelViewSet):
             )
         ).first()
 
-        serializer = ProductDetailSerializer(instance)
+        # 재고 정보 조회 (prefetch된 데이터 사용)
+        variant_ids = [v.id for v in instance.device.variants.all()]
+        color_ids = [c.id for c in instance.device.colors.all()]
+        inventories = Inventory.objects.filter(
+            device_variant_id__in=variant_ids,
+            device_color_id__in=color_ids,
+            deleted_at__isnull=True,
+        ).select_related("dealership", "device_variant", "device_color")
+
+        serializer = ProductDetailSerializer(
+            instance, context={"inventories": inventories}
+        )
         return Response(serializer.data)
 
 
