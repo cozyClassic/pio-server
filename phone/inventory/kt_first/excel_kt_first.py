@@ -1,7 +1,6 @@
 import openpyxl
 from phone.models import Inventory, Dealership
 from phone.constants import CarrierChoices
-from traceback import print_exc, format_exc
 
 
 """엑셀 양식
@@ -48,7 +47,7 @@ def read_inventory_excel(file_path):
         inventory_data.append(
             {
                 "name_in_sheet": device_name,
-                "color_in_sheet": color_name,
+                "color_in_sheet": color_name.replace(" ", ""),
                 "count": count if count is not None else 0,
             }
         )
@@ -56,7 +55,7 @@ def read_inventory_excel(file_path):
     return inventory_data
 
 
-def update_inventory(dealer, inventory_data):
+def update_inventory(inventory_data):
     DEALER = Dealership.objects.get(name="퍼스트", carrier=CarrierChoices.KT)
     old_datas = Inventory.objects.filter(dealership=DEALER)
     inventory_name_color_to_object = dict()
@@ -65,7 +64,7 @@ def update_inventory(dealer, inventory_data):
         colors = data.color_in_sheet.split(",")
         for name in names:
             for color in colors:
-                key = name + "_" + color
+                key = name + "_" + color.replace(" ", "")
                 inventory_name_color_to_object[key] = data
 
         data.count = 0
@@ -73,7 +72,7 @@ def update_inventory(dealer, inventory_data):
     not_matched = []
 
     for item in inventory_data:
-        key = item["name_in_sheet"] + "_" + item["color_in_sheet"]
+        key = item["name_in_sheet"] + "_" + item["color_in_sheet"].replace(" ", "")
         if key in inventory_name_color_to_object:
             inventory_obj = inventory_name_color_to_object[key]
             inventory_obj.count += item["count"]

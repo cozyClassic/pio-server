@@ -29,7 +29,7 @@ def fetch_smartel_inventory():
                 SmartelInventoryItem(
                     phone_name=item.get("phoneName"),
                     count=item.get("count"),
-                    color=item.get("color"),
+                    color=item.get("color").replace(" ", ""),
                 )
             )
 
@@ -42,7 +42,7 @@ def update_inventory_counts(inventory_items):
     smartel_dealer = Dealership.objects.get(name="디아이")
     Inventory_objects = Inventory.objects.filter(dealership=smartel_dealer)
     inventory_dict = {
-        (inv.name_in_sheet.replace(" ", ""), inv.color_in_sheet): inv
+        (inv.name_in_sheet.replace(" ", ""), inv.color_in_sheet.replace(" ", "")): inv
         for inv in Inventory_objects
     }
 

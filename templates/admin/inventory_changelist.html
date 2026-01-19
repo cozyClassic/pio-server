@@ -1,7 +1,4 @@
-{% extends "admin/change_list.html" %}
-
-{% block extrahead %}
-{{ block.super }}
+{% extends "admin/change_list.html" %} {% block extrahead %} {{ block.super }}
 <style>
   .sync-btn {
     background: #007bff !important;
@@ -22,11 +19,13 @@
     background: #1e7e34 !important;
   }
 </style>
-{% endblock %}
-
-{% block object-tools-items %}
+{% endblock %} {% block object-tools-items %}
 <li>
-  <a href="sync-smartel/" class="sync-btn" onclick="return confirm('스마텔 재고를 동기화하시겠습니까?');">
+  <a
+    href="sync-smartel/"
+    class="sync-btn"
+    onclick="return confirm('스마텔 재고를 동기화하시겠습니까?');"
+  >
     🔄 스마텔 재고 동기화
   </a>
 </li>
@@ -35,5 +34,7 @@
     📊 KT 퍼스트 재고 업로드
   </a>
 </li>
-{{ block.super }}
-{% endblock %}
+<li>
+  <a href="sync-lg-hunet/" class="sync-btn"> 📦 LG 엘비휴넷 재고 업로드 </a>
+</li>
+{{ block.super }} {% endblock %}

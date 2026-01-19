@@ -11,8 +11,12 @@ from django.shortcuts import render
 from django.utils.html import format_html
 from django.utils import timezone
 from phone.inventory.kt_first.excel_kt_first import (
-    read_inventory_excel,
-    update_inventory,
+    read_inventory_excel as read_kt_first_inventory_excel,
+    update_inventory as update_kt_first_inventory,
+)
+from phone.inventory.lg_hunet.image_lg_hunet import (
+    extract_json_from_image as extract_json_from_image_lg_hunet,
+    update_inventory as update_inventory_lg_hunet,
 )
 
 import nested_admin
@@ -1086,6 +1090,11 @@ class InventoryAdmin(commonAdmin):
                 self.admin_site.admin_view(self.sync_kt_first_inventory_view),
                 name="sync_kt_first_inventory",
             ),
+            path(
+                "sync-lg-hunet/",
+                self.admin_site.admin_view(self.sync_lg_hunet_inventory_view),
+                name="sync_lg_hunet_inventory",
+            ),
         ]
         return custom_urls + urls
 
@@ -1113,8 +1122,8 @@ class InventoryAdmin(commonAdmin):
                 tmp_path = tmp.name
 
             try:
-                inventory_data = read_inventory_excel(tmp_path)
-                not_matched = update_inventory(None, inventory_data)
+                inventory_data = read_kt_first_inventory_excel(tmp_path)
+                not_matched = update_kt_first_inventory(inventory_data)
 
                 if not_matched:
                     messages.warning(
@@ -1136,6 +1145,48 @@ class InventoryAdmin(commonAdmin):
             "admin/inventory_kt_first_upload.html",
             {
                 "title": "KT 퍼스트 재고 엑셀 업로드",
+                "opts": self.model._meta,
+            },
+        )
+
+    def sync_lg_hunet_inventory_view(self, request):
+        if request.method == "POST" and request.FILES.get("image_file"):
+            import tempfile
+            import os
+
+            image_file = request.FILES["image_file"]
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+                for chunk in image_file.chunks():
+                    tmp.write(chunk)
+                tmp_path = tmp.name
+
+            try:
+                inventory_data = extract_json_from_image_lg_hunet(tmp_path)
+                not_matched = update_inventory_lg_hunet(inventory_data)
+
+                if not_matched:
+                    messages.warning(
+                        request,
+                        f"LG 엘비휴넷 재고 동기화 완료. 매칭되지 않은 항목: {len(not_matched)}개\n"
+                        + "\n".join(not_matched),
+                    )
+                else:
+                    messages.success(
+                        request, "LG 엘비휴넷 재고 동기화가 완료되었습니다."
+                    )
+            except Exception as e:
+                messages.error(request, f"동기화 중 오류가 발생했습니다: {str(e)}")
+            finally:
+                os.unlink(tmp_path)
+
+            return HttpResponseRedirect("../")
+
+        return render(
+            request,
+            "admin/inventory_lg_hunet_upload.html",
+            {
+                "title": "LG 엘비휴넷 재고 이미지 업로드",
                 "opts": self.model._meta,
             },
         )
