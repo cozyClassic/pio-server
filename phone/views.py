@@ -2,6 +2,7 @@ import re
 from django.http import HttpResponse, HttpRequest, JsonResponse
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.viewsets import ReadOnlyModelViewSet, GenericViewSet, ModelViewSet
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from rest_framework.filters import OrderingFilter
@@ -283,7 +284,11 @@ class OrderViewSet(
         customer_name = request.query_params.get("customer_name", None)
         if not customer_name:
             return Response({"error": "param customer_name required"}, status=400)
+        where_text = f"o.deleted_at IS NULL AND o.customer_name='{customer_name}' AND o.customer_phone='{phone}'"
 
+        order_id = request.query_params.get("order_id", None)
+        if order_id:
+            where_text += f" AND o.id={order_id}"
         phone = clean_phone_num(phone)
         orders = Order.objects.raw(
             f"""
@@ -299,9 +304,7 @@ JOIN phone_devicescolorimage ci
     ON ci.device_color_id = c.id
     AND ci.deleted_at IS NULL
 WHERE 
-    o.deleted_at IS NULL
-    AND o.customer_name='{customer_name}'
-    AND o.customer_phone='{phone}'
+    {where_text}
 ORDER BY o.id, ci.id;
 """
         )

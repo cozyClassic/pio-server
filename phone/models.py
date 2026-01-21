@@ -535,6 +535,13 @@ class Order(SoftDeleteModel):
 
     history = HistoricalRecords()
 
+    credit_check_agreement = models.ImageField(
+        upload_to=UniqueFilePathGenerator("credit_check_agreements/"),
+        blank=True,
+        null=True,
+        help_text="신용조회 동의서 스크린샷",
+    )
+
     def __str__(self):
         return f"{self.product.name} {self.customer_name}"
 
