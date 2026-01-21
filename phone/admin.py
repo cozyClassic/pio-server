@@ -909,6 +909,12 @@ class ProductDetailImagesAdmin(commonAdmin):
     queryset = ProductDetailImage.objects.filter(deleted_at__isnull=True)
 
 
+class CreditCheckAgreeNestedInline(nested_admin.NestedStackedInline):
+    model = CreditCheckAgreement
+    exclude = ("deleted_at",)
+    extra = 0
+
+
 @admin.register(Order)
 class OrderAdmin(SimpleHistoryAdmin):
     list_display = (
@@ -922,6 +928,7 @@ class OrderAdmin(SimpleHistoryAdmin):
     search_fields = ("user__username", "product__name")
     list_filter = ("status", "created_at")
     readonly_fields = ("created_at", "updated_at", "deleted_at")
+    inlines = [CreditCheckAgreeNestedInline]
 
     history_list_display = [
         "status",
@@ -936,6 +943,7 @@ class OrderAdmin(SimpleHistoryAdmin):
             .get_queryset(request)
             .filter(deleted_at__isnull=True)
             .select_related("plan", "product")
+            .prefetch_related("credit_check_agreements")
             .exclude(status="취소완료")
         )
 

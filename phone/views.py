@@ -398,12 +398,12 @@ class OrderCreditCheckView(APIView):
 
     @swagger_auto_schema(
         operation_summary="신용조회 동의서 업로드",
-        operation_description="주문에 대한 신용조회 동의서 이미지를 업로드합니다.",
+        operation_description="주문에 대한 신용조회 동의서 이미지를 업로드합니다. 여러 장의 이미지를 동시에 업로드할 수 있습니다.",
         manual_parameters=[
             openapi.Parameter(
                 "credit_check_agreement",
                 openapi.IN_FORM,
-                description="신용조회 동의서 이미지 파일",
+                description="신용조회 동의서 이미지 파일 (여러 장 가능)",
                 type=openapi.TYPE_FILE,
                 required=True,
             ),
@@ -424,26 +424,28 @@ class OrderCreditCheckView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        image_file = request.FILES.get("credit_check_agreement")
-        if not image_file:
+        if len(request.FILES) == 0:
             return Response(
                 {"error": "credit_check_agreement 이미지 파일이 필요합니다."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        ext = os.path.splitext(image_file.name)[1]
-        image_file.name = f"order_{pk}_{order.customer_phone}_credit_check{ext}"
 
-        order.credit_check_agreement = image_file
-        order.save(update_fields=["credit_check_agreement"])
+        created_agreements = []
+        for index, image_file in enumerate(request.FILES.values()):
+            image_file.name = (
+                f"order_{pk}_{order.customer_phone}_credit_check_{index + 1}.png"
+            )
+
+            agreement = CreditCheckAgreement.objects.create(
+                order=order,
+                image=image_file,
+            )
+            created_agreements.append(agreement.image.url)
 
         return Response(
             {
-                "message": "신용조회 동의서가 업로드되었습니다.",
-                "credit_check_agreement": (
-                    order.credit_check_agreement.url
-                    if order.credit_check_agreement
-                    else None
-                ),
+                "message": f"신용조회 동의서 {len(created_agreements)}장이 업로드되었습니다.",
+                "credit_check_agreements": created_agreements,
             },
             status=status.HTTP_200_OK,
         )

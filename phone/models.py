@@ -535,13 +535,6 @@ class Order(SoftDeleteModel):
 
     history = HistoricalRecords()
 
-    credit_check_agreement = models.ImageField(
-        upload_to=UniqueFilePathGenerator("credit_check_agreements/"),
-        blank=True,
-        null=True,
-        help_text="신용조회 동의서 스크린샷",
-    )
-
     def __str__(self):
         return f"{self.product.name} {self.customer_name}"
 
@@ -758,8 +751,15 @@ class OfficialContractLink(SoftDeleteModel):
 class CreditCheckAgreement(SoftDeleteModel):
     """신용조회 확인용 링크 테이블"""
 
-    carrier = models.CharField(max_length=50, choices=CarrierChoices.CHOICES)
-    link = models.URLField(help_text="Credit check agreement link")
+    image = models.ImageField(
+        upload_to=UniqueFilePathGenerator("credit_check_agreements/"),
+        blank=True,
+        null=True,
+        help_text="신용조회 동의서 스크린샷",
+    )
+    order = models.ForeignKey(
+        Order, on_delete=models.CASCADE, related_name="credit_check_agreements"
+    )
 
     def __str__(self):
         return f"Credit Check Agreement for Order {self.order.id}"
