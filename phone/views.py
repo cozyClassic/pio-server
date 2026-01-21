@@ -1,3 +1,4 @@
+import os
 import re
 from django.http import HttpResponse, HttpRequest, JsonResponse
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -284,7 +285,7 @@ class OrderViewSet(
         customer_name = request.query_params.get("customer_name", None)
         if not customer_name:
             return Response({"error": "param customer_name required"}, status=400)
-        where_text = f"o.deleted_at IS NULL AND o.customer_name='{customer_name}' AND o.customer_phone='{phone}'"
+        where_text = f"o.deleted_at IS NULL AND o.status != '취소완료' AND o.customer_name='{customer_name}' AND o.customer_phone='{phone}'"
 
         order_id = request.query_params.get("order_id", None)
         if order_id:
@@ -372,7 +373,7 @@ ORDER BY o.id, ci.id;
             JOIN phone_devicescolorimage ci
                 ON ci.device_color_id = c.id
                 AND ci.deleted_at IS NULL
-            WHERE 
+            WHERE
                 o.deleted_at IS NULL
                 AND o.id = %s
             ORDER BY o.id, ci.id;
@@ -385,6 +386,67 @@ ORDER BY o.id, ci.id;
 
         serializer = OrderDetailSerializer(queryset[0])
         return Response(serializer.data)
+
+
+class OrderCreditCheckView(APIView):
+    """
+    신용조회 동의서 이미지 업로드 API
+    """
+
+    permission_classes = [AllowAny]
+    parser_classes = [MultiPartParser, FormParser]
+
+    @swagger_auto_schema(
+        operation_summary="신용조회 동의서 업로드",
+        operation_description="주문에 대한 신용조회 동의서 이미지를 업로드합니다.",
+        manual_parameters=[
+            openapi.Parameter(
+                "credit_check_agreement",
+                openapi.IN_FORM,
+                description="신용조회 동의서 이미지 파일",
+                type=openapi.TYPE_FILE,
+                required=True,
+            ),
+        ],
+        responses={
+            200: openapi.Response(description="업로드 성공"),
+            400: openapi.Response(description="이미지 파일이 필요합니다."),
+            404: openapi.Response(description="주문을 찾을 수 없습니다."),
+        },
+        consumes=["multipart/form-data"],
+    )
+    def post(self, request, pk):
+        try:
+            order = Order.objects.get(pk=pk, deleted_at__isnull=True)
+        except Order.DoesNotExist:
+            return Response(
+                {"error": "주문을 찾을 수 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        image_file = request.FILES.get("credit_check_agreement")
+        if not image_file:
+            return Response(
+                {"error": "credit_check_agreement 이미지 파일이 필요합니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        ext = os.path.splitext(image_file.name)[1]
+        image_file.name = f"order_{pk}_{order.customer_phone}_credit_check{ext}"
+
+        order.credit_check_agreement = image_file
+        order.save(update_fields=["credit_check_agreement"])
+
+        return Response(
+            {
+                "message": "신용조회 동의서가 업로드되었습니다.",
+                "credit_check_agreement": (
+                    order.credit_check_agreement.url
+                    if order.credit_check_agreement
+                    else None
+                ),
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class FAQViewSet(ReadOnlyModelViewSet):
