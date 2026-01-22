@@ -721,6 +721,8 @@ class Dealership(SoftDeleteModel):
     carrier = models.CharField(max_length=50, choices=CarrierChoices.CHOICES)
     contact_number = models.CharField(max_length=20)
     manager = models.CharField(max_length=100)
+    credit_check_agree_format = models.TextField(null=True)
+    opening_request_format = models.TextField(null=True)
 
     def __str__(self):
         return self.name
