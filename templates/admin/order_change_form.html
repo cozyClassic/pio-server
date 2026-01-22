@@ -1,0 +1,202 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls static admin_modify %}
+
+{% block object-tools-items %}
+{{ block.super }}
+{% if original %}
+<li>
+  <a href="generate-format/?type=credit_check" class="format-btn credit-check-btn" onclick="return generateFormat(event, 'credit_check');">
+    신용조회 양식 생성
+  </a>
+</li>
+<li>
+  <a href="generate-format/?type=opening_request" class="format-btn opening-request-btn" onclick="return generateFormat(event, 'opening_request');">
+    개통요청 양식 생성
+  </a>
+</li>
+{% endif %}
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+  .format-btn {
+    color: white !important;
+    padding: 10px 15px;
+    text-decoration: none;
+    border-radius: 4px;
+    display: inline-block;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .credit-check-btn {
+    background: #007bff !important;
+  }
+  .credit-check-btn:hover {
+    background: #0056b3 !important;
+  }
+  .opening-request-btn {
+    background: #28a745 !important;
+  }
+  .opening-request-btn:hover {
+    background: #218838 !important;
+  }
+
+  /* 모달 스타일 */
+  .format-modal {
+    display: none;
+    position: fixed;
+    z-index: 10000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+  }
+  .format-modal-content {
+    background-color: #fefefe;
+    margin: 10% auto;
+    padding: 20px;
+    border-radius: 8px;
+    width: 80%;
+    max-width: 600px;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  .format-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ddd;
+  }
+  .format-modal-header h3 {
+    margin: 0;
+  }
+  .format-modal-close {
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+  }
+  .format-modal-close:hover {
+    color: #000;
+  }
+  .format-textarea {
+    width: 100%;
+    min-height: 300px;
+    padding: 10px;
+    font-family: monospace;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    resize: vertical;
+  }
+  .format-modal-actions {
+    margin-top: 15px;
+    text-align: right;
+  }
+  .copy-btn {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .copy-btn:hover {
+    background: #218838;
+  }
+  .copy-success {
+    color: #28a745;
+    margin-right: 10px;
+    display: none;
+  }
+  .format-error {
+    color: #dc3545;
+    padding: 10px;
+    background: #f8d7da;
+    border-radius: 4px;
+  }
+</style>
+
+<!-- 모달 -->
+<div id="formatModal" class="format-modal">
+  <div class="format-modal-content">
+    <div class="format-modal-header">
+      <h3 id="formatModalTitle">양식 생성</h3>
+      <span class="format-modal-close" onclick="closeModal()">&times;</span>
+    </div>
+    <div id="formatModalBody">
+      <textarea id="formatTextarea" class="format-textarea" readonly></textarea>
+    </div>
+    <div class="format-modal-actions">
+      <span id="copySuccess" class="copy-success">복사되었습니다!</span>
+      <button class="copy-btn" onclick="copyToClipboard()">클립보드에 복사</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function generateFormat(event, formatType) {
+  event.preventDefault();
+
+  const url = event.target.href;
+
+  fetch(url)
+    .then(response => response.json())
+    .then(data => {
+      if (data.error) {
+        document.getElementById('formatModalBody').innerHTML =
+          '<div class="format-error">' + data.error + '</div>';
+      } else {
+        document.getElementById('formatModalBody').innerHTML =
+          '<textarea id="formatTextarea" class="format-textarea" readonly>' + data.formatted_text + '</textarea>';
+      }
+
+      const title = formatType === 'credit_check' ? '신용조회 양식' : '개통요청 양식';
+      document.getElementById('formatModalTitle').textContent = title;
+      document.getElementById('formatModal').style.display = 'block';
+      document.getElementById('copySuccess').style.display = 'none';
+    })
+    .catch(error => {
+      alert('양식 생성 중 오류가 발생했습니다: ' + error);
+    });
+
+  return false;
+}
+
+function closeModal() {
+  document.getElementById('formatModal').style.display = 'none';
+}
+
+function copyToClipboard() {
+  const textarea = document.getElementById('formatTextarea');
+  if (!textarea) return;
+
+  navigator.clipboard.writeText(textarea.value).then(() => {
+    document.getElementById('copySuccess').style.display = 'inline';
+    setTimeout(() => {
+      document.getElementById('copySuccess').style.display = 'none';
+    }, 2000);
+  }).catch(err => {
+    // Fallback for older browsers
+    textarea.select();
+    document.execCommand('copy');
+    document.getElementById('copySuccess').style.display = 'inline';
+    setTimeout(() => {
+      document.getElementById('copySuccess').style.display = 'none';
+    }, 2000);
+  });
+}
+
+// 모달 외부 클릭 시 닫기
+window.onclick = function(event) {
+  const modal = document.getElementById('formatModal');
+  if (event.target === modal) {
+    closeModal();
+  }
+}
+</script>
+{% endblock %}

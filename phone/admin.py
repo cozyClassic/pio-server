@@ -929,6 +929,7 @@ class OrderAdmin(SimpleHistoryAdmin):
     list_filter = ("status", "created_at")
     readonly_fields = ("created_at", "updated_at", "deleted_at")
     inlines = [CreditCheckAgreeNestedInline]
+    change_form_template = "admin/order_change_form.html"
 
     history_list_display = [
         "status",
@@ -936,6 +937,142 @@ class OrderAdmin(SimpleHistoryAdmin):
     ]
 
     history_list_per_page = 100
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "<path:object_id>/change/generate-format/",
+                self.admin_site.admin_view(self.generate_format_view),
+                name="order_generate_format",
+            ),
+        ]
+        return custom_urls + urls
+
+    def generate_format_view(self, request, object_id):
+        """주문 데이터를 Dealer 양식에 맞게 생성"""
+        from django.http import JsonResponse
+
+        format_type = request.GET.get("type", "credit_check")
+
+        try:
+            order = Order.objects.select_related("product__device", "plan").get(
+                pk=object_id, deleted_at__isnull=True
+            )
+        except Order.DoesNotExist:
+            return JsonResponse({"error": "주문을 찾을 수 없습니다."}, status=404)
+
+        # DeviceVariant 찾기
+        device_variant = DeviceVariant.objects.filter(
+            device=order.product.device,
+            storage_capacity=str(order.storage_capacity),
+            deleted_at__isnull=True,
+        ).first()
+
+        if not device_variant:
+            return JsonResponse(
+                {
+                    "error": f"단말기 옵션을 찾을 수 없습니다. (용량: {order.storage_capacity})"
+                }
+            )
+
+        # ProductOption에서 Dealer 찾기
+        product_option = (
+            ProductOption.objects.filter(
+                product=order.product,
+                device_variant=device_variant,
+                plan=order.plan,
+                contract_type=order.contract_type,
+                discount_type=order.discount_type,
+                deleted_at__isnull=True,
+            )
+            .select_related("dealer")
+            .first()
+        )
+
+        if not product_option:
+            return JsonResponse(
+                {"error": "해당 주문에 맞는 상품 옵션을 찾을 수 없습니다."}
+            )
+
+        if not product_option.dealer:
+            return JsonResponse(
+                {"error": "해당 상품 옵션에 대리점이 지정되지 않았습니다."}
+            )
+
+        dealer = product_option.dealer
+
+        # 포맷 템플릿 선택
+        if format_type == "credit_check":
+            format_template = dealer.credit_check_agree_format
+            if not format_template:
+                return JsonResponse(
+                    {
+                        "error": f"'{dealer.name}' 대리점에 신용조회 양식이 설정되지 않았습니다."
+                    }
+                )
+        else:
+            format_template = dealer.opening_request_format
+            if not format_template:
+                return JsonResponse(
+                    {
+                        "error": f"'{dealer.name}' 대리점에 개통요청 양식이 설정되지 않았습니다."
+                    }
+                )
+
+        # 치환용 데이터 준비
+        format_data = {
+            # 고객 정보
+            "customer_name": order.customer_name or "",
+            "customer_phone": order.customer_phone or "",
+            "customer_phone2": order.customer_phone2 or "",
+            "customer_email": order.customer_email or "",
+            "customer_birth": (
+                order.customer_birth.strftime("%Y%m%d")[2:]
+                if order.customer_birth
+                else ""
+            ),
+            # 상품 정보
+            "product_name": order.product.name or "",
+            "device_name": order.product.device.model_name or "",
+            "plan_name": order.plan.name or "",
+            "plan_carrier": order.plan.carrier or "",
+            "plan_price": format_price(order.plan.price),
+            "storage_capacity": str(order.storage_capacity) or "",
+            "color": order.color or "",
+            # 계약 정보
+            "contract_type": order.contract_type or "",
+            "discount_type": order.discount_type or "",
+            "payment_period": order.payment_period or "",
+            "prev_carrier": order.prev_carrier or "",
+            # 가격 정보
+            "device_price": format_price(order.device_price),
+            "final_price": format_price(order.final_price),
+            "subsidy_standard": format_price(order.subsidy_standard),
+            "subsidy_mnp": format_price(order.subsidy_mnp),
+            "additional_discount": format_price(order.additional_discount),
+            "plan_monthly_fee": format_price(order.plan_monthly_fee),
+            "monthly_discount": format_price(order.monthly_discount),
+            # 배송 정보
+            "shipping_address": order.shipping_address or "",
+            "shipping_address_detail": order.shipping_address_detail or "",
+            "zipcode": order.zipcode or "",
+            # 기타
+            "customer_memo": order.customer_memo or "",
+            "created_at": order.created_at.strftime("%Y-%m-%d %H:%M"),
+            "order_id": str(order.id),
+            # 대리점 정보
+            "dealer_name": dealer.name or "",
+            "dealer_contact": dealer.contact_number or "",
+            "dealer_manager": dealer.manager or "",
+        }
+
+        try:
+            formatted_text = format_template.format(**format_data)
+        except KeyError as e:
+            return JsonResponse({"error": f"양식에 알 수 없는 변수가 있습니다: {e}"})
+
+        return JsonResponse({"formatted_text": formatted_text})
 
     def get_queryset(self, request):
         return (
