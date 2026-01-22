@@ -12,7 +12,7 @@ from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import mixins, status
 from django.db.models import Prefetch, Q, F, Subquery, OuterRef
-from .external_services.channel_talk import send_order_alert
+from .external_services.channel_talk import send_credit_check_alert, send_order_alert
 from .constants import CarrierChoices
 from datetime import timedelta
 from django.views.decorators.csrf import csrf_exempt
@@ -444,6 +444,7 @@ class OrderCreditCheckView(APIView):
                 image=image_file,
             )
             created_agreements.append(agreement.image.url)
+        send_credit_check_alert(pk, order.customer_name, order.customer_phone)
 
         return Response(
             {

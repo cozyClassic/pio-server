@@ -48,3 +48,21 @@ def send_order_alert(order_id: str, customer_name: str, customer_phone: str) -> 
         },
     )
     return response
+
+
+def send_credit_check_alert(
+    order_id: str, customer_name: str, customer_phone: str
+) -> None:
+    """Send a credit check alert to the team via Channel Talk."""
+    response = ChannelTalkAPI.post(
+        url=f"https://api.channel.io/open/v5/groups/{ChannelTalkAPI.ORDER_ALERT_GROUP_ID}/messages",
+        json={
+            "blocks": [
+                {
+                    "type": "text",
+                    "value": f"신용 조회 동의 알림: {order_id}, {customer_name}, {customer_phone}",
+                },
+            ]
+        },
+    )
+    return response
