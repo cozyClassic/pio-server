@@ -373,6 +373,9 @@ ORDER BY o.id, ci.id;
             JOIN phone_devicescolorimage ci
                 ON ci.device_color_id = c.id
                 AND ci.deleted_at IS NULL
+            JOIN phone_creditcheckagreement cca
+                ON cca.order_id = o.id
+                AND cca.deleted_at IS NULL
             WHERE
                 o.deleted_at IS NULL
                 AND o.id = %s
