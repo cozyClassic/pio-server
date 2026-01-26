@@ -2,8 +2,9 @@ import traceback
 from io import BytesIO
 import pandas as pd
 
+from datetime import timedelta
 from django.utils.html import format_html
-from django.db.models import Prefetch, F
+from django.db.models import Prefetch, F, Subquery, OuterRef
 from django.contrib import admin, messages
 from django.urls import path
 from django.http import HttpResponse, HttpResponseRedirect
@@ -1335,3 +1336,108 @@ class InventoryAdmin(commonAdmin):
                 "opts": self.model._meta,
             },
         )
+
+
+@admin.register(Order.history.model)
+class CompletedOrderHistoryAdmin(admin.ModelAdmin):
+    """
+    개통완료된 주문의 히스토리를 보여주는 Admin
+    - 개통완료 날짜
+    - 개통완료 + 185일 (약정 해지 가능일 등)
+    """
+
+    list_display = [
+        "order_id",
+        "customer_name",
+        "customer_phone",
+        "product",
+        "plan_carrier",
+        "completed_date",
+        "day_185_later",
+        "days_remaining",
+    ]
+    list_filter = ["history_date"]
+    search_fields = ["customer_name", "customer_phone", "id"]
+    ordering = ["-history_date"]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def order_id(self, obj):
+        return obj.id
+
+    order_id.short_description = "주문 ID"
+
+    def plan_carrier(self, obj):
+        if obj.plan:
+            return obj.plan.carrier
+        return "-"
+
+    plan_carrier.short_description = "통신사"
+
+    def completed_date(self, obj):
+        return obj.history_date.strftime("%Y-%m-%d %H:%M")
+
+    completed_date.short_description = "개통완료일"
+    completed_date.admin_order_field = "history_date"
+
+    def day_185_later(self, obj):
+        target_date = obj.history_date + timedelta(days=185)
+        return target_date.strftime("%Y-%m-%d")
+
+    day_185_later.short_description = "185일 후"
+
+    def days_remaining(self, obj):
+        target_date = obj.history_date + timedelta(days=185)
+        today = timezone.now()
+        remaining = (target_date - today).days
+
+        if remaining < 0:
+            return format_html(
+                '<span style="color: green;">완료 ({}일 경과)</span>', abs(remaining)
+            )
+        elif remaining <= 14:
+            return format_html(
+                '<span style="color: red; font-weight: bold;">{}일 남음</span>',
+                remaining,
+            )
+        elif remaining <= 30:
+            return format_html(
+                '<span style="color: orange;">{}일 남음</span>', remaining
+            )
+        else:
+            return f"{remaining}일 남음"
+
+    days_remaining.short_description = "남은 일수"
+
+    def get_queryset(self, request):
+        """
+        각 Order별로 status='개통완료'가 된 첫 번째 시점만 가져옴
+        """
+        HistoricalOrder = Order.history.model
+
+        # 각 Order ID별로 개통완료가 된 가장 이른 시점의 history_id를 찾음
+        first_completed_subquery = (
+            HistoricalOrder.objects.filter(
+                id=OuterRef("id"),
+                status="개통완료",
+            )
+            .order_by("history_date")
+            .values("history_id")[:1]
+        )
+
+        # 개통완료 상태인 레코드 중 첫 번째 것만 필터링
+        queryset = (
+            HistoricalOrder.objects.filter(status="개통완료")
+            .filter(history_id=Subquery(first_completed_subquery))
+            .select_related("plan", "product")
+            .order_by("-history_date")
+        )
+
+        return queryset
