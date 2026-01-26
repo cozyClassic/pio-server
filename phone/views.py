@@ -350,6 +350,7 @@ ORDER BY o.id, ci.id;
             zipcode=body.get("zipcode"),
             ga4_id=body.get("ga4_id", ""),
             prev_carrier=body.get("prev_carrier", ""),
+            channeltalk_user_id=body.get("channeltalk_user_id", ""),
         )
         new_order.save()
         send_order_alert(

@@ -534,6 +534,9 @@ class Order(SoftDeleteModel):
     )
 
     history = HistoricalRecords()
+    channeltalk_user_id = models.CharField(
+        max_length=100, blank=True, null=True, default=None
+    )
 
     def __str__(self):
         return f"{self.product.name} {self.customer_name}"

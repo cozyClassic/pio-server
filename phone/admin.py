@@ -928,7 +928,13 @@ class OrderAdmin(SimpleHistoryAdmin):
     )
     search_fields = ("user__username", "product__name")
     list_filter = ("status", "created_at")
-    readonly_fields = ("created_at", "updated_at", "deleted_at")
+    readonly_fields = (
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "ga4_id",
+        "channeltalk_user_id",
+    )
     inlines = [CreditCheckAgreeNestedInline]
     change_form_template = "admin/order_change_form.html"
 
