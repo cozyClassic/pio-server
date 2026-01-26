@@ -30,6 +30,8 @@ class ChannelTalkAPI:
             params=params,
             headers=ChannelTalkAPI.CHANNELTALK_HEADERS,
         )
+        if response.status_code != 200:
+            raise Exception(f"Failed to get data: {response.text}")
         return response.json()
 
 
@@ -66,3 +68,17 @@ def send_credit_check_alert(
         },
     )
     return response
+
+
+def get_user_id_by_member_id(member_id: str) -> str | None:
+    """Get a user from Channel Talk by member ID."""
+    # member_id = "01012345678_홍길동"
+    response = ChannelTalkAPI.get(
+        url=f"https://api.channel.io/open/v5/members/@{member_id}",
+    )
+
+    user = response.get("user", None)
+    if user is not None:
+        return user.get("id", None)
+
+    return None

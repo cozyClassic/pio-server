@@ -352,11 +352,11 @@ ORDER BY o.id, ci.id;
             prev_carrier=body.get("prev_carrier", ""),
         )
         new_order.save()
-        send_order_alert(
-            order_id=new_order.id,
-            customer_name=new_order.customer_name,
-            customer_phone=new_order.customer_phone,
-        )
+        # send_order_alert(
+        #     order_id=new_order.id,
+        #     customer_name=new_order.customer_name,
+        #     customer_phone=new_order.customer_phone,
+        # )
         return Response({"id": new_order.id}, status=201)
 
     def retrieve(self, request, *args, **kwargs):
@@ -444,7 +444,7 @@ class OrderCreditCheckView(APIView):
                 image=image_file,
             )
             created_agreements.append(agreement.image.url)
-        send_credit_check_alert(pk, order.customer_name, order.customer_phone)
+        # send_credit_check_alert(pk, order.customer_name, order.customer_phone)
 
         return Response(
             {
