@@ -15,18 +15,18 @@ class ChannelTalkAPI:
     ORDER_ALERT_GROUP_ID = "501418" if DEBUG else "501406"
 
     @staticmethod
-    def post(url: str, json: dict) -> dict:
+    def post(path: str, json: dict) -> dict:
         response = requests.post(
-            url=url,
+            url="https://api.channel.io" + path,
             json=json,
             headers=ChannelTalkAPI.CHANNELTALK_HEADERS,
         )
         return response.json()
 
     @staticmethod
-    def get(url: str, params: dict = None) -> dict:
+    def get(path: str, params: dict = None) -> dict:
         response = requests.get(
-            url=url,
+            url="https://api.channel.io" + path,
             params=params,
             headers=ChannelTalkAPI.CHANNELTALK_HEADERS,
         )
@@ -39,7 +39,7 @@ def send_order_alert(order_id: str, customer_name: str, customer_phone: str) -> 
     """Send a message to the team via Channel Talk."""
     # Implementation for sending message via Channel Talk
     response = ChannelTalkAPI.post(
-        url=f"https://api.channel.io/open/v5/groups/{ChannelTalkAPI.ORDER_ALERT_GROUP_ID}/messages",
+        path=f"/open/v5/groups/{ChannelTalkAPI.ORDER_ALERT_GROUP_ID}/messages",
         json={
             "blocks": [
                 {
@@ -57,7 +57,7 @@ def send_credit_check_alert(
 ) -> None:
     """Send a credit check alert to the team via Channel Talk."""
     response = ChannelTalkAPI.post(
-        url=f"https://api.channel.io/open/v5/groups/{ChannelTalkAPI.ORDER_ALERT_GROUP_ID}/messages",
+        path=f"/open/v5/groups/{ChannelTalkAPI.ORDER_ALERT_GROUP_ID}/messages",
         json={
             "blocks": [
                 {
@@ -74,7 +74,7 @@ def get_user_id_by_member_id(member_id: str) -> str | None:
     """Get a user from Channel Talk by member ID."""
     # member_id = "01012345678_홍길동"
     response = ChannelTalkAPI.get(
-        url=f"https://api.channel.io/open/v5/members/@{member_id}",
+        path=f"/open/v5/members/@{member_id}",
     )
 
     user = response.get("user", None)
@@ -82,3 +82,33 @@ def get_user_id_by_member_id(member_id: str) -> str | None:
         return user.get("id", None)
 
     return None
+
+
+def send_shipping_noti_to_customer(
+    customer_name: str,
+    channeltalk_user_id: str,
+    customer_phone: str,
+    shipping_method: str,
+    shipping_number: str,
+    device_name: str,
+):
+    response = ChannelTalkAPI.post(
+        path=f"/open/v5/users/{channeltalk_user_id}/events",
+        json={
+            "name": "shipping_notification",
+            "property": {
+                "customerName": customer_name,
+                "customerPhone": customer_phone,
+                "shippinghost": (
+                    f"m.epost.go.kr/postal/mobile/mobile.trace.RetrieveDomRigiTraceList.comm"
+                    if shipping_method == "우체국"
+                    # 로젠
+                    else f"www.ilogen.com/m/personal/trace/{shipping_number}"
+                ),
+                "sid1": shipping_number,
+                "deviceName": device_name,
+            },
+        },
+    )
+
+    return response

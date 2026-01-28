@@ -24,6 +24,7 @@ import nested_admin
 from simple_history.admin import SimpleHistoryAdmin
 
 from .models import *
+from .external_services.channel_talk import send_shipping_noti_to_customer
 
 
 def format_price(num: int):
@@ -953,8 +954,47 @@ class OrderAdmin(SimpleHistoryAdmin):
                 self.admin_site.admin_view(self.generate_format_view),
                 name="order_generate_format",
             ),
+            path(
+                "<path:object_id>/change/send-shipping-notification/",
+                self.admin_site.admin_view(self.send_shipping_notification),
+                name="order_send_shipping_notification",
+            ),
         ]
         return custom_urls + urls
+
+    def send_shipping_notification(self, request, object_id):
+        order = (
+            Order.objects.filter(pk=object_id, deleted_at__isnull=True)
+            .select_related(
+                "product__device",
+            )
+            .first()
+        )
+        if not order:
+            messages.error(request, "주문을 찾을 수 없습니다.")
+            return HttpResponseRedirect(f"/admin/phone/order/")
+
+        api_infos = {
+            "customer_name": order.customer_name,
+            "channeltalk_user_id": order.channeltalk_user_id,
+            "customer_phone": order.customer_phone,
+            "device_name": order.product.device.model_name,
+            "shipping_number": order.shipping_number,
+            "shipping_method": order.shipping_method,
+        }
+
+        if None in api_infos.values():
+            none_objects = [key for key, value in api_infos.items() if value is None]
+            messages.error(request, "배송 알림에 필요한 정보가 부족합니다.")
+            messages.error(
+                request,
+                f"누락된 정보: {', '.join(none_objects)}",
+            )
+            return HttpResponseRedirect(f"/admin/phone/order/{object_id}/change/")
+
+        send_shipping_noti_to_customer(**api_infos)
+
+        return HttpResponseRedirect(f"/admin/phone/order/{object_id}/change/")
 
     def generate_format_view(self, request, object_id):
         """주문 데이터를 Dealer 양식에 맞게 생성"""
