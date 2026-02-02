@@ -1294,8 +1294,17 @@ class InventoryAdmin(commonAdmin):
         from phone.inventory.api_smartel import sync_smartel_inventory
 
         try:
-            sync_smartel_inventory()
-            messages.success(request, "스마텔 재고 동기화가 완료되었습니다.")
+            missed_items, updated_count = sync_smartel_inventory()
+            messages.success(
+                request,
+                f"스마텔 재고 동기화가 완료되었습니다. 업데이트된 항목 수: {updated_count}개",
+            )
+            if missed_items:
+                messages.warning(
+                    request,
+                    f"매칭되지 않은 항목: {len(missed_items)}개\n"
+                    + "\n".join(str(item) for item in missed_items),
+                )
         except Exception as e:
             messages.error(request, f"동기화 중 오류가 발생했습니다: {str(e)}")
 
