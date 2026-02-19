@@ -29,3 +29,18 @@ CREDIT_CHECK_AGREE_LINK = {
     "KT": "https://www.kt.com/creditCheck/creditCheckMain.kt",
     "LG": "https://www.lguplus.co.kr/creditCheck/creditCheckMain.lguplus",
 }
+
+
+class OpenMarketChoices(object):
+    ST11 = "11번가"
+    GMK = "G마켓 옥션"
+    SSG = "SSG"
+    LTON = "롯데ON"
+    Choices = [
+        (ST11, "11번가"),
+        (GMK, "G마켓 옥션"),
+        (SSG, "SSG"),
+        (LTON, "롯데ON"),
+    ]
+
+    VALUES = [ST11, GMK, SSG, LTON]
