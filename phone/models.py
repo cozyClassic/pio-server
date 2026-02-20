@@ -842,8 +842,9 @@ class OpenMarketProduct(SoftDeleteModel):
     )
     seller_code = models.CharField(max_length=100, blank=True, null=True, default=None)
     name = models.CharField(max_length=255, default="", blank=True)
-    default_price = models.PositiveIntegerField(default=10000)
+    registered_price = models.PositiveIntegerField(default=10000)
     detail_page_html = tinymce_models.HTMLField(default="", blank=True)
+    last_price_updated_at = models.DateTimeField(default=None, null=True)
 
 
 class OpenMarketProductOption(SoftDeleteModel):
@@ -918,9 +919,9 @@ class OpenMarketProductOption(SoftDeleteModel):
         product = self.open_market_product
         open_market = product.open_market
 
-        if (self.price / product.default_price) * 100 > open_market.option_max_rate:
+        if (self.price / product.registered_price) * 100 > open_market.option_max_rate:
             raise Exception("")
-        if (self.price / product.default_price) * 100 < open_market.option_min_rate:
+        if (self.price / product.registered_price) * 100 < open_market.option_min_rate:
             raise Exception("")
 
     def validate_plan(self):
