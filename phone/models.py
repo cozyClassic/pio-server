@@ -829,6 +829,9 @@ class OpenMarket(SoftDeleteModel):
     commision_rate_compare_platform = models.FloatField(default=0.02)
     api_key = models.CharField(max_length=255, default="", blank=True)
 
+    def __str__(self):
+        return self.source
+
 
 class OpenMarketProduct(SoftDeleteModel):
     open_market = models.ForeignKey(
@@ -837,6 +840,7 @@ class OpenMarketProduct(SoftDeleteModel):
     om_product_id = models.CharField(
         max_length=100, blank=True, null=True, default=None
     )
+    seller_code = models.CharField(max_length=100, blank=True, null=True, default=None)
     name = models.CharField(max_length=255, default="", blank=True)
     default_price = models.PositiveIntegerField(default=10000)
     detail_page_html = tinymce_models.HTMLField(default="", blank=True)

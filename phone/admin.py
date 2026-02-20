@@ -1496,3 +1496,84 @@ class CompletedOrderHistoryAdmin(admin.ModelAdmin):
         )
 
         return queryset
+
+
+@admin.register(OpenMarket)
+class OpenMarketAdmin(commonAdmin):
+    pass
+
+
+@admin.register(OpenMarketProduct)
+class OpenMarketProductAdmin(commonAdmin):
+    pass
+
+
+@admin.register(OpenMarketProductOption)
+class OpenMarketProductOptionAdmin(commonAdmin):
+    pass
+
+
+_ADMIN_GROUPS = {
+    "단말기 · 요금제": [Plan, PlanPremiumChoices, Device, DeviceColor, DeviceVariant],
+    "상품": [
+        Product,
+        ProductOption,
+        ProductDetailImage,
+        ProductSeries,
+        DecoratorTag,
+        PriceHistory,
+    ],
+    "주문": [Order, Order.history.model],
+    "콘텐츠 · 마케팅": [
+        Review,
+        FAQ,
+        Notice,
+        Banner,
+        Event,
+        PolicyDocument,
+        PartnerCard,
+        CustomImage,
+    ],
+    "재고": [Inventory],
+    "오픈마켓": [OpenMarket, OpenMarketProduct, OpenMarketProductOption],
+    "기타": [Dealership, OfficialContractLink],
+}
+
+_original_get_app_list = admin.AdminSite.get_app_list
+
+
+def _grouped_get_app_list(self, request, app_label=None):
+    app_list = _original_get_app_list(self, request, app_label)
+
+    phone_models = {}
+    other_apps = []
+
+    for app in app_list:
+        if app["app_label"] == "phone":
+            for model in app["models"]:
+                phone_models[model["object_name"]] = model
+        else:
+            other_apps.append(app)
+
+    grouped_apps = []
+    for group_name, model_classes in _ADMIN_GROUPS.items():
+        models = [
+            phone_models[m.__name__]
+            for m in model_classes
+            if m.__name__ in phone_models
+        ]
+        if models:
+            grouped_apps.append(
+                {
+                    "name": group_name,
+                    "app_label": f"phone__{group_name}",
+                    "app_url": "/admin/phone/",
+                    "has_module_perms": True,
+                    "models": models,
+                }
+            )
+
+    return grouped_apps + other_apps
+
+
+admin.AdminSite.get_app_list = _grouped_get_app_list
