@@ -29,6 +29,8 @@ CHANENLTALK_ACCESS_KEY = env("CHANENLTALK_ACCESS_KEY")
 CHANENLTALK_ACCESS_SECRET = env("CHANENLTALK_ACCESS_SECRET")
 SMARTEL_INVENTORY_API_KEY = env("SMARTEL_INVENTORY_API_KEY")
 GEMINI_API_KEY = env("GEMINI_API_KEY")
+CELERY_BROKER_URL = env("celery_broker")
+CELERY_RESULT_BACKEND = env("celery_broker")
 
 # Next.js ISR Revalidation
 FRONTEND_URL = env("FRONTEND_URL", default="https://www.phoneinone.com")
@@ -102,6 +104,7 @@ INSTALLED_APPS = [
     "scraps",
     "nested_admin",
     "simple_history",
+    "django_celery_beat",
 ]
 
 MIDDLEWARE = [
@@ -268,3 +271,6 @@ TINYMCE_EXTRA_MEDIA = {
         "admin/js/tinymce-upload.js",  # change it accordingly
     ],
 }
+
+CELERY_TASK_SERIALIZER = "json"
+CELERY_TASK_ACKS_LATE = True
