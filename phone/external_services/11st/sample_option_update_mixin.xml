@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- http://api.11st.co.kr/rest/prodservices/updateProductOption/[prdNm] -->
+<Product>
+    <optSelectYn>Y</optSelectYn>
+    <txtColCnt />
+    <optionAllQty>999</optionAllQty>
+    <optionAllAddPrc />
+    <optionAllAddWght />
+    <prdExposeClfCd>
+        03 </prdExposeClfCd>
+    <optMixYn>N</optMixYn>
+    <ProductOption>
+        <useYn>Y</useYn>
+        <colOptPrice>0</colOptPrice>
+        <colValue0>플래티넘(12.5만/월)</colValue0>
+        <colCount>999</colCount>
+        <colSellerStockCd>PIO_SK_IP17_001</colSellerStockCd>
+        <optionImage />
+    </ProductOption>
+    <ProductOption>
+        <useYn>Y</useYn>
+        <colOptPrice>0</colOptPrice>
+        <colValue0>프리미엄(10.9만/월)</colValue0>
+        <colCount>999</colCount>
+        <colSellerStockCd>PIO_SK_IP17_002</colSellerStockCd>
+        <optionImage />
+    </ProductOption>
+    <ProductOptionExt>
+        <ProductOption>
+            <useYn>Y</useYn>
+            <colOptPrice>0</colOptPrice>
+            <colOptCount>999</colOptCount>
+            <colCount>999</colCount>
+            <optWght>0</optWght>
+            <colSellerStockCd>1</colSellerStockCd>
+            <optionMappingKey>요금제:플래티넘(12.5만/월)</optionMappingKey>
+            <optionImage />
+        </ProductOption>
+        <ProductOption>
+            <useYn>Y</useYn>
+            <colOptPrice>5000</colOptPrice>
+            <colOptCount>999</colOptCount>
+            <colCount>999</colCount>
+            <optWght>0</optWght>
+            <colSellerStockCd>2</colSellerStockCd>
+            <optionMappingKey>요금제:프리미엄(10.9만/월)</optionMappingKey>
+            <optionImage />
+        </ProductOption>
+    </ProductOptionExt>
+</Product>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- http://api.11st.co.kr/rest/prodservices/product/priceCoupon/[prdNm] -->
+<Product>
+    <selPrc>1287000</selPrc>
+    <cuponcheck>N</cuponcheck>
+</Product>

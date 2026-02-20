@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="euc-kr" standalone="yes"?>
+<Product>
+<selMthdCd>01</selMthdCd>
+<dispCtgrNo>1162965</dispCtgrNo>
+<originDispCtgrNo />
+<prdTypCd>01</prdTypCd>
+<hsCode />
+<prdNm>{prdNm}</prdNm>
+<advrtStmt />
+<brand>{brand}</brand>
+<rmaterialTypCd>04</rmaterialTypCd>
+<orgnTypCd />
+<orgnDifferentYn />
+<orgnTypDtlsCd />
+<orgnNmVal />
+<sellerPrdCd />
+<suplDtyfrPrdClfCd>01</suplDtyfrPrdClfCd>
+<yearEndTaxYn>N</yearEndTaxYn>
+<forAbrdBuyClf>01</forAbrdBuyClf>
+<prdStatCd>01</prdStatCd>
+<minorSelCnYn>Y</minorSelCnYn>
+<prdImage01 />
+<htmlDetail>{htmlDetail}</htmlDetail>
+<ProductCertGroup>
+    <crtfGrpTypCd />
+    <crtfGrpObjClfCd />
+    <crtfGrpExptTypCd />
+    <ProductCert>
+        <certTypeCd />
+        <certKey />
+    </ProductCert>
+</ProductCertGroup>
+<reviewDispYn>N</reviewDispYn>
+<reviewOptDispYn>N</reviewOptDispYn>
+<selTermUseYn>N</selTermUseYn>
+<contractCd>01</contractCd>
+<chargeCd />
+<periodCd />
+<phonePrc>{devicePrice}</phonePrc>
+<recommendRetailPrice />
+<selPrc>{11st_price}</selPrc>
+<optSelectYn>Y</optSelectYn>
+<!-- 단일옵션이라 제외 <optionAllQty>9999</optionAllQty>
+<optionAllAddPrc />
+<optionAllAddWght /> -->
+<prdExposeClfCd>03</prdExposeClfCd>
+<!-- 단일옵션이라 제외 <optMixYn />
+<ProductOption>
+    <useYn />
+    <colOptPrice />
+    <colValue0 />
+    <colCount />
+    <colSellerStockCd />
+    <optionImage />
+</ProductOption>
+<ProductRootOption>
+    <colTitle />
+    <ProductOption>
+        <colOptPrice />
+        <colValue0 />
+        <optionImage />
+    </ProductOption>
+</ProductRootOption>
+<ProductOptionExt>
+    <ProductOption>
+        <useYn />
+        <colOptPrice />
+        <colOptCount />
+        <colCount />
+        <optWght />
+        <colSellerStockCd />
+        <optionMappingKey />
+        <optionImage />
+    </ProductOption>
+</ProductOptionExt> -->
+<prdSelQty>9999</prdSelQty>
+<dlvCnAreaCd>01</dlvCnAreaCd>
+<dlvWyCd>01</dlvWyCd>
+<dlvEtprsCd>{00007 if SK or KT else 00002}</dlvEtprsCd>
+<dlvSendCloseTmpltNo>4247943</dlvSendCloseTmpltNo>
+<dlvCstInstBasiCd>01</dlvCstInstBasiCd>
+<bndlDlvCnYn>N</bndlDlvCnYn>
+<dlvCstPayTypCd>03</dlvCstPayTypCd>
+<jejuDlvCst>0</jejuDlvCst>
+<islandDlvCst>0</islandDlvCst>
+<addrSeqOut>{5 if SK, 6 if LG, 7 if KT }</addrSeqOut>
+<addrSeqIn>{5 if SK, 6 if LG, 7 if KT }</addrSeqIn>
+<rtngdDlvCst>3000</rtngdDlvCst>
+<exchDlvCst>3000</exchDlvCst>
+<asDetail>상품상세 참조</asDetail>
+<rtngExchDetail>상품상세 참조</rtngExchDetail>
+<dlvClf>02</dlvClf>
+<ProductNotification>
+    <type>891023</type>
+    <item>
+        <code>11800</code>
+        <name>상품명 참조</name>
+    </item>
+    <item>
+        <code>11905</code>
+        <name>{삼성전자 or 애플코리아}</name>
+    </item>
+    <item>
+        <code>23757697</code>
+        <name>
+            (번호이동시) 가입할 통신사를 제외한 다른 통신사를 90일 이상 사용중일 것
+            (기기변경시) 기존 통신사를 사용중이며, 단말기변경 후 1년 이상 경과했을 것
+        </name>
+    </item>
+    <item>
+        <code>23759095</code>
+        <name>{베트남 or 중국}</name>
+    </item>
+    <item>
+        <code>23760478</code>
+        <name>R-C-SEC-SMS931</name>
+    </item>
+    <item>
+        <code>23759938</code>
+        <name>상품상세 참조</name>
+    </item>
+    <item>
+        <code>23760172</code>
+        <name>상품상세 참조</name>
+    </item>
+    <item>
+        <code>23760386</code>
+        <name>상품상세 참조</name>
+    </item>
+    <item>
+        <code>23760437</code>
+        <name>상품상세 참조</name>
+    </item>
+    <item>
+        <code>23759650</code>
+        <name>상품상세 참조</name>
+    </item>
+</ProductNotification>
+<company>{삼성전자 or 애플코리아} </company>
+<prcCmpExpYn>Y</prcCmpExpYn>
+<prcDscCmpExpYn>Y</prcDscCmpExpYn>
+</>
+</>
+</Product>

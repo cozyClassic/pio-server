@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- http://api.11st.co.kr/rest/prodservices/updateProductOption/[prdNm] -->
+<Product>
+    <optSelectYn>Y</optSelectYn>
+    <txtColCnt>1</txtColCnt>
+    <colTitle>요금제</colTitle>
+    <prdExposeClfCd>01</prdExposeClfCd>
+    <ProductOption>
+        <useYn>Y</useYn>
+        <colOptPrice>0</colOptPrice>
+        <colValue0>플래티넘</colValue0>
+        <colCount>999</colCount>
+    </ProductOption>
+    <ProductOption>
+        <useYn>Y</useYn>
+        <colOptPrice>76200</colOptPrice>
+        <colValue0>프리미엄</colValue0>
+        <colCount>999</colCount>
+    </ProductOption>
+</Product>
