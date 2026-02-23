@@ -838,6 +838,13 @@ class OpenMarketProduct(SoftDeleteModel):
     open_market = models.ForeignKey(
         OpenMarket, on_delete=models.CASCADE, related_name="products"
     )
+    device_variant = models.ForeignKey(
+        DeviceVariant,
+        on_delete=models.SET_NULL,
+        related_name="open_market_product",
+        null=True,
+        default=None,
+    )
     om_product_id = models.CharField(
         max_length=100, blank=True, null=True, default=None
     )
