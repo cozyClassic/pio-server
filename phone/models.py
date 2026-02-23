@@ -84,6 +84,7 @@ class Plan(SoftDeleteModel):
     sms_allowance = models.CharField(max_length=100, help_text="sms_allowance limit")
     sort_order = models.IntegerField(default=0)
     membership_level = models.CharField(max_length=100, default="")
+    short_name = models.CharField(max_length=100, default="", null=True, blank=True)
     # many to many: PlanPremiumChoices
 
     def __str__(self):
