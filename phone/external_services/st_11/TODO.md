@@ -53,6 +53,8 @@ Railway에 아래 서비스를 추가해야 함:
   - 최초 등록 시 수동 입력, 이후 Task 성공 시마다 자동 갱신
 - `last_price_updated_at` (DateTimeField): 마지막 가격 갱신 시각
 
+--- 여기까지 완료 ---
+
 ### 3. Celery Task 설계
 
 > **공통 원칙**

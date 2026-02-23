@@ -31,6 +31,7 @@ SMARTEL_INVENTORY_API_KEY = env("SMARTEL_INVENTORY_API_KEY")
 GEMINI_API_KEY = env("GEMINI_API_KEY")
 CELERY_BROKER_URL = env("celery_broker")
 CELERY_RESULT_BACKEND = env("celery_broker")
+API_KEY_11st = env("API_KEY_11st")
 
 # Next.js ISR Revalidation
 FRONTEND_URL = env("FRONTEND_URL", default="https://www.phoneinone.com")
