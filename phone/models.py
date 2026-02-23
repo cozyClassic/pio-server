@@ -156,7 +156,7 @@ class DeviceVariant(SoftDeleteModel):
     )
 
     def __str__(self):
-        return f"{self.id}"
+        return f"{self.id} ({self.storage_capacity})"
 
     # 가격이 업데이트 되면 연결된 product 옵션들도 가격을 업데이트해야 합니다.
     def save(self, *args, **kwargs):
@@ -853,6 +853,9 @@ class OpenMarketProduct(SoftDeleteModel):
     registered_price = models.PositiveIntegerField(default=10000)
     detail_page_html = tinymce_models.HTMLField(default="", blank=True)
     last_price_updated_at = models.DateTimeField(default=None, null=True)
+
+    def __str__(self):
+        return self.name
 
 
 class OpenMarketProductOption(SoftDeleteModel):
