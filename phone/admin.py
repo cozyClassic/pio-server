@@ -2,6 +2,7 @@ import traceback
 from io import BytesIO
 import pandas as pd
 
+from collections import defaultdict
 from datetime import timedelta
 from django.utils.html import format_html
 from django.db.models import Prefetch, F, Subquery, OuterRef
@@ -11,6 +12,9 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.utils.html import format_html
 from django.utils import timezone
+
+from phone.tasks import task_a_remove_options
+from phone.external_services.st_11.put_product.set_options import SetOptions11ST
 from phone.inventory.kt_first.excel_kt_first import (
     read_inventory_excel as read_kt_first_inventory_excel,
     update_inventory as update_kt_first_inventory,
@@ -1503,9 +1507,119 @@ class OpenMarketAdmin(commonAdmin):
     pass
 
 
+class OpenMarketCarrierFilter(admin.SimpleListFilter):
+    title = "통신사"
+    parameter_name = "carrier"
+
+    def lookups(self, request, model_admin):
+        return [
+            ("SK", "SK"),
+            ("KT", "KT"),
+            ("LG", "LG"),
+        ]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(name__contains=self.value())
+        return queryset
+
+
 @admin.register(OpenMarketProduct)
 class OpenMarketProductAdmin(commonAdmin):
-    pass
+    actions = ["update_11st_prices"]
+
+    def get_queryset(self, request):
+        return (
+            super()
+            .get_queryset(request)
+            .select_related(
+                "open_market",
+            )
+        )
+
+    list_filter = ["open_market", OpenMarketCarrierFilter]
+
+    list_display = ["id", "open_market", "name"]
+
+    @admin.action(description="11번가 가격 업데이트")
+    def update_11st_prices(self, request, queryset):
+
+        MARGIN = 30_000
+
+        om_products = list(
+            queryset.filter(open_market__source=OpenMarketChoices.ST11).select_related(
+                "open_market"
+            )
+        )
+
+        if not om_products:
+            self.message_user(
+                request, "선택된 11번가 상품이 없습니다.", messages.WARNING
+            )
+            return
+
+        # DB N+1 방지: 대상 device_variant의 ProductOption 전체를 1회 조회
+        device_variant_ids = [
+            p.device_variant_id for p in om_products if p.device_variant_id
+        ]
+        all_product_options = list(
+            ProductOption.objects.filter(
+                device_variant_id__in=device_variant_ids,
+                discount_type="공시지원금",
+            )
+            .select_related("plan")
+            .order_by("-plan__price")
+        )
+
+        po_by_dv = defaultdict(list)
+        for po in all_product_options:
+            po_by_dv[po.device_variant_id].append(po)
+
+        queued = 0
+        for om_product in om_products:
+            seller_code = om_product.seller_code or ""
+            carriers = [c for c in CarrierChoices.VALUES if c in seller_code]
+            if not carriers:
+                self.message_user(
+                    request,
+                    f"[{om_product.name}] 셀러코드에서 통신사를 찾을 수 없어 건너뜁니다.",
+                    messages.WARNING,
+                )
+                continue
+
+            carrier = carriers[0]
+            contract_type = "번호이동" if "MNP" in seller_code else "기기변경"
+
+            matching_pos = [
+                po
+                for po in po_by_dv.get(om_product.device_variant_id, [])
+                if po.plan.carrier == carrier and po.contract_type == contract_type
+            ]
+            if not matching_pos:
+                self.message_user(
+                    request,
+                    f"[{om_product.name}] 적합한 요금제 옵션이 없어 건너뜁니다.",
+                    messages.WARNING,
+                )
+                continue
+
+            target_price = SetOptions11ST._get_option_price(
+                matching_pos[0],
+                margin=MARGIN,
+                commission_rate=om_product.open_market.commision_rate_default,
+            )
+
+            task_a_remove_options.delay(
+                om_product_id_internal=om_product.id,
+                target_price=target_price,
+            )
+            queued += 1
+
+        if queued:
+            self.message_user(
+                request,
+                f"{queued}개 상품에 대한 11번가 가격 업데이트 Task가 Queue에 추가되었습니다.",
+            )
 
 
 @admin.register(OpenMarketProductOption)
