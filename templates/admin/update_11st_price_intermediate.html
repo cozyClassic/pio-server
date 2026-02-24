@@ -1,0 +1,32 @@
+{% extends "admin/base_site.html" %}
+{% block title %}11번가 가격 업데이트{% endblock %}
+{% block content %}
+<h1>11번가 가격 업데이트</h1>
+
+<p>선택된 상품 {{ queryset.count }}개에 대해 가격 업데이트를 진행합니다.</p>
+
+<form method="post">
+  {% csrf_token %}
+  {% for obj in queryset %}
+    <input type="hidden" name="_selected_action" value="{{ obj.pk }}" />
+  {% endfor %}
+  <input type="hidden" name="action" value="update_11st_prices" />
+  <input type="hidden" name="apply" value="1" />
+
+  <div class="form-row">
+    <label for="id_margin">미끼 상품 마진 (원):</label>
+    {{ form.margin }}
+    {% if form.margin.help_text %}
+      <p class="help">{{ form.margin.help_text }}</p>
+    {% endif %}
+    {% if form.margin.errors %}
+      <ul class="errorlist">{% for e in form.margin.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    {% endif %}
+  </div>
+
+  <div class="submit-row">
+    <input type="submit" value="업데이트 시작" class="default" />
+    <a href="../" class="button">취소</a>
+  </div>
+</form>
+{% endblock %}

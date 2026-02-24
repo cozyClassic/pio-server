@@ -80,12 +80,16 @@ class SetOptions11ST:
         dv_id = om_product.device_variant_id
         contract_type = "번호이동" if "MNP" in om_product.seller_code else "기기변경"
 
-        product_options = ProductOption.objects.filter(
-            device_variant_id=dv_id,
-            contract_type=contract_type,
-            discount_type="공시지원금",
-            plan__carrier=carrier,
-        ).select_related("plan")
+        product_options = (
+            ProductOption.objects.filter(
+                device_variant_id=dv_id,
+                contract_type=contract_type,
+                discount_type="공시지원금",
+                plan__carrier=carrier,
+            )
+            .select_related("plan")
+            .order_by("plan__price")
+        )
 
         return [
             po

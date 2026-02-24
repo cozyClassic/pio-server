@@ -4,6 +4,7 @@ import pandas as pd
 
 from collections import defaultdict
 from datetime import timedelta
+from django import forms
 from django.utils.html import format_html
 from django.db.models import Prefetch, F, Subquery, OuterRef
 from django.contrib import admin, messages
@@ -12,6 +13,23 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.utils.html import format_html
 from django.utils import timezone
+
+
+BAIT_MARGIN = 10_000  # 미끼 상품 고정 마진
+
+
+class UpdatePriceForm(forms.Form):
+    db_margin = forms.IntegerField(
+        label="DB 상품에 포함된 마진 (원)",
+        initial=60_000,
+        help_text="DB product_option의 final_price에 이미 포함된 마진 (예: 60000~80000)",
+    )
+    om_margin = forms.IntegerField(
+        label="오픈마켓 추가 마진 (원)",
+        initial=30_000,
+        help_text="오픈마켓 옵션 가격에 추가할 마진 (예: 30000)",
+    )
+
 
 from phone.tasks import task_a_remove_options
 from phone.external_services.st_11.put_product.set_options import SetOptions11ST
@@ -1544,7 +1562,21 @@ class OpenMarketProductAdmin(commonAdmin):
     @admin.action(description="11번가 가격 업데이트")
     def update_11st_prices(self, request, queryset):
 
-        MARGIN = 30_000
+        if "apply" not in request.POST:
+            form = UpdatePriceForm()
+            return render(
+                request,
+                "admin/update_11st_price_intermediate.html",
+                {"form": form, "queryset": queryset},
+            )
+
+        form = UpdatePriceForm(request.POST)
+        if not form.is_valid():
+            self.message_user(request, "입력값이 올바르지 않습니다.", messages.ERROR)
+            return
+
+        db_margin = form.cleaned_data["db_margin"]
+        om_margin = form.cleaned_data["om_margin"]
 
         om_products = list(
             queryset.filter(open_market__source=OpenMarketChoices.ST11).select_related(
@@ -1603,15 +1635,16 @@ class OpenMarketProductAdmin(commonAdmin):
                 )
                 continue
 
-            target_price = SetOptions11ST._get_option_price(
-                matching_pos[0],
-                margin=MARGIN,
-                commission_rate=om_product.open_market.commision_rate_default,
+            bait_base = max([pos.final_price for pos in matching_pos]) - db_margin
+            commission_rate = om_product.open_market.commision_rate_default
+            target_price = int(
+                round((bait_base + BAIT_MARGIN) / (1 - commission_rate), -3)
             )
 
             task_a_remove_options.delay(
                 om_product_id_internal=om_product.id,
                 target_price=target_price,
+                om_margin=om_margin,
             )
             queued += 1
 

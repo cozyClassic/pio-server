@@ -10,9 +10,6 @@ from phone.external_services.st_11.put_product.remove_options import (
 from phone.external_services.st_11.put_product.set_price import set_product_price
 from phone.external_services.st_11.put_product.set_options import SetOptions11ST
 
-MARGIN_11ST = 30_000  # 수수료 제외 후 남길 마진 (1만원)
-
-
 def _get_carrier(seller_code: str) -> str:
     carriers = [c for c in CarrierChoices.VALUES if c in (seller_code or "")]
     if not carriers:
@@ -39,7 +36,7 @@ def _send_failure_alert(task_name: str, om_product_id: int, detail: str):
 
 
 @shared_task
-def task_a_remove_options(om_product_id_internal: int, target_price: int):
+def task_a_remove_options(om_product_id_internal: int, target_price: int, om_margin: int):
     """기본 옵션(가격 0원)만 남기고 나머지 제거 후 Task B 체이닝."""
     try:
         om_product = OpenMarketProduct.objects.get(id=om_product_id_internal)
@@ -49,6 +46,7 @@ def task_a_remove_options(om_product_id_internal: int, target_price: int):
             om_product_id_internal=om_product_id_internal,
             current_price=om_product.registered_price,
             target_price=target_price,
+            om_margin=om_margin,
         )
     except Exception as e:
         _send_failure_alert("Task A (옵션 정리)", om_product_id_internal, str(e))
@@ -57,7 +55,7 @@ def task_a_remove_options(om_product_id_internal: int, target_price: int):
 
 @shared_task
 def task_b_set_price(
-    om_product_id_internal: int, current_price: int, target_price: int
+    om_product_id_internal: int, current_price: int, target_price: int, om_margin: int
 ):
     """판매가를 목표가로 단계적 인하. 성공 시 DB 갱신 후 Task C 체이닝.
 
@@ -73,7 +71,10 @@ def task_b_set_price(
         om_product.last_price_updated_at = timezone.now()
         om_product.save(update_fields=["registered_price", "last_price_updated_at"])
 
-        task_c_set_options.delay(om_product_id_internal=om_product_id_internal)
+        task_c_set_options.delay(
+            om_product_id_internal=om_product_id_internal,
+            om_margin=om_margin,
+        )
     except Exception as e:
         _send_failure_alert(
             f"Task B (가격 인하, current={current_price}, target={target_price})",
@@ -84,10 +85,10 @@ def task_b_set_price(
 
 
 @shared_task
-def task_c_set_options(om_product_id_internal: int):
+def task_c_set_options(om_product_id_internal: int, om_margin: int):
     """option rate limit 이내의 하위 요금제 옵션 추가."""
     try:
-        SetOptions11ST.set_om_options(om_product_id_internal, margin=MARGIN_11ST)
+        SetOptions11ST.set_om_options(om_product_id_internal, margin=om_margin)
     except Exception as e:
         _send_failure_alert("Task C (옵션 추가)", om_product_id_internal, str(e))
         raise
