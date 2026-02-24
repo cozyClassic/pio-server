@@ -14,13 +14,24 @@
   <input type="hidden" name="apply" value="1" />
 
   <div class="form-row">
-    <label for="id_margin">미끼 상품 마진 (원):</label>
-    {{ form.margin }}
-    {% if form.margin.help_text %}
-      <p class="help">{{ form.margin.help_text }}</p>
+    <label for="id_db_margin">{{ form.db_margin.label }}:</label>
+    {{ form.db_margin }}
+    {% if form.db_margin.help_text %}
+      <p class="help">{{ form.db_margin.help_text }}</p>
     {% endif %}
-    {% if form.margin.errors %}
-      <ul class="errorlist">{% for e in form.margin.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    {% if form.db_margin.errors %}
+      <ul class="errorlist">{% for e in form.db_margin.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    {% endif %}
+  </div>
+
+  <div class="form-row">
+    <label for="id_om_margin">{{ form.om_margin.label }}:</label>
+    {{ form.om_margin }}
+    {% if form.om_margin.help_text %}
+      <p class="help">{{ form.om_margin.help_text }}</p>
+    {% endif %}
+    {% if form.om_margin.errors %}
+      <ul class="errorlist">{% for e in form.om_margin.errors %}<li>{{ e }}</li>{% endfor %}</ul>
     {% endif %}
   </div>
 

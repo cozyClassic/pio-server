@@ -10,6 +10,7 @@ from phone.external_services.st_11.put_product.remove_options import (
 from phone.external_services.st_11.put_product.set_price import set_product_price
 from phone.external_services.st_11.put_product.set_options import SetOptions11ST
 
+
 def _get_carrier(seller_code: str) -> str:
     carriers = [c for c in CarrierChoices.VALUES if c in (seller_code or "")]
     if not carriers:
@@ -36,7 +37,9 @@ def _send_failure_alert(task_name: str, om_product_id: int, detail: str):
 
 
 @shared_task
-def task_a_remove_options(om_product_id_internal: int, target_price: int, om_margin: int):
+def task_a_remove_options(
+    om_product_id_internal: int, target_price: int, om_margin: int
+):
     """기본 옵션(가격 0원)만 남기고 나머지 제거 후 Task B 체이닝."""
     try:
         om_product = OpenMarketProduct.objects.get(id=om_product_id_internal)

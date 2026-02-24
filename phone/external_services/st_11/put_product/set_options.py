@@ -88,7 +88,7 @@ class SetOptions11ST:
                 plan__carrier=carrier,
             )
             .select_related("plan")
-            .order_by("plan__price")
+            .order_by("-plan__price")
         )
 
         return [
@@ -111,10 +111,10 @@ class SetOptions11ST:
         options_xml = "\n".join(
             cls._get_product_option_xml(
                 po.plan.short_name,
-                om_product.registered_price
-                - cls._get_option_price(
+                cls._get_option_price(
                     po, margin, om_product.open_market.commision_rate_default
-                ),
+                )
+                - om_product.registered_price,
             )
             for po in available_options
         )

@@ -1635,7 +1635,7 @@ class OpenMarketProductAdmin(commonAdmin):
                 )
                 continue
 
-            bait_base = max([pos.final_price for pos in matching_pos]) - db_margin
+            bait_base = min([pos.final_price for pos in matching_pos]) - db_margin
             commission_rate = om_product.open_market.commision_rate_default
             target_price = int(
                 round((bait_base + BAIT_MARGIN) / (1 - commission_rate), -3)
