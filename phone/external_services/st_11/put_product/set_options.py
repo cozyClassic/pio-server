@@ -107,7 +107,8 @@ class SetOptions11ST:
         options_xml = "\n".join(
             cls._get_product_option_xml(
                 po.plan.short_name,
-                cls._get_option_price(
+                om_product.registered_price
+                - cls._get_option_price(
                     po, margin, om_product.open_market.commision_rate_default
                 ),
             )
