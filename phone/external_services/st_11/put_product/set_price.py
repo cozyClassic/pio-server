@@ -1,13 +1,13 @@
 import requests
 
 from phoneinone_server.settings import API_KEY_11st
-from .api import HOST_11st
+from ..api import HOST_11st
 from lxml import etree
 from math import ceil
 
 
 def _set_product_price(open_market_product_id: str, price: int):
-    url = f"{HOST_11st}/product/priceCoupon/{open_market_product_id}"
+    url = f"{HOST_11st}/prodservices/product/priceCoupon/{open_market_product_id}"
     headers = {"openapikey": API_KEY_11st}
     payload = f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Product>

@@ -1,7 +1,7 @@
 import requests
 
 from phoneinone_server.settings import API_KEY_11st
-from .api import HOST_11st, CARRIER_TO_DEFAULT_PLAN_NAME
+from ..api import HOST_11st, CARRIER_TO_DEFAULT_PLAN_NAME
 
 
 def remove_options_except_default(carrier: str, open_market_product_id: str):
@@ -9,7 +9,7 @@ def remove_options_except_default(carrier: str, open_market_product_id: str):
     if plan_name is None:
         raise Exception(f"입력된 통신사가 올바르지 않습니다: {carrier}")
 
-    url = f"{HOST_11st}/updateProductOption/{open_market_product_id}"
+    url = f"{HOST_11st}/prodservices/updateProductOption/{open_market_product_id}"
     headers = {"openapikey": API_KEY_11st}
     payload = f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Product>

@@ -4,7 +4,7 @@ from django.db.models import Prefetch
 from phoneinone_server.settings import API_KEY_11st
 from phone.constants import CarrierChoices
 from phone.models import OpenMarketProduct, OpenMarketProductOption, ProductOption
-from .api import HOST_11st, CARRIER_TO_DEFAULT_PLAN_NAME
+from ..api import HOST_11st, CARRIER_TO_DEFAULT_PLAN_NAME
 
 
 class SetOptions11ST:
@@ -119,7 +119,7 @@ class SetOptions11ST:
             for po in available_options
         )
 
-        url = f"{HOST_11st}/updateProductOption/{open_market_product_id}"
+        url = f"{HOST_11st}/prodservices/updateProductOption/{open_market_product_id}"
         headers = {"openapikey": API_KEY_11st}
         payload = f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Product>
