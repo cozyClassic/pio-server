@@ -1,6 +1,6 @@
 from phone.constants import CarrierChoices
 
-HOST_11st = "http://api.11st.co.kr/rest/prodservices"
+HOST_11st = "https://api.11st.co.kr/rest"
 
 CARRIER_TO_DEFAULT_PLAN_NAME = {
     CarrierChoices.SK: "플래티넘",

@@ -14,6 +14,7 @@ class ChannelTalkAPI:
     }
     ORDER_ALERT_GROUP_ID = "501418" if DEBUG else "501406"
     OPEN_MARKET_GROUP_ID = "545526"
+    OPEN_MARKET_ORDER_GROUP_ID = "545602"
 
     @staticmethod
     def post(path: str, json: dict) -> dict:
@@ -46,6 +47,21 @@ def send_order_alert(order_id: str, customer_name: str, customer_phone: str) -> 
                 {
                     "type": "text",
                     "value": f"주문 알림: {order_id}, {customer_name}, {customer_phone}",
+                },
+            ]
+        },
+    )
+    return response
+
+
+def send_open_market_order_alert(source: str, order_count: int):
+    response = ChannelTalkAPI.post(
+        path=f"/open/v5/groups/{ChannelTalkAPI.ORDER_ALERT_GROUP_ID}/messages",
+        json={
+            "blocks": [
+                {
+                    "type": "text",
+                    "value": f"처리 안된 주문 알림: {source}: {order_count}건",
                 },
             ]
         },
