@@ -13,6 +13,7 @@ class ChannelTalkAPI:
         "x-access-secret": CHANENLTALK_ACCESS_SECRET,
     }
     ORDER_ALERT_GROUP_ID = "501418" if DEBUG else "501406"
+    OPEN_MARKET_GROUP_ID = "545526"
 
     @staticmethod
     def post(path: str, json: dict) -> dict:
@@ -112,3 +113,23 @@ def send_shipping_noti_to_customer(
     )
 
     return response
+
+
+def send_open_market_update_failure_alert(
+    task_name: str, om_product_id: int, detail: str
+):
+    ChannelTalkAPI.post(
+        path=f"/open/v5/groups/{ChannelTalkAPI.ORDER_ALERT_GROUP_ID}/messages",
+        json={
+            "blocks": [
+                {
+                    "type": "text",
+                    "value": (
+                        f"[11번가 {task_name} 실패]\n"
+                        f"내부 ID: {om_product_id}\n"
+                        f"상세: {detail}"
+                    ),
+                }
+            ]
+        },
+    )

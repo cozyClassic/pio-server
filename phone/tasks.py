@@ -9,6 +9,7 @@ from phone.external_services.st_11.put_product.remove_options import (
 )
 from phone.external_services.st_11.put_product.set_price import set_product_price
 from phone.external_services.st_11.put_product.set_options import SetOptions11ST
+from phone.external_services.channel_talk import send_open_market_update_failure_alert
 
 
 def _get_carrier(seller_code: str) -> str:
@@ -16,24 +17,6 @@ def _get_carrier(seller_code: str) -> str:
     if not carriers:
         raise Exception(f"셀러코드에 매칭되는 통신사가 없습니다: {seller_code}")
     return carriers[0]
-
-
-def _send_failure_alert(task_name: str, om_product_id: int, detail: str):
-    ChannelTalkAPI.post(
-        path=f"/open/v5/groups/{ChannelTalkAPI.ORDER_ALERT_GROUP_ID}/messages",
-        json={
-            "blocks": [
-                {
-                    "type": "text",
-                    "value": (
-                        f"[11번가 {task_name} 실패]\n"
-                        f"내부 ID: {om_product_id}\n"
-                        f"상세: {detail}"
-                    ),
-                }
-            ]
-        },
-    )
 
 
 @shared_task
@@ -52,7 +35,9 @@ def task_a_remove_options(
             om_margin=om_margin,
         )
     except Exception as e:
-        _send_failure_alert("Task A (옵션 정리)", om_product_id_internal, str(e))
+        send_open_market_update_failure_alert(
+            "Task A (옵션 정리)", om_product_id_internal, str(e)
+        )
         raise
 
 
@@ -79,7 +64,7 @@ def task_b_set_price(
             om_margin=om_margin,
         )
     except Exception as e:
-        _send_failure_alert(
+        send_open_market_update_failure_alert(
             f"Task B (가격 인하, current={current_price}, target={target_price})",
             om_product_id_internal,
             str(e),
@@ -93,5 +78,7 @@ def task_c_set_options(om_product_id_internal: int, om_margin: int):
     try:
         SetOptions11ST.set_om_options(om_product_id_internal, margin=om_margin)
     except Exception as e:
-        _send_failure_alert("Task C (옵션 추가)", om_product_id_internal, str(e))
+        send_open_market_update_failure_alert(
+            "Task C (옵션 추가)", om_product_id_internal, str(e)
+        )
         raise
