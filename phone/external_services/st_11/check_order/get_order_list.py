@@ -1,9 +1,12 @@
+import logging
 import requests
 
 from phoneinone_server.settings import API_KEY_11st
 from ..api import HOST_11st
 from lxml import etree
 from datetime import datetime, timezone, timedelta
+
+logger = logging.getLogger(__name__)
 
 _ORDER_RESPONSE_SAMPLE = """<?xml version="1.0" encoding="EUC-KR" standalone="yes"?>
 <ns2:orders xmlns:ns2="http://skt.tmall.business.openapi.spring.service.client.domain/">
@@ -131,11 +134,15 @@ def get_unhandled_order_list_today():
     url = f"{HOST_11st}/ordservices/complete/{yesterday_00_00}/{today_23_59}"
     headers = {"openapikey": API_KEY_11st}
 
+    logger.info("11번가 주문 조회 요청: %s", url)
+
     response = requests.request(
         method="GET",
         url=url,
         headers=headers,
     )
+
+    logger.info("11번가 응답 status=%s, body=%s", response.status_code, response.text[:500])
 
     root = etree.fromstring(response.content)
     ns = {"ns2": "http://skt.tmall.business.openapi.spring.service.client.domain/"}

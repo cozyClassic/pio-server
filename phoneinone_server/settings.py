@@ -205,21 +205,26 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 20,
 }
 
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "loggers": {
+        "phone": {
+            "handlers": ["console"],
+            "level": "INFO",
+        },
+    },
+}
+
 if DEBUG:
-    LOGGING = {
-        "version": 1,
-        "disable_existing_loggers": False,
-        "handlers": {
-            "console": {
-                "class": "logging.StreamHandler",
-            },
-        },
-        "loggers": {
-            "django.db.backends": {
-                "handlers": ["console"],
-                "level": "DEBUG",
-            },
-        },
+    LOGGING["loggers"]["django.db.backends"] = {
+        "handlers": ["console"],
+        "level": "DEBUG",
     }
 
 MEDIA_ROOT = BASE_DIR / "media"
