@@ -54,14 +54,29 @@ def send_order_alert(order_id: str, customer_name: str, customer_phone: str) -> 
     return response
 
 
-def send_open_market_order_alert(source: str, order_count: int):
+def send_open_market_order_alert(source: str, orders: list[dict[str]]):
+    """
+    orders = [{
+        "order_no": "",
+        "customer_name": "",
+        "customer_phone": "",
+        "product_name": "",
+        "plan_name": "",
+        "sell_price": "",
+    }]
+    """
+
+    order_text = "\n\n".join(
+        [(f"{o['customer_name']} / {o['product_name']}") for o in orders]
+    )
+
     response = ChannelTalkAPI.post(
-        path=f"/open/v5/groups/{ChannelTalkAPI.ORDER_ALERT_GROUP_ID}/messages",
+        path=f"/open/v5/groups/{ChannelTalkAPI.OPEN_MARKET_ORDER_GROUP_ID}/messages",
         json={
             "blocks": [
                 {
                     "type": "text",
-                    "value": f"처리 안된 주문 알림: {source}: {order_count}건",
+                    "value": f"새 주문 알림({source}) \n {order_text}",
                 },
             ]
         },

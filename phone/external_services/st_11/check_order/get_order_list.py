@@ -101,20 +101,13 @@ def format_datetime_11st_style(t: datetime):
 
 
 def parse_datas(xml: etree._Element):
-    customer_name = xml.find("ordNm")
-    customer_phone = xml.find("ordPrtblTel")
-    customer_email = xml.find("")
-    product_name = xml.find("prdNm")
-    plan_name = xml.find("slctPrdOptNm")
-    sell_price = xml.find("selPrc")
-
     return {
-        customer_name: customer_name,
-        customer_phone: customer_phone,
-        customer_email: customer_email,
-        product_name: product_name,
-        plan_name: plan_name,
-        sell_price: sell_price,
+        "order_no": xml.findtext("ordNo"),
+        "customer_name": xml.findtext("ordNm"),
+        "customer_phone": xml.findtext("ordPrtblTel"),
+        "product_name": xml.findtext("prdNm"),
+        "plan_name": xml.findtext("slctPrdOptNm"),
+        "sell_price": xml.findtext("selPrc"),
     }
 
 
@@ -137,9 +130,6 @@ def get_unhandled_order_list_today():
 
     url = f"{HOST_11st}/ordservices/complete/{yesterday_00_00}/{today_23_59}"
     headers = {"openapikey": API_KEY_11st}
-
-    order_datas = []
-    # {오픈마켓명, 이름, 상품명, }
 
     response = requests.request(
         method="GET",

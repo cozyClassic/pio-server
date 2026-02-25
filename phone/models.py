@@ -941,3 +941,18 @@ class OpenMarketProductOption(SoftDeleteModel):
         if name_split[-1] in self.option_name:
             return
         raise Exception("옵션명 요금제명 확인 필요")
+
+
+class OpenMarketOrder(models.Model):
+    """오픈마켓 주문 알림 중복 방지용 - 알림을 보낸 주문 ID 저장"""
+
+    source = models.CharField(
+        "오픈마켓",
+        choices=OpenMarketChoices.Choices,
+        max_length=20,
+    )
+    order_no = models.CharField("주문번호", max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("source", "order_no")

@@ -1,15 +1,20 @@
 from celery import shared_task
 from django.utils import timezone
 
-from phone.models import OpenMarketProduct
-from phone.constants import CarrierChoices
-from phone.external_services.channel_talk import ChannelTalkAPI
+from phone.models import OpenMarketProduct, OpenMarketOrder
+from phone.constants import CarrierChoices, OpenMarketChoices
 from phone.external_services.st_11.put_product.remove_options import (
     remove_options_except_default,
 )
 from phone.external_services.st_11.put_product.set_price import set_product_price
 from phone.external_services.st_11.put_product.set_options import SetOptions11ST
-from phone.external_services.channel_talk import send_open_market_update_failure_alert
+from phone.external_services.channel_talk import (
+    send_open_market_update_failure_alert,
+    send_open_market_order_alert,
+)
+from phone.external_services.st_11.check_order.get_order_list import (
+    get_unhandled_order_list_today,
+)
 
 
 def _get_carrier(seller_code: str) -> str:
@@ -82,3 +87,31 @@ def task_c_set_options(om_product_id_internal: int, om_margin: int):
             "Task C (옵션 추가)", om_product_id_internal, str(e)
         )
         raise
+
+
+@shared_task
+def task_check_11st_orders():
+    """5분마다 11번가 미처리 주문을 조회하고, 아직 알림을 보내지 않은 신규 주문만 알림 발송."""
+    orders = get_unhandled_order_list_today()
+    if not orders:
+        return
+
+    incoming_order_nos = {o["order_no"] for o in orders}
+    already_notified = set(
+        OpenMarketOrder.objects.filter(
+            source=OpenMarketChoices.ST11,
+            order_no__in=incoming_order_nos,
+        ).values_list("order_no", flat=True)
+    )
+
+    new_order_nos = incoming_order_nos - already_notified
+    if not new_order_nos:
+        return
+
+    OpenMarketOrder.objects.bulk_create(
+        [
+            OpenMarketOrder(source=OpenMarketChoices.ST11, order_no=no)
+            for no in new_order_nos
+        ]
+    )
+    send_open_market_order_alert(OpenMarketChoices.ST11, orders)

@@ -276,3 +276,9 @@ TINYMCE_EXTRA_MEDIA = {
 CELERY_TASK_SERIALIZER = "json"
 CELERY_TASK_ACKS_LATE = True
 CELERY_RESULT_EXPIRES = 60 * 60  # 1시간 후 자동 삭제
+CELERY_BEAT_SCHEDULE = {
+    "check-11st-orders-every-5min": {
+        "task": "phone.tasks.task_check_11st_orders",
+        "schedule": 60 * 5,  # 5분
+    },
+}
