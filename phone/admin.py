@@ -127,7 +127,7 @@ class DeviceAdmin(commonAdmin, nested_admin.NestedModelAdmin):
 @admin.register(DeviceColor)
 class DeviceColorsAdmin(commonAdmin):
     list_display = ("device", "color", "color_code")
-    search_fields = ("device__name", "color")
+    search_fields = ("device__model_name", "color")
 
     queryset = DeviceColor.objects.filter(deleted_at__isnull=True)
 
@@ -135,7 +135,7 @@ class DeviceColorsAdmin(commonAdmin):
 @admin.register(DeviceVariant)
 class DeviceVariantsAdmin(commonAdmin):
     list_display = ("device", "storage_capacity", "device_price")
-    search_fields = ("device__name", "storage_capacity")
+    search_fields = ("device__model_name", "storage_capacity")
 
     def get_queryset(self, request):
         return (
@@ -821,11 +821,17 @@ class ProductOptionsAdmin(commonAdmin):
     )
     search_fields = ("product__name", "device_variant__device__name")
     list_filter = ("product", "plan__carrier", "discount_type", "contract_type")
+    autocomplete_fields = ["device_variant"]
 
     queryset = ProductOption.objects.filter(deleted_at__isnull=True).select_related(
-        "plan", "device_variant"
+        "plan", "deviabce_variant", "device_variant__device"
     )
     change_list_template = "admin/productoption_changelist.html"
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "device_variant":
+            kwargs["queryset"] = DeviceVariant.objects.select_related("device")
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def get_urls(self):
         urls = super().get_urls()

@@ -13,7 +13,7 @@ class ChannelTalkAPI:
         "x-access-secret": CHANENLTALK_ACCESS_SECRET,
     }
     ORDER_ALERT_GROUP_ID = "501418" if DEBUG else "501406"
-    OPEN_MARKET_GROUP_ID = "545526"
+    OPEN_MARKET_ERROR_ALERT_GROUP_ID = "545526"
     OPEN_MARKET_ORDER_GROUP_ID = "545602"
 
     @staticmethod
@@ -150,7 +150,7 @@ def send_open_market_update_failure_alert(
     task_name: str, om_product_id: int, detail: str
 ):
     ChannelTalkAPI.post(
-        path=f"/open/v5/groups/{ChannelTalkAPI.ORDER_ALERT_GROUP_ID}/messages",
+        path=f"/open/v5/groups/{ChannelTalkAPI.OPEN_MARKET_ERROR_ALERT_GROUP_ID}/messages",
         json={
             "blocks": [
                 {
