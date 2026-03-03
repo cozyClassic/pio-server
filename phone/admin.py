@@ -137,7 +137,13 @@ class DeviceVariantsAdmin(commonAdmin):
     list_display = ("device", "storage_capacity", "device_price")
     search_fields = ("device__name", "storage_capacity")
 
-    queryset = DeviceVariant.objects.filter(deleted_at__isnull=True)
+    def get_queryset(self, request):
+        return (
+            super()
+            .get_queryset(request)
+            .filter(deleted_at__isnull=True)
+            .select_related("device")
+        )
 
 
 class ProductDetailImageInline(nested_admin.NestedTabularInline):
@@ -814,7 +820,7 @@ class ProductOptionsAdmin(commonAdmin):
         "contract_type",
     )
     search_fields = ("product__name", "device_variant__device__name")
-    list_filter = ("product", "device_variant")
+    list_filter = ("product", "plan__carrier", "discount_type", "contract_type")
 
     queryset = ProductOption.objects.filter(deleted_at__isnull=True).select_related(
         "plan", "device_variant"
@@ -1552,10 +1558,18 @@ class OpenMarketProductAdmin(commonAdmin):
             .get_queryset(request)
             .select_related(
                 "open_market",
+                "device_variant",
+                "device_variant__device",
             )
         )
 
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "device_variant":
+            kwargs["queryset"] = DeviceVariant.objects.select_related("device")
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
     list_filter = ["open_market", OpenMarketCarrierFilter]
+    autocomplete_fields = ["device_variant"]
 
     list_display = ["id", "open_market", "name"]
 

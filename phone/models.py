@@ -6,6 +6,7 @@ from simple_history.models import HistoricalRecords
 from threading import local
 import pandas as pd
 from .managers import SoftDeleteManager
+from phoneinone_server.settings import DEBUG
 
 from tinymce import models as tinymce_models
 from .utils import UniqueFilePathGenerator
@@ -156,7 +157,9 @@ class DeviceVariant(SoftDeleteModel):
     )
 
     def __str__(self):
-        return f"{self.id} ({self.storage_capacity})"
+        if DEBUG:
+            return f"{self.device.model_name} ({self.storage_capacity})"
+        return super().__str__()
 
     # 가격이 업데이트 되면 연결된 product 옵션들도 가격을 업데이트해야 합니다.
     def save(self, *args, **kwargs):
