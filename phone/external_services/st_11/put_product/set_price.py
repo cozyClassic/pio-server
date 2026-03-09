@@ -7,6 +7,10 @@ from math import ceil
 
 
 def _set_product_price(open_market_product_id: str, price: int):
+    # 11번가 API는 100원 미만의 가격 설정을 허용하지 않음
+    if price < 10000:
+        price = 10000
+
     url = f"{HOST_11st}/prodservices/product/priceCoupon/{open_market_product_id}"
     headers = {"openapikey": API_KEY_11st}
     payload = f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
