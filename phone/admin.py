@@ -1299,11 +1299,37 @@ class OfficialContractLinkAdmin(commonAdmin):
     pass
 
 
+class InventoryDeviceFilter(admin.SimpleListFilter):
+    title = "단말기"
+    parameter_name = "device_id"
+
+    def lookups(self, request, model_admin):
+        devices = (
+            Device.objects.filter(deleted_at__isnull=True)
+            .values_list("id", "model_name")
+            .order_by("model_name")
+        )
+        return list(devices)
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(device_variant__device_id=self.value())
+        return queryset
+
+
 @admin.register(Inventory)
 class InventoryAdmin(commonAdmin):
-    list_display = ("dealership", "color_in_sheet", "name_in_sheet")
-    list_filter = ("dealership",)
+    list_display = ("dealership", "color_in_sheet", "name_in_sheet", "count")
+    list_filter = ("dealership", InventoryDeviceFilter)
     change_list_template = "admin/inventory_changelist.html"
+    search_fields = ("device_variant__device__model_name",)
+
+    def get_queryset(self, request):
+        return (
+            super()
+            .get_queryset(request)
+            .select_related("dealership", "device_variant__device")
+        )
 
     def get_urls(self):
         urls = super().get_urls()
@@ -1662,6 +1688,9 @@ class OpenMarketProductAdmin(commonAdmin):
             target_price = int(
                 round((bait_base + BAIT_MARGIN) / (1 - commission_rate), -3)
             )
+            if target_price <= 1000:
+                # 마이너스 가격 세팅 불가 - 최소 1000원으로 설정
+                target_price = 1000
 
             task_a_remove_options.delay(
                 om_product_id_internal=om_product.id,
