@@ -61,8 +61,11 @@ def update_inventory_counts(api_items):
         api_key = (api_item.phone_name.replace(" ", ""), api_item.color)
         db_item = db_dict.get(api_key)
         if db_item:
-            db_item.count = api_item.count
-            update_counts += 1
+            if db_item.count == 0:
+                update_counts += 1
+            db_item.count += (
+                api_item.count
+            )  # 누적하여 더하기 - 같은 갤럭시S26이어도 SM-S942NSO / SM-S942N 처럼 나뉘는 경우 있음
         else:
             not_updated_datas.append(api_item)
 

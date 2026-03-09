@@ -1301,6 +1301,8 @@ class OfficialContractLinkAdmin(commonAdmin):
 
 @admin.register(Inventory)
 class InventoryAdmin(commonAdmin):
+    list_display = ("dealership", "color_in_sheet", "name_in_sheet")
+    list_filter = ("dealership",)
     change_list_template = "admin/inventory_changelist.html"
 
     def get_urls(self):
