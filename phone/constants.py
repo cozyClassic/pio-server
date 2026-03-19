@@ -36,11 +36,13 @@ class OpenMarketChoices(object):
     GMK = "G마켓 옥션"
     SSG = "SSG"
     LTON = "롯데ON"
+    N_COMP = "네이버 가격비교"
     Choices = [
         (ST11, "11번가"),
         (GMK, "G마켓 옥션"),
         (SSG, "SSG"),
         (LTON, "롯데ON"),
+        (N_COMP, "네이버 가격비교"),
     ]
 
     VALUES = [ST11, GMK, SSG, LTON]
