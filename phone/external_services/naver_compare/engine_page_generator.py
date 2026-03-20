@@ -3,7 +3,6 @@ from phone.constants import OpenMarketChoices
 from urllib.parse import urlencode
 
 
-
 # .txt 파일, 컬럼은 탭으로 구분하기, 헤더는 총 74개
 # 참조 - https://join.shopping.naver.com/misc/download/ep_guide.nhn
 
@@ -128,7 +127,7 @@ class NaverCompareEnginePageGenerator:
                 f"No options found for OpenMarketProduct with id {omp.id} matching carrier {carrier}, contract type {contract_type}, and subsidy discount type."
             )
 
-        return str(min(opt.final_price for opt in options))
+        return str(min(opt.final_price for opt in options) | 100)
 
     def _get_link(self, omp: OpenMarketProduct):
         product_id = omp.device_variant.product_options.all()[0].product_id
