@@ -1585,6 +1585,30 @@ class OpenMarketCarrierFilter(admin.SimpleListFilter):
 @admin.register(OpenMarketProduct)
 class OpenMarketProductAdmin(commonAdmin):
     actions = ["update_11st_prices"]
+    change_list_template = "admin/open_market_product_changelist.html"
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "update-naver-compare/",
+                self.admin_site.admin_view(self.update_naver_compare),
+                name="open_market_product_update_naver_compare",
+            ),
+        ]
+        return custom_urls + urls
+
+    def update_naver_compare(self, request):
+        from phone.external_services.naver_compare.engine_page_generator import (
+            NaverCompareEnginePageGenerator,
+        )
+
+        try:
+            NaverCompareEnginePageGenerator().generate()
+            self.message_user(request, "네이버 가격비교 EP가 성공적으로 업데이트되었습니다.")
+        except Exception as e:
+            self.message_user(request, f"업데이트 중 오류가 발생했습니다: {e}", messages.ERROR)
+        return HttpResponseRedirect("../")
 
     def get_queryset(self, request):
         return (
