@@ -79,9 +79,11 @@ class SetOptions11ST:
         # 현재는 마이너스 가격의 옵션은 생성하지 않으므로, 고려하지 않는다.
         dv_id = om_product.device_variant_id
         contract_type = (
-            ContractTypeChoices.MNP
-            if "MNP" in om_product.seller_code
-            else ContractTypeChoices.DEVICE_CHANGE
+            (
+                ContractTypeChoices.MNP
+                if "MNP" in om_product.seller_code
+                else ContractTypeChoices.CHANGE
+            ),
         )
 
         product_options = (
