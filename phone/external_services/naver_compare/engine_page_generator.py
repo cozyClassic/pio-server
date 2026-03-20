@@ -1,3 +1,5 @@
+import boto3
+from django.conf import settings
 from phone.models import *
 from phone.constants import OpenMarketChoices
 from urllib.parse import urlencode
@@ -236,12 +238,20 @@ class NaverCompareEnginePageGenerator:
             "shipping_settings": "오늘출발^15:00^택배^우체국택배^N^Y^3000^6000^1^1^토요일|일요일|공휴일^",
         }.get(header, "")
 
+    def _save_to_db(self, products: list[OpenMarketProduct]):
+        OpenMarketProduct.objects.bulk_update(
+            products,
+            fields=["registered_price", "updated_at", "last_price_updated_at"],
+        )
+
     def generate(self):
         if len(self.HEADERS) != 74:
             raise ValueError("헤더의 개수가 74개가 아닙니다.")
         self.queryset = self._get_queryset()
         # 혹시 모르니까 header deep copy
         result = [[header for header in self.HEADERS]]
+        processed = []
+        now = timezone.now()
 
         for om_product in self.queryset:
             carrier = om_product.get_carrier()
@@ -256,6 +266,27 @@ class NaverCompareEnginePageGenerator:
             omp = []
             for header in self.HEADERS:
                 omp.append(self.operation(header, om_product))
+                if header == "price_pc":
+                    om_product.registered_price = int(omp[-1])
+                    om_product.updated_at = now
+                    om_product.last_price_updated_at = now
             result.append(omp)
+            processed.append(om_product)
 
-        return "\n".join(["\t".join(res) for res in result])
+        self._save_to_db(processed)
+
+        content = "\n".join(["\t".join(res) for res in result])
+        self._upload_to_s3(content)
+        return content
+
+    def _upload_to_s3(self, content: str):
+        s3 = boto3.client(
+            "s3",
+            region_name=settings.AWS_S3_REGION_NAME,
+        )
+        s3.put_object(
+            Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+            Key="naver/compare-engine-page.txt",
+            Body=content.encode("utf-8-sig"),
+            ContentType="text/plain; charset=utf-8",
+        )
