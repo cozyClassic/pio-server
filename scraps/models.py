@@ -1,4 +1,5 @@
 from django.db import models
+from phone.constants import *
 
 # Create your models here.
 
@@ -74,8 +75,16 @@ class PriceLog(models.Model):
     plan = models.ForeignKey(Plan, on_delete=models.CASCADE)
     device_variant = models.ForeignKey(DeviceVariant, on_delete=models.CASCADE)
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
-    contract_type = models.CharField(max_length=50)  # 번호이동, 신규가입, 기기변경
-    discount_type = models.CharField(max_length=50)  # 공시지원금, 선택약정
+    contract_type = models.CharField(
+        max_length=50,
+        choices=ContractTypeChoices.CHOICES,
+        default=ContractTypeChoices.MNP,
+    )
+    discount_type = models.CharField(
+        max_length=50,
+        choices=DiscountTypeChoices.CHOICES,
+        default=DiscountTypeChoices.SUBSIDY,
+    )
     subsidy_common = models.DecimalField(
         max_digits=10, decimal_places=2, default=0
     )  # 공통지원금

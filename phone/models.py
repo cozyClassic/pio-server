@@ -10,7 +10,7 @@ from phoneinone_server.settings import DEBUG
 
 from tinymce import models as tinymce_models
 from .utils import UniqueFilePathGenerator
-from .constants import CarrierChoices, ContractTypeChoices, OpenMarketChoices
+from .constants import *
 
 # Thread-local storage for tracking products that need updates
 _thread_locals = local()
@@ -195,11 +195,8 @@ class ProductOption(SoftDeleteModel):
     )
     discount_type = models.CharField(
         max_length=50,
-        choices=[
-            ("공시지원금", "공시지원금"),
-            ("선택약정", "선택약정"),
-        ],
-        default=("공시지원금", "공시지원금"),
+        choices=DiscountTypeChoices.CHOICES,
+        default=DiscountTypeChoices.SUBSIDY,
     )
     contract_type = models.CharField(
         max_length=50,
@@ -413,11 +410,8 @@ class Order(SoftDeleteModel):
     monthly_discount = models.IntegerField(default=0)
     discount_type = models.CharField(
         max_length=50,
-        choices=[
-            ("공시지원금", "공시지원금"),
-            ("선택약정", "선택약정"),
-        ],
-        default="공시지원금",
+        choices=DiscountTypeChoices.CHOICES,
+        default=DiscountTypeChoices.SUBSIDY,
     )
     contract_type = models.CharField(
         max_length=50,
@@ -859,6 +853,48 @@ class OpenMarketProduct(SoftDeleteModel):
 
     def __str__(self):
         return self.name
+
+    def get_carrier(self):
+        if hasattr(self, "carrier") and self.carrier:  # 이미 캐싱된 경우
+            return self.carrier
+
+        if CarrierChoices.KT in self.seller_code:
+            carrier = CarrierChoices.KT
+        elif CarrierChoices.LG in self.seller_code:
+            carrier = CarrierChoices.LG
+        elif CarrierChoices.SK in self.seller_code:
+            carrier = CarrierChoices.SK
+        else:
+            raise Exception(
+                f"판매자 코드에서 통신사 정보를 찾을 수 없습니다: {self.seller_code}"
+            )
+
+        self.carrier = carrier  # 캐싱
+        return carrier
+
+    def get_contract_type(self):
+        if hasattr(self, "contract_type") and self.contract_type:  # 이미 캐싱된 경우
+            return self.contract_type
+
+        contract_type = (
+            ContractTypeChoices.CHANGE
+            if "DEVICE" in self.seller_code
+            else ContractTypeChoices.MNP
+        )
+
+        self.contract_type = contract_type  # 캐싱
+        return contract_type
+
+    def get_capacity(self):
+        if hasattr(self, "capacity") and self.capacity:  # 이미 캐싱된 경우
+            return self.capacity
+
+        for capacity in ["1024", "512", "256", "128", "64", "32"]:
+            if capacity in self.seller_code:
+                self.capacity = capacity  # 캐싱
+                return capacity
+
+        raise Exception(f"코드에서 용량 정보를 찾을 수 없습니다: {self.seller_code}")
 
 
 class OpenMarketProductOption(SoftDeleteModel):

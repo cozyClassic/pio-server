@@ -2,7 +2,7 @@ import requests
 
 from django.db.models import Prefetch
 from phoneinone_server.settings import API_KEY_11st
-from phone.constants import CarrierChoices
+from phone.constants import CarrierChoices, DiscountTypeChoices, ContractTypeChoices
 from phone.models import OpenMarketProduct, OpenMarketProductOption, ProductOption
 from ..api import HOST_11st, CARRIER_TO_DEFAULT_PLAN_NAME
 
@@ -78,13 +78,17 @@ class SetOptions11ST:
         )
         # 현재는 마이너스 가격의 옵션은 생성하지 않으므로, 고려하지 않는다.
         dv_id = om_product.device_variant_id
-        contract_type = "번호이동" if "MNP" in om_product.seller_code else "기기변경"
+        contract_type = (
+            ContractTypeChoices.MNP
+            if "MNP" in om_product.seller_code
+            else ContractTypeChoices.DEVICE_CHANGE
+        )
 
         product_options = (
             ProductOption.objects.filter(
                 device_variant_id=dv_id,
                 contract_type=contract_type,
-                discount_type="공시지원금",
+                discount_type=DiscountTypeChoices.SUBSIDY,
                 plan__carrier=carrier,
             )
             .select_related("plan")

@@ -408,7 +408,7 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
         all_options = list(
             ProductOption.objects.filter(
                 product_id__in=product_ids,
-                discount_type="공시지원금",
+                discount_type=DiscountTypeChoices.SUBSIDY,
                 deleted_at__isnull=True,
                 plan__deleted_at__isnull=True,
             )

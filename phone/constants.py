@@ -1,3 +1,12 @@
+class DiscountTypeChoices(object):
+    SUBSIDY = "공시지원금"
+    SELECTION = "선택약정"
+    CHOICES = [
+        (SUBSIDY, "공시지원금"),
+        (SELECTION, "선택약정"),
+    ]
+
+
 class CarrierChoices(object):
     SK = "SK"
     KT = "KT"
