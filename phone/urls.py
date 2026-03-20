@@ -40,4 +40,5 @@ urlpatterns = [
         "price-history-chart",
         PriceHistoryChartViewSet.as_view({"get": "list"}),
     ),
+    path("naver-compare-engine-page", naver_compare_engine_page),
 ]

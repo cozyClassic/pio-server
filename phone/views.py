@@ -1007,3 +1007,12 @@ class PriceHistoryChartViewSet(GenericViewSet):
                 "latest_prices": latest_prices,
             }
         )
+
+
+def naver_compare_engine_page(request: HttpRequest) -> HttpResponse:
+    from .external_services.naver_compare.engine_page_generator import (
+        NaverCompareEnginePageGenerator,
+    )
+
+    content = NaverCompareEnginePageGenerator().generate()
+    return HttpResponse(content, content_type="text/plain; charset=utf-8")
