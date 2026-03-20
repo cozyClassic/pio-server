@@ -1,6 +1,7 @@
 from phone.models import *
 from phone.constants import OpenMarketChoices
-from urllib.parse import urlparse, urlencode
+from urllib.parse import urlencode
+
 
 
 # .txt 파일, 컬럼은 탭으로 구분하기, 헤더는 총 74개
@@ -88,7 +89,10 @@ class NaverCompareEnginePageGenerator:
     def _get_queryset(self):
         return (
             OpenMarketProduct.objects.filter(
-                open_market__source=OpenMarketChoices.N_COMP, deleted_at__isnull=True
+                open_market__source=OpenMarketChoices.N_COMP,
+                deleted_at__isnull=True,
+                device_variant__product_options__product__is_active=True,
+                device_variant__product_options__product__deleted_at__isnull=True,
             )
             .select_related(
                 "device_variant",
@@ -96,10 +100,13 @@ class NaverCompareEnginePageGenerator:
             )
             .prefetch_related(
                 "device_variant__product_options",
+                "device_variant__product_options__product",
+                "device_variant__inventories__dealership",
                 "device_variant__product_options__plan",
                 "device_variant__device__colors",
                 "device_variant__device__colors__images",
             )
+            .distinct()
         )
 
     def _get_price_pc(self, omp: OpenMarketProduct):
@@ -129,7 +136,7 @@ class NaverCompareEnginePageGenerator:
             raise ValueError(
                 f"Product ID is missing for OpenMarketProduct with id {omp.id}"
             )
-        prev_carrier = CarrierChoices.MVNO
+        prev_carrier = "mvno"
 
         contract_type = omp.get_contract_type()
         if contract_type == ContractTypeChoices.CHANGE:
@@ -238,6 +245,15 @@ class NaverCompareEnginePageGenerator:
         result = [[header for header in self.HEADERS]]
 
         for om_product in self.queryset:
+            carrier = om_product.get_carrier()
+            total_inventory = sum(
+                inv.count
+                for inv in om_product.device_variant.inventories.all()
+                if inv.dealership.carrier == carrier
+            )
+            if total_inventory == 0:
+                continue
+
             omp = []
             for header in self.HEADERS:
                 omp.append(self.operation(header, om_product))
