@@ -1,7 +1,6 @@
 import re
 from django.http import HttpResponse, HttpRequest, JsonResponse
-from django.http.response import HttpResponseNotFound
-from rest_framework.request import Request
+from rest_framework.request import Request, Empty
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.viewsets import ReadOnlyModelViewSet, GenericViewSet, ModelViewSet
 from rest_framework.views import APIView
@@ -46,7 +45,7 @@ class ProductViewSet(ReadOnlyModelViewSet):
     serializer_class = ProductListSerializer
     queryset = Product.objects.filter(deleted_at__isnull=True, is_active=True).all()
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore
         return self.queryset
 
     @swagger_auto_schema(
@@ -228,7 +227,7 @@ class ProductViewSet(ReadOnlyModelViewSet):
         ).first()
 
         if instance is None:
-            return HttpResponseNotFound()
+            return Response(status=status.HTTP_404_NOT_FOUND)
 
         # 재고 정보 조회 (prefetch된 데이터 사용)
         variant_ids = [v.id for v in instance.device.variants.all()]
@@ -260,7 +259,7 @@ class OrderViewSet(
 
     queryset = Order.objects.all().filter(deleted_at__isnull=True)
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore
         return self.queryset
 
     @swagger_auto_schema(
@@ -394,7 +393,7 @@ ORDER BY o.id, ci.id;
         )
 
         if len(queryset) == 0:
-            return HttpResponse("Order not found", status=404)
+            return Response(data="order not found", status=status.HTTP_404_NOT_FOUND)
 
         serializer = OrderDetailSerializer(queryset[0])
         return Response(serializer.data)
@@ -488,8 +487,8 @@ class NoticeViewSet(ReadOnlyModelViewSet):
             ),
         ],
     )
-    def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
+    def list(self, request: Request, *args, **kwargs):
+        queryset: QuerySet[Notice] = self.filter_queryset(self.get_queryset())
         notice_type = request.query_params.get("type", None)
         if notice_type:
             queryset = queryset.filter(type=notice_type)
@@ -1032,11 +1031,25 @@ class DiagnosisInquiryViewSet(mixins.CreateModelMixin, GenericViewSet):
     serializer_class = DiagnosisInquirySerializer
     permission_classes = [AllowAny]
 
-    def create(self, request, *args, **kwargs):
+    def create(self, request: Request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
-        send_inquiry_alert()
+        body = request.data
+
+        if not isinstance(body, dict):
+            return Response(
+                {"error": "Invalid data format"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        send_inquiry_alert(
+            customer_name=body.get("customer_name", ""),
+            customer_phone=body.get("customer_phone", ""),
+            device_name=body.get("customdevice_nameer_name", ""),
+            internet_new=body.get("internet_new", "false") == "true",
+            card=body.get("card", "false") == "true",
+            gift=body.get("gift", "false") == "true",
+        )
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)

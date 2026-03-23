@@ -17,7 +17,7 @@ class ChannelTalkAPI:
     OPEN_MARKET_ORDER_GROUP_ID = "545602"
 
     @staticmethod
-    def post(path: str, json: dict) -> dict:
+    def post(path: str, json: dict) -> dict[str, str]:
         response = requests.post(
             url="https://api.channel.io" + path,
             json=json,
@@ -26,7 +26,7 @@ class ChannelTalkAPI:
         return response.json()
 
     @staticmethod
-    def get(path: str, params: dict = None) -> dict:
+    def get(path: str, params: dict = {}) -> dict:
         response = requests.get(
             url="https://api.channel.io" + path,
             params=params,
@@ -37,7 +37,9 @@ class ChannelTalkAPI:
         return response.json()
 
 
-def send_order_alert(order_id: str, customer_name: str, customer_phone: str) -> None:
+def send_order_alert(
+    order_id: str, customer_name: str, customer_phone: str
+) -> dict[str, str]:
     """Send a message to the team via Channel Talk."""
     # Implementation for sending message via Channel Talk
     response = ChannelTalkAPI.post(
@@ -55,14 +57,13 @@ def send_order_alert(order_id: str, customer_name: str, customer_phone: str) -> 
 
 
 def send_inquiry_alert(
-    order_id: str,
     customer_name: str,
     customer_phone: str,
     device_name: str,
     internet_new: bool,
     card: bool,
     gift: bool,
-) -> None:
+) -> dict[str, str]:
     """Send a message to the team via Channel Talk."""
     response = ChannelTalkAPI.post(
         path=f"/open/v5/groups/{ChannelTalkAPI.ORDER_ALERT_GROUP_ID}/messages",
@@ -78,7 +79,7 @@ def send_inquiry_alert(
     return response
 
 
-def send_open_market_order_alert(source: str, orders: list[dict[str]]):
+def send_open_market_order_alert(source: str, orders: list[dict[str, str]]):
     """
     orders = [{
         "order_no": "",
@@ -110,7 +111,7 @@ def send_open_market_order_alert(source: str, orders: list[dict[str]]):
 
 def send_credit_check_alert(
     order_id: str, customer_name: str, customer_phone: str
-) -> None:
+) -> dict[str, str]:
     """Send a credit check alert to the team via Channel Talk."""
     response = ChannelTalkAPI.post(
         path=f"/open/v5/groups/{ChannelTalkAPI.ORDER_ALERT_GROUP_ID}/messages",
