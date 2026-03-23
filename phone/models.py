@@ -1,4 +1,5 @@
 from django.db import models
+from typing import TYPE_CHECKING
 
 from django.utils import timezone
 from django.db.models import QuerySet
@@ -25,6 +26,7 @@ class SoftDeleteModel(models.Model):
     Abstract model to add soft delete functionality.
     """
 
+    id = models.AutoField(primary_key=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
@@ -132,6 +134,9 @@ class DevicesColorImage(SoftDeleteImageModel):
 
 
 class DeviceVariant(SoftDeleteModel):
+    if TYPE_CHECKING:
+        product_options: QuerySet["ProductOption"]
+
     device = models.ForeignKey(
         Device, on_delete=models.CASCADE, related_name="variants"
     )
@@ -353,6 +358,9 @@ class ProductSeries(SoftDeleteModel):
 
 
 class Product(SoftDeleteModel):
+    if TYPE_CHECKING:
+        options: QuerySet[ProductOption]
+
     name = models.CharField(max_length=100)
     device = models.ForeignKey(
         Device,
@@ -832,6 +840,7 @@ class OpenMarket(SoftDeleteModel):
 
 
 class OpenMarketProduct(SoftDeleteModel):
+    id = models.AutoField(primary_key=True)
     open_market = models.ForeignKey(
         OpenMarket, on_delete=models.CASCADE, related_name="products"
     )
@@ -898,6 +907,7 @@ class OpenMarketProduct(SoftDeleteModel):
 
 
 class OpenMarketProductOption(SoftDeleteModel):
+    id = models.AutoField(primary_key=True)
     open_market_product = models.ForeignKey(
         OpenMarketProduct, on_delete=models.CASCADE, related_name="options"
     )
@@ -934,7 +944,7 @@ class OpenMarketProductOption(SoftDeleteModel):
         self._assert_relations_cached_for_validate_name()
 
         # 데이터 호출하기
-        om_product_name = self.open_market.name
+        om_product_name = self.open_market_product.name
         pio_product_option = self.pio_product_option
         carrier = pio_product_option.plan.carrier
         contract_type = pio_product_option.contract_type
@@ -985,6 +995,7 @@ class OpenMarketProductOption(SoftDeleteModel):
 class OpenMarketOrder(models.Model):
     """오픈마켓 주문 알림 중복 방지용 - 알림을 보낸 주문 ID 저장"""
 
+    id = models.AutoField(primary_key=True)
     source = models.CharField(
         "오픈마켓",
         choices=OpenMarketChoices.Choices,
@@ -997,7 +1008,7 @@ class OpenMarketOrder(models.Model):
         unique_together = ("source", "order_no")
 
 
-class DiagnosisLog(models.Model):
+class DiagnosisLog(SoftDeleteModel):
     """요금제 진단 로그 - 사용자 진단 결과 익명 기록"""
 
     prev_carrier = models.CharField(max_length=50)
@@ -1021,7 +1032,7 @@ class DiagnosisLog(models.Model):
         return f"{self.prev_carrier} {self.device_name}"
 
 
-class DiagnosisInquiry(models.Model):
+class DiagnosisInquiry(SoftDeleteModel):
     """요금제 진단 상담 신청 - 이름/연락처 포함"""
 
     name = models.CharField(max_length=100)

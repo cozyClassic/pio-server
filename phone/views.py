@@ -1,5 +1,7 @@
 import re
 from django.http import HttpResponse, HttpRequest, JsonResponse
+from django.http.response import HttpResponseNotFound
+from rest_framework.request import Request
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.viewsets import ReadOnlyModelViewSet, GenericViewSet, ModelViewSet
 from rest_framework.views import APIView
@@ -80,7 +82,7 @@ class ProductViewSet(ReadOnlyModelViewSet):
             ),
         ],
     )
-    def list(self, request, *args, **kwargs):
+    def list(self, request: Request, *args, **kwargs):
         """
         Override the list method to return products with their best price options.
         """
@@ -94,15 +96,15 @@ class ProductViewSet(ReadOnlyModelViewSet):
                 "tags",
             )
         )
-        if brand_query := self.request.query_params.get("brand", None):
+        if brand_query := request.query_params.get("brand", None):
             base_queryset = base_queryset.filter(device__brand=brand_query)
-        if series_query := self.request.query_params.get("series", None):
+        if series_query := request.query_params.get("series", None):
             base_queryset = base_queryset.filter(product_series__name=series_query)
         if (
-            prev_carrier := self.request.query_params.get("carrier", None)
+            prev_carrier := request.query_params.get("carrier", None)
         ) in CarrierChoices.VALUES:
             pass  # handled later
-        if is_featured := self.request.query_params.get("is_featured", None):
+        if is_featured := request.query_params.get("is_featured", None):
             if is_featured.lower() == "true":
                 base_queryset = base_queryset.filter(is_featured=True)
             elif is_featured.lower() == "false":
@@ -160,7 +162,7 @@ class ProductViewSet(ReadOnlyModelViewSet):
             ),
         ],
     )
-    def retrieve(self, request, *args, **kwargs):
+    def retrieve(self, request: Request, *args, **kwargs):
         base_queryset = self.get_queryset().filter(id=kwargs.get("pk"))
 
         if not base_queryset.exists():
@@ -168,7 +170,7 @@ class ProductViewSet(ReadOnlyModelViewSet):
 
         base_queryset.update(views=F("views") + 1)
 
-        prev_carrier = self.request.query_params.get("carrier", None)
+        prev_carrier = request.query_params.get("carrier", None)
         if prev_carrier in CarrierChoices.VALUES:
             base_queryset = base_queryset.prefetch_related(
                 Prefetch(
@@ -224,6 +226,9 @@ class ProductViewSet(ReadOnlyModelViewSet):
                 ),
             )
         ).first()
+
+        if instance is None:
+            return HttpResponseNotFound()
 
         # 재고 정보 조회 (prefetch된 데이터 사용)
         variant_ids = [v.id for v in instance.device.variants.all()]
@@ -768,8 +773,8 @@ class PriceNotificationRequestViewSet(ModelViewSet):
             400: "customer_phone 파라미터 누락",
         },
     )
-    def list(self, request, *args, **kwargs):
-        if customer_phone := self.request.query_params.get("customer_phone", None):
+    def list(self, request: Request, *args, **kwargs):
+        if customer_phone := request.query_params.get("customer_phone", None):
             self.queryset = self.queryset.filter(customer_phone=customer_phone)
             queryset = self.filter_queryset(self.get_queryset())
             page = self.paginate_queryset(queryset)

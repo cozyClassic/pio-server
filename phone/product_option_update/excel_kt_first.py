@@ -19,7 +19,7 @@ PRICE_UNIT = 10000
 MODEL_NAME_COL = "B"
 
 
-def update_product_option_kt_subsidy_addtional(file: bytes, margin=0) -> None:
+def update_product_option_kt_subsidy_addtional(file: bytes, margin=0) -> str:
     """기능
     - 공시지원금은 별도로 관리하기 위해 여기에서 관리하지 않는다.
     1. product option을 db로부터 읽어온다.

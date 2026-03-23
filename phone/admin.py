@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false
 import traceback
 from io import BytesIO
 import pandas as pd
