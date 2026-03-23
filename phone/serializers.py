@@ -823,7 +823,8 @@ class DiagnosisLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = DiagnosisLog
         fields = [
-            "carrier",
+            "prev_carrier",
+            "keep_carrier",
             "device_name",
             "data_usage",
             "internet",
@@ -843,7 +844,8 @@ class DiagnosisInquirySerializer(serializers.ModelSerializer):
         fields = [
             "name",
             "contact",
-            "carrier",
+            "prev_carrier",
+            "keep_carrier",
             "device_name",
             "data_usage",
             "internet",

@@ -1044,9 +1044,9 @@ class DiagnosisInquiryViewSet(mixins.CreateModelMixin, GenericViewSet):
             )
 
         send_inquiry_alert(
-            customer_name=body.get("customer_name", ""),
-            customer_phone=body.get("customer_phone", ""),
-            device_name=body.get("customdevice_nameer_name", ""),
+            customer_name=body.get("name", ""),
+            customer_phone=body.get("contact", ""),
+            device_name=body.get("device_name", ""),
             internet_new=body.get("internet_new", "false") == "true",
             card=body.get("card", "false") == "true",
             gift=body.get("gift", "false") == "true",
