@@ -54,6 +54,30 @@ def send_order_alert(order_id: str, customer_name: str, customer_phone: str) -> 
     return response
 
 
+def send_inquiry_alert(
+    order_id: str,
+    customer_name: str,
+    customer_phone: str,
+    device_name: str,
+    internet_new: bool,
+    card: bool,
+    gift: bool,
+) -> None:
+    """Send a message to the team via Channel Talk."""
+    response = ChannelTalkAPI.post(
+        path=f"/open/v5/groups/{ChannelTalkAPI.ORDER_ALERT_GROUP_ID}/messages",
+        json={
+            "blocks": [
+                {
+                    "type": "text",
+                    "value": f"가격문의: {customer_name}, {customer_phone}, {device_name}, 인터넷가입: {internet_new}, 카드: {card}, 워치: {gift}",
+                },
+            ]
+        },
+    )
+    return response
+
+
 def send_open_market_order_alert(source: str, orders: list[dict[str]]):
     """
     orders = [{

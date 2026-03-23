@@ -40,4 +40,12 @@ urlpatterns = [
         "price-history-chart",
         PriceHistoryChartViewSet.as_view({"get": "list"}),
     ),
+    path(
+        "diagnosis-logs",
+        DiagnosisLogViewSet.as_view({"post": "create"}),
+    ),
+    path(
+        "diagnosis-inquiries",
+        DiagnosisInquiryViewSet.as_view({"post": "create"}),
+    ),
 ]

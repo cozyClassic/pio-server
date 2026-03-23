@@ -817,3 +817,41 @@ class PriceNotificationRequestUpdateSerializer(serializers.ModelSerializer):
         fields = [
             "target_price",
         ]
+
+
+class DiagnosisLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DiagnosisLog
+        fields = [
+            "carrier",
+            "device_name",
+            "data_usage",
+            "internet",
+            "family_bundle",
+            "gift",
+            "card",
+            "internet_new",
+            "selfbuy_total",
+            "pio_total",
+            "total_saving",
+        ]
+
+
+class DiagnosisInquirySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DiagnosisInquiry
+        fields = [
+            "name",
+            "contact",
+            "carrier",
+            "device_name",
+            "data_usage",
+            "internet",
+            "family_bundle",
+            "gift",
+            "card",
+            "internet_new",
+            "selfbuy_total",
+            "pio_total",
+            "total_saving",
+        ]

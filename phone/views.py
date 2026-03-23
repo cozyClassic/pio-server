@@ -11,7 +11,11 @@ from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import mixins, status
 from django.db.models import Prefetch, Q, F, Subquery, OuterRef
-from .external_services.channel_talk import send_credit_check_alert, send_order_alert
+from .external_services.channel_talk import (
+    send_credit_check_alert,
+    send_order_alert,
+    send_inquiry_alert,
+)
 from .constants import CarrierChoices
 from datetime import timedelta
 from django.views.decorators.csrf import csrf_exempt
@@ -1006,3 +1010,28 @@ class PriceHistoryChartViewSet(GenericViewSet):
                 "latest_prices": latest_prices,
             }
         )
+
+
+class DiagnosisLogViewSet(mixins.CreateModelMixin, GenericViewSet):
+    serializer_class = DiagnosisLogSerializer
+    permission_classes = [AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(status=status.HTTP_201_CREATED)
+
+
+class DiagnosisInquiryViewSet(mixins.CreateModelMixin, GenericViewSet):
+    serializer_class = DiagnosisInquirySerializer
+    permission_classes = [AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        send_inquiry_alert()
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)

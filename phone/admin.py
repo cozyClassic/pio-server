@@ -1605,9 +1605,13 @@ class OpenMarketProductAdmin(commonAdmin):
 
         try:
             NaverCompareEnginePageGenerator().generate()
-            self.message_user(request, "네이버 가격비교 EP가 성공적으로 업데이트되었습니다.")
+            self.message_user(
+                request, "네이버 가격비교 EP가 성공적으로 업데이트되었습니다."
+            )
         except Exception as e:
-            self.message_user(request, f"업데이트 중 오류가 발생했습니다: {e}", messages.ERROR)
+            self.message_user(
+                request, f"업데이트 중 오류가 발생했습니다: {e}", messages.ERROR
+            )
         return HttpResponseRedirect("../")
 
     def get_queryset(self, request):
@@ -1735,6 +1739,46 @@ class OpenMarketProductOptionAdmin(commonAdmin):
     pass
 
 
+@admin.register(DiagnosisLog)
+class DiagnosisLogAdmin(admin.ModelAdmin):
+    list_display = [
+        "id",
+        "prev_carrier",
+        "device_name",
+        "data_usage",
+        "total_saving",
+        "created_at",
+    ]
+    list_filter = [
+        "internet",
+        "family_bundle",
+        "gift",
+        "card",
+        "internet_new",
+    ]
+    readonly_fields = ["created_at"]
+
+
+@admin.register(DiagnosisInquiry)
+class DiagnosisInquiryAdmin(admin.ModelAdmin):
+    list_display = [
+        "id",
+        "name",
+        "contact",
+        "prev_carrier",
+        "device_name",
+        "total_saving",
+        "created_at",
+    ]
+    list_filter = [
+        "family_bundle",
+        "gift",
+        "card",
+        "internet_new",
+    ]
+    readonly_fields = ["created_at"]
+
+
 _ADMIN_GROUPS = {
     "단말기 · 요금제": [Plan, PlanPremiumChoices, Device, DeviceColor, DeviceVariant],
     "상품": [
@@ -1759,6 +1803,7 @@ _ADMIN_GROUPS = {
     "재고": [Inventory],
     "오픈마켓": [OpenMarket, OpenMarketProduct, OpenMarketProductOption],
     "기타": [Dealership, OfficialContractLink],
+    "진단": [DiagnosisLog, DiagnosisInquiry],
 }
 
 _original_get_app_list = admin.AdminSite.get_app_list
@@ -1796,6 +1841,3 @@ def _grouped_get_app_list(self, request, app_label=None):
             )
 
     return grouped_apps + other_apps
-
-
-admin.AdminSite.get_app_list = _grouped_get_app_list
