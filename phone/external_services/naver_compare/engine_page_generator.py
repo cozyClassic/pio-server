@@ -128,8 +128,7 @@ class NaverCompareEnginePageGenerator:
             raise ValueError(
                 f"No options found for OpenMarketProduct with id {omp.id} matching carrier {carrier}, contract type {contract_type}, and subsidy discount type."
             )
-
-        return str(min(opt.final_price for opt in options) | 100)
+        return str(max(min(opt.final_price for opt in options), 100))
 
     def _get_link(self, omp: OpenMarketProduct):
         product_id = omp.device_variant.product_options.all()[0].product_id
@@ -161,7 +160,7 @@ class NaverCompareEnginePageGenerator:
             raise ValueError(
                 f"No colors found for device {omp.device_variant.device.name}"
             )
-        images: DevicesColorImage = colors[0].images.all()
+        images: QuerySet[DevicesColorImage] = colors[0].images.all()
         if len(images) == 0:
             raise ValueError(
                 f"No images found for color {colors[0].name} of device {omp.device_variant.device.name}"
@@ -190,15 +189,15 @@ class NaverCompareEnginePageGenerator:
             return "50000248"
         return ""
 
-    def _get_product_flag(self, omp: OpenMarketProduct):
-        if omp.get_discount_type() == DiscountTypeChoices.SELECTION:
-            return "할부"  # 선택약정의 경우
-        return ""  # 공시지원금은 blank
+    # def _get_product_flag(self, omp: OpenMarketProduct):
+    #     if omp.get_discount_type() == DiscountTypeChoices.SELECTION:
+    #         return "할부"  # 선택약정의 경우
+    #     return ""  # 공시지원금은 blank
 
     def _get_search_tag(self, omp: OpenMarketProduct):
         tags = [
             omp.device_variant.device.brand,
-            omp.device_varaint.device.model_name,
+            omp.device_variant.device.model_name,
             omp.get_capacity(),
             omp.get_carrier(),
             omp.get_contract_type(),
