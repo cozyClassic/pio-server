@@ -31,7 +31,7 @@ def fetch_smartel_inventory():
             result.append(
                 SmartelInventoryItem(
                     phone_name=item.get("phoneName"),
-                    count=item.get("count"),
+                    count=int(item.get("count", "0")),
                     color=item.get("color").replace(" ", ""),
                 )
             )
