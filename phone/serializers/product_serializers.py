@@ -14,6 +14,7 @@ class ProductOptionSimpleSerializer(serializers.ModelSerializer):
     carrier = serializers.SerializerMethodField()
     is_best = serializers.BooleanField(default=False)
     device_name = serializers.SerializerMethodField()
+    storage_capacity = serializers.SerializerMethodField()
 
     class Meta:
         model = ProductOption
@@ -28,6 +29,7 @@ class ProductOptionSimpleSerializer(serializers.ModelSerializer):
             "device_name",
             "monthly_payment",
             "plan_id",
+            "storage_capacity",
         ]
 
     def get_carrier(self, obj):
@@ -35,6 +37,9 @@ class ProductOptionSimpleSerializer(serializers.ModelSerializer):
 
     def get_device_name(self, obj):
         return obj.product.device.model_name
+
+    def get_storage_capacity(self, obj):
+        return obj.device_variant.storage_capacity
 
 
 class DecoratorTagSimpleSerializer(serializers.ModelSerializer):
@@ -81,6 +86,8 @@ class ProductListSerializer(serializers.ModelSerializer):
 
     def get_options(self, obj):
         options = obj.options.all()
+        in_stock_by_device = self.context.get("in_stock_by_device", {})
+        in_stock_pairs = in_stock_by_device.get(obj.device_id, set())
         best_options = {
             CarrierChoices.SK: None,
             CarrierChoices.KT: None,
@@ -91,6 +98,12 @@ class ProductListSerializer(serializers.ModelSerializer):
         for option in options:
             carrier = option.plan.carrier
             if carrier not in best_options:
+                continue
+            if (
+                in_stock_pairs
+                and (carrier, option.device_variant.storage_capacity)
+                not in in_stock_pairs
+            ):
                 continue
 
             current = best_options[carrier]
@@ -112,7 +125,9 @@ class ProductListSerializer(serializers.ModelSerializer):
                 option.is_best = True
 
         return list(
-            ProductOptionSimpleSerializer(best_options.values(), many=True).data
+            ProductOptionSimpleSerializer(
+                [op for op in best_options.values() if op is not None], many=True
+            ).data
         )
 
 
@@ -137,6 +152,17 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "stock",
         ]
 
+    def _get_in_stock_pairs(self):
+        """재고가 있는 (carrier, storage_capacity) 조합 set을 반환"""
+        inventories = self.context.get("inventories", [])
+        in_stock = set()
+        for inv in inventories:
+            if inv.count > 0:
+                in_stock.add(
+                    (inv.dealership.carrier, inv.device_variant.storage_capacity)
+                )
+        return in_stock
+
     def get_options(self, obj):
         options = obj.options.all()
         device_variants = {
@@ -145,12 +171,18 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             }
             for dv in obj.device.variants.all()
         }
+        in_stock_pairs = self._get_in_stock_pairs()
         result = {}
 
         for op in options:
             dv_id = op.device_variant_id
             storage_capacity = device_variants[dv_id]["storage_capacity"]
             plan = op.plan
+            if (
+                in_stock_pairs
+                and (plan.carrier, storage_capacity) not in in_stock_pairs
+            ):
+                continue
             if storage_capacity not in result:
                 result[storage_capacity] = {}
             if plan.carrier not in result[storage_capacity]:
@@ -256,12 +288,26 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         }
 
         options = obj.options.all()
-        minimum_price_dv_id = min(
-            [dv for dv in obj.device.variants.all()],
-            key=lambda x: x.device_price,
-        ).id
+        in_stock_pairs = self._get_in_stock_pairs()
+        # 통신사별 재고 있는 최저가 variant 찾기
+        variants_by_price = sorted(
+            obj.device.variants.all(), key=lambda x: x.device_price
+        )
+        carrier_target_dv_ids = {}
+        if in_stock_pairs:
+            for carrier in [CarrierChoices.SK, CarrierChoices.KT, CarrierChoices.LG]:
+                for v in variants_by_price:
+                    if (carrier, v.storage_capacity) in in_stock_pairs:
+                        carrier_target_dv_ids[carrier] = v.id
+                        break
+        else:
+            default_dv_id = variants_by_price[0].id if variants_by_price else None
+            for carrier in [CarrierChoices.SK, CarrierChoices.KT, CarrierChoices.LG]:
+                carrier_target_dv_ids[carrier] = default_dv_id
         for op in [
-            opt for opt in options if opt.device_variant_id == minimum_price_dv_id
+            opt
+            for opt in options
+            if carrier_target_dv_ids.get(opt.plan.carrier) == opt.device_variant_id
         ]:
             carrier = op.plan.carrier
             curr_device_price_option = result["device_price"][carrier]
@@ -289,26 +335,14 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 
         return {
             "device_price": {
-                CarrierChoices.SK: ProductOptionSimpleSerializer(
-                    result["device_price"][CarrierChoices.SK]
-                ).data,
-                CarrierChoices.KT: ProductOptionSimpleSerializer(
-                    result["device_price"][CarrierChoices.KT]
-                ).data,
-                CarrierChoices.LG: ProductOptionSimpleSerializer(
-                    result["device_price"][CarrierChoices.LG]
-                ).data,
+                carrier: ProductOptionSimpleSerializer(op).data
+                for carrier, op in result["device_price"].items()
+                if op is not None
             },
             "monthly_payment": {
-                CarrierChoices.SK: ProductOptionSimpleSerializer(
-                    result["monthly_payment"][CarrierChoices.SK]
-                ).data,
-                CarrierChoices.KT: ProductOptionSimpleSerializer(
-                    result["monthly_payment"][CarrierChoices.KT]
-                ).data,
-                CarrierChoices.LG: ProductOptionSimpleSerializer(
-                    result["monthly_payment"][CarrierChoices.LG]
-                ).data,
+                carrier: ProductOptionSimpleSerializer(op).data
+                for carrier, op in result["monthly_payment"].items()
+                if op is not None
             },
         }
 

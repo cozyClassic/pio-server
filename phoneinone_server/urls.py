@@ -9,7 +9,7 @@ import logging
 
 schema_view = views.get_schema_view(
     openapi.Info(
-        title="Swagger_Practise API",
+        title="PhoneInOne API",
         default_version="v1",
         description="Swagger Test를 위한 유저 API 문서",
         terms_of_service="https://www.google.com/policies/terms/",

@@ -225,7 +225,21 @@ class ProductViewSet(ReadOnlyModelViewSet):
                 )
             )
 
-        serializer = ProductListSerializer(queryset, many=True)
+        device_ids = queryset.values_list("device_id", flat=True)
+        in_stock_by_device = {}
+        for inv in Inventory.objects.filter(
+            device_variant__device_id__in=device_ids, count__gt=0
+        ).select_related("dealership", "device_variant"):
+            did = inv.device_variant.device_id
+            if did not in in_stock_by_device:
+                in_stock_by_device[did] = set()
+            in_stock_by_device[did].add(
+                (inv.dealership.carrier, inv.device_variant.storage_capacity)
+            )
+
+        serializer = ProductListSerializer(
+            queryset, many=True, context={"in_stock_by_device": in_stock_by_device}
+        )
         return Response(serializer.data)
 
     @swagger_auto_schema(

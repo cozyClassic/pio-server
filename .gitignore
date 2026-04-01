@@ -211,3 +211,5 @@ cython_debug/
 
 # venv directory
 pio/*
+CLAUDE.md
+.claude/**
