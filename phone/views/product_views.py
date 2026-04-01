@@ -322,8 +322,32 @@ class ProductViewSet(ReadOnlyModelViewSet):
             device_color_id__in=color_ids,
         ).select_related("dealership", "device_variant", "device_color")
 
+        related_products = []
+        if instance.product_series:
+            related_products = list(
+                Product.objects.filter(
+                    product_series=instance.product_series,
+                    is_active=True,
+                )
+                .select_related("device")
+                .prefetch_related(
+                    Prefetch(
+                        "device__colors",
+                        queryset=DeviceColor.objects.all().order_by("sort_order"),
+                    ),
+                    Prefetch(
+                        "device__colors__images",
+                        queryset=DevicesColorImage.objects.all(),
+                    ),
+                )
+            )
+
         serializer = ProductDetailSerializer(
-            instance, context={"inventories": inventories}
+            instance,
+            context={
+                "inventories": inventories,
+                "related_products": related_products,
+            },
         )
         return Response(serializer.data)
 

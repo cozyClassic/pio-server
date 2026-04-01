@@ -139,6 +139,8 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     best_options = serializers.SerializerMethodField()
     stock = serializers.SerializerMethodField()
 
+    related_products = serializers.SerializerMethodField()
+
     class Meta:
         model = Product
         fields = [
@@ -150,6 +152,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "description",
             "best_options",
             "stock",
+            "related_products",
         ]
 
     def _get_in_stock_pairs(self):
@@ -370,6 +373,27 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 
             result[carrier][storage][color_code] = status
 
+        return result
+
+    def get_related_products(self, obj):
+        if not obj.product_series:
+            return []
+        related = self.context.get("related_products", [])
+        result = []
+        for product in related:
+            colors = list(product.device.colors.all())
+            image = None
+            if colors:
+                images = list(colors[0].images.all())
+                if images:
+                    image = images[0].image.url
+            result.append(
+                {
+                    "id": product.id,
+                    "name": product.device.model_name,
+                    "image": image,
+                }
+            )
         return result
 
 
