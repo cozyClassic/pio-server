@@ -8,6 +8,7 @@ from django.shortcuts import render
 
 import nested_admin
 
+from phone.constants import OpenMarketChoices, CarrierChoices
 from phone.models import *
 from phone.tasks import task_a_remove_options
 from phone.inventory.kt_first.excel_kt_first import (

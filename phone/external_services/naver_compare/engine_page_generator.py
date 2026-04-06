@@ -3,6 +3,9 @@ from django.conf import settings
 from phone.models import *
 from phone.constants import OpenMarketChoices
 from urllib.parse import urlencode
+from django.utils import timezone
+from phone.constants import *
+from django.db.models import QuerySet
 
 
 # .txt 파일, 컬럼은 탭으로 구분하기, 헤더는 총 74개

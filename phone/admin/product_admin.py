@@ -14,6 +14,7 @@ from django.utils import timezone
 import nested_admin
 
 from phone.models import *
+from phone.constants import *
 from .base import commonAdmin, format_price
 
 
@@ -709,32 +710,32 @@ class ProductOptionsAdmin(commonAdmin):
         custom_urls = [
             path(
                 "upload_sk_jungchaek/",
-                self.upload_sk_jungchaek_view,
+                admin.site.admin_view(self.upload_sk_jungchaek_view),
                 name="upload_sk_jungchaek",
             ),
             path(
                 "process_upload_sk_jungchaek/",
-                self.upload_sk_jungchaek,
+                admin.site.admin_view(self.upload_sk_jungchaek),
                 name="process_upload_sk_jungchaek",
             ),
             path(
                 "upload_lg_jungchaek/",
-                self.upload_lg_jungchaek_view,
+                admin.site.admin_view(self.upload_lg_jungchaek_view),
                 name="upload_lg_jungchaek",
             ),
             path(
                 "process_upload_lg_jungchaek/",
-                self.upload_lg_jungchaek,
+                admin.site.admin_view(self.upload_lg_jungchaek),
                 name="process_upload_lg_jungchaek",
             ),
             path(
                 "upload_kt_jungchaek/",
-                self.upload_kt_jungchaek_view,
+                admin.site.admin_view(self.upload_kt_jungchaek_view),
                 name="upload_kt_jungchaek",
             ),
             path(
                 "process_upload_kt_jungchaek/",
-                self.upload_kt_jungchaek,
+                admin.site.admin_view(self.upload_kt_jungchaek),
                 name="process_upload_kt_jungchaek",
             ),
         ]
