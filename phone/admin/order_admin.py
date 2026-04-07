@@ -339,3 +339,19 @@ class CompletedOrderHistoryAdmin(admin.ModelAdmin):
         )
 
         return queryset
+
+
+@admin.register(DiagnosisInquiry)
+class DiagnosisInquiryAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "contact",
+        "prev_carrier",
+        "device_name",
+        "total_saving",
+        "created_at",
+    )
+    list_filter = ("prev_carrier", "created_at")
+    search_fields = ("name", "contact", "device_name")
+    readonly_fields = ("created_at", "updated_at", "deleted_at")
+    ordering = ("-created_at",)

@@ -505,26 +505,6 @@ class DiagnosisLogAdmin(admin.ModelAdmin):
     readonly_fields = ["created_at"]
 
 
-@admin.register(DiagnosisInquiry)
-class DiagnosisInquiryAdmin(admin.ModelAdmin):
-    list_display = [
-        "id",
-        "name",
-        "contact",
-        "prev_carrier",
-        "device_name",
-        "total_saving",
-        "created_at",
-    ]
-    list_filter = [
-        "family_bundle",
-        "gift",
-        "card",
-        "internet_new",
-    ]
-    readonly_fields = ["created_at"]
-
-
 _ADMIN_GROUPS = {
     "단말기 · 요금제": [Plan, PlanPremiumChoices, Device, DeviceColor, DeviceVariant],
     "상품": [
@@ -535,7 +515,7 @@ _ADMIN_GROUPS = {
         DecoratorTag,
         PriceHistory,
     ],
-    "주문": [Order, Order.history.model],
+    "주문": [Order, Order.history.model, DiagnosisInquiry],
     "콘텐츠 · 마케팅": [
         Review,
         FAQ,
@@ -549,7 +529,7 @@ _ADMIN_GROUPS = {
     "재고": [Inventory],
     "오픈마켓": [OpenMarket, OpenMarketProduct, OpenMarketProductOption],
     "기타": [Dealership, OfficialContractLink],
-    "진단": [DiagnosisLog, DiagnosisInquiry],
+    "진단": [DiagnosisLog],
 }
 
 _original_get_app_list = admin.AdminSite.get_app_list
