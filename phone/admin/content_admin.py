@@ -168,10 +168,23 @@ class InventoryDeviceFilter(admin.SimpleListFilter):
         return queryset
 
 
+class InventoryCountFilter(admin.SimpleListFilter):
+    title = "재고 수량"
+    parameter_name = "count_filter"
+
+    def lookups(self, request, model_admin):
+        return [("gt0", "count 0 초과")]
+
+    def queryset(self, request, queryset):
+        if self.value() == "gt0":
+            return queryset.filter(count__gt=0)
+        return queryset
+
+
 @admin.register(Inventory)
 class InventoryAdmin(commonAdmin):
     list_display = ("dealership", "color_in_sheet", "name_in_sheet", "count")
-    list_filter = ("dealership", InventoryDeviceFilter)
+    list_filter = ("dealership", InventoryDeviceFilter, InventoryCountFilter)
     change_list_template = "admin/inventory_changelist.html"
     search_fields = ("device_variant__device__model_name",)
 

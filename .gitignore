@@ -213,3 +213,4 @@ cython_debug/
 pio/*
 CLAUDE.md
 .claude/**
+.omc/
