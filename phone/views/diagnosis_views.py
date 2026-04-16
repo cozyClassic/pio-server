@@ -56,9 +56,9 @@ class DiagnosisInquiryViewSet(mixins.CreateModelMixin, GenericViewSet):
             customer_name=body.get("name", ""),
             customer_phone=body.get("contact", ""),
             device_name=body.get("device_name", ""),
-            internet_new=body.get("internet_new", "false") == "true",
-            card=body.get("card", "false") == "true",
-            gift=body.get("gift", "false") == "true",
+            internet_new=body.get("internet_new", "true") == "true",
+            card=body.get("card", "true") == "true",
+            gift=body.get("gift", "true") == "true",
         )
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
