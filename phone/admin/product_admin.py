@@ -182,6 +182,11 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
         custom_urls = [
             path("download-excel/", self.download_excel, name="product_download_excel"),
             path(
+                "download-special-price/",
+                self.download_special_price_excel,
+                name="product_download_special_price",
+            ),
+            path(
                 "<path:object_id>/change/download-excel/",
                 self.download_excel,
                 name="product_download_excel",
@@ -410,6 +415,24 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
     def upload_excel_view(self, request):
         if request.method == "GET":
             return render(request, "admin/upload_excel.html")
+
+    def download_special_price_excel(self, request):
+        """특가폰 모음 엑셀 다운로드"""
+        from phone.export_special_price import generate_special_price_excel
+
+        output = generate_special_price_excel()
+        if output is None:
+            messages.warning(request, "활성 상품이 없거나 재고가 없습니다.")
+            return HttpResponseRedirect("../")
+
+        response = HttpResponse(
+            output.getvalue(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        response["Content-Disposition"] = (
+            "attachment; filename=special_price.xlsx"
+        )
+        return response
 
     def download_excel(self, request, object_id=None):
         # 특정 쿼리 (예: 재고가 10개 이하인 상품들)
