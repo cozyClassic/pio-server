@@ -14,21 +14,21 @@
   {% csrf_token %}
   <div class="form-row">
     <label for="excel_file">excel 파일:</label>
-    <input
-      type="number"
-      name="margin"
-      placeholder="마진(광고비+인건비+화사마진) 입력 (예: 120000)"
-      required
-    />
-    <input type="file" name="excel_file" accept=".xlsx" required />
+    <input id="excel_file" type="file" name="excel_file" accept=".xlsx" required />
   </div>
   <div class="form-row">
-    <label for="db_margin">11번가 DB 마진:</label>
-    <input type="number" name="db_margin" value="0" placeholder="0" />
+    <label for="margin">마진 (광고비+인건비+회사마진):</label>
+    <input
+      id="margin"
+      type="number"
+      name="margin"
+      placeholder="예: 120000"
+      required
+    />
   </div>
   <div class="form-row">
     <label for="om_margin">11번가 OM 마진:</label>
-    <input type="number" name="om_margin" value="0" placeholder="0" />
+    <input id="om_margin" type="number" name="om_margin" value="0" placeholder="0" />
   </div>
   <div class="submit-row">
     <input type="submit" value="업로드" class="default" />

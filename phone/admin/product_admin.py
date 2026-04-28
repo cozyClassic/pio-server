@@ -786,7 +786,6 @@ class ProductOptionsAdmin(commonAdmin):
 
             excel_file = request.FILES["excel_file"].read()
             margin = int(request.POST.get("margin", 0))
-            db_margin = int(request.POST.get("db_margin", 0))
             om_margin = int(request.POST.get("om_margin", 0))
 
             try:
@@ -794,7 +793,7 @@ class ProductOptionsAdmin(commonAdmin):
                 messages.info(request, result)
                 transaction.on_commit(
                     lambda: trigger_marketplace_sync(
-                        CarrierChoices.KT, db_margin, om_margin
+                        CarrierChoices.KT, margin, om_margin
                     )
                 )
                 messages.success(
@@ -819,7 +818,6 @@ class ProductOptionsAdmin(commonAdmin):
 
             excel_file = request.FILES["excel_file"].read()
             margin = int(request.POST.get("margin", 0))
-            db_margin = int(request.POST.get("db_margin", 0))
             om_margin = int(request.POST.get("om_margin", 0))
 
             try:
@@ -827,7 +825,7 @@ class ProductOptionsAdmin(commonAdmin):
                 messages.info(request, result)
                 transaction.on_commit(
                     lambda: trigger_marketplace_sync(
-                        CarrierChoices.SK, db_margin, om_margin
+                        CarrierChoices.SK, margin, om_margin
                     )
                 )
                 messages.success(
@@ -852,7 +850,6 @@ class ProductOptionsAdmin(commonAdmin):
 
             excel_file = request.FILES["excel_file"].read()
             margin = int(request.POST.get("margin", 0))
-            db_margin = int(request.POST.get("db_margin", 0))
             om_margin = int(request.POST.get("om_margin", 0))
 
             try:
@@ -860,7 +857,7 @@ class ProductOptionsAdmin(commonAdmin):
                 messages.info(request, result)
                 transaction.on_commit(
                     lambda: trigger_marketplace_sync(
-                        CarrierChoices.LG, db_margin, om_margin
+                        CarrierChoices.LG, margin, om_margin
                     )
                 )
                 messages.success(

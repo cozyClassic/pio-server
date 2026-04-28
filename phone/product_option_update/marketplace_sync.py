@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 BAIT_MARGIN = 10_000  # 미끼 상품 고정 마진
 
 
-def trigger_marketplace_sync(carrier: str, db_margin: int, om_margin: int) -> None:
+def trigger_marketplace_sync(carrier: str, margin: int, om_margin: int) -> None:
     """정책 엑셀 업로드 후 마켓플레이스 동기화를 시작한다.
 
     각 단계는 독립적으로 try/except 처리되며, 실패 시 채널톡 알림만 보내고
@@ -84,7 +84,7 @@ def trigger_marketplace_sync(carrier: str, db_margin: int, om_margin: int) -> No
                 )
                 continue
 
-            bait_base = min(po.final_price for po in matching_pos) - db_margin
+            bait_base = min(po.final_price for po in matching_pos) - margin
             commission_rate = om_product.open_market.commision_rate_default
             target_price = int(
                 round((bait_base + BAIT_MARGIN) / (1 - commission_rate), -3)
