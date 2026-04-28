@@ -1,7 +1,8 @@
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from tinymce import models as tinymce_models
 
-from phone.constants import CarrierChoices
+from phone.constants import CarrierChoices, CardSlotChoices
 from phone.utils import UniqueFilePathGenerator
 
 from .base import SoftDeleteModel, SoftDeleteImageModel
@@ -84,25 +85,94 @@ class PolicyDocument(SoftDeleteModel):
         return self.document_type
 
 
+class CardIssuer(SoftDeleteModel):
+    """카드사 (신한, KB, 현대, ...) — 발급이력 필터의 정규화 단위"""
+
+    name = models.CharField(max_length=50, unique=True)
+    sort_order = models.IntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+
 class PartnerCard(SoftDeleteImageModel):
-    carrier = models.CharField(
-        max_length=100, null=True, choices=CarrierChoices.CHOICES
+    issuer = models.ForeignKey(
+        CardIssuer,
+        on_delete=models.PROTECT,
+        related_name="cards",
+        null=True,
+        blank=True,
     )
-    benefit_type = models.CharField(max_length=100, null=True)
-    name = models.CharField(max_length=100, null=True)
-    contact = models.CharField(max_length=100, null=True)
-    link = models.TextField()
+    name = models.CharField(max_length=100)
+    image = models.ImageField(
+        upload_to=UniqueFilePathGenerator("partner_cards/"),
+        null=True,
+        blank=True,
+    )
+
+    carriers = ArrayField(
+        models.CharField(max_length=20, choices=CarrierChoices.CHOICES),
+        default=list,
+    )
+    discount_types = ArrayField(
+        models.CharField(max_length=20, choices=CardSlotChoices.CHOICES),
+        default=list,
+    )
+
+    signup_start_date = models.DateField(null=True, blank=True)
+    signup_end_date = models.DateField(null=True, blank=True)
+
+    add_discount_months = models.IntegerField(null=True, blank=True)
+    add_discount_condition = models.TextField(blank=True, default="")
+
+    min_installment_amount = models.IntegerField(null=True, blank=True)
+    installment_excluded_items = models.TextField(blank=True, default="")
+    annual_fee = models.IntegerField(default=0)
+
     sort_order = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)
 
 
 class CardBenefit(SoftDeleteModel):
-    condition = models.CharField(max_length=255, null=True)
-    benefit_price = models.IntegerField(default=0)
+    """카드 단위 동일. 슬롯과 무관."""
+
+    KIND_CHOICES = [
+        ("basic", "기본할인"),
+        ("additional", "추가할인"),
+    ]
+
     card = models.ForeignKey(
         PartnerCard, on_delete=models.CASCADE, related_name="card_benefits"
     )
-    is_optional = models.BooleanField(default=False)
+    kind = models.CharField(max_length=20, choices=KIND_CHOICES)
+    threshold_amount = models.IntegerField(help_text="전월실적 기준 (원)")
+    amount = models.IntegerField(help_text="할인 금액 (원)")
+
+
+class CardAdditionalPromotion(SoftDeleteImageModel):
+    """N개월 뒤 캐시백, 가맹점 청구할인 등 — 자유 텍스트 위주."""
+
+    card = models.ForeignKey(
+        PartnerCard,
+        on_delete=models.CASCADE,
+        related_name="additional_promotions",
+    )
+    target_series = models.ManyToManyField("phone.ProductSeries", blank=True)
+    min_installment_amount = models.IntegerField(null=True, blank=True)
+
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True, default="")
+    image = models.ImageField(
+        upload_to=UniqueFilePathGenerator("card_promotions/"),
+        null=True,
+        blank=True,
+    )
+
+    cashback_amount = models.IntegerField(null=True, blank=True)
+
+    sort_order = models.IntegerField(default=0)
+    is_active = models.BooleanField(default=True)
 
 
 class Event(SoftDeleteModel):

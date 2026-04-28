@@ -8,7 +8,9 @@ from django.shortcuts import render
 
 import nested_admin
 
-from phone.constants import OpenMarketChoices, CarrierChoices
+from django import forms
+
+from phone.constants import OpenMarketChoices, CarrierChoices, CardSlotChoices
 from phone.models import *
 from phone.tasks import task_a_remove_options
 from phone.inventory.kt_first.excel_kt_first import (
@@ -79,26 +81,119 @@ class PolicyDocumentAdmin(commonAdmin):
     queryset = PolicyDocument.objects.filter(deleted_at__isnull=True)
 
 
+class PartnerCardAdminForm(forms.ModelForm):
+    carriers = forms.MultipleChoiceField(
+        choices=CarrierChoices.CHOICES,
+        widget=forms.CheckboxSelectMultiple,
+        required=True,
+    )
+    discount_types = forms.MultipleChoiceField(
+        choices=CardSlotChoices.CHOICES,
+        widget=forms.CheckboxSelectMultiple,
+        required=True,
+    )
+
+    class Meta:
+        model = PartnerCard
+        fields = "__all__"
+
+
+class CardBenefitInlineForm(forms.ModelForm):
+    threshold_amount_manwon = forms.IntegerField(
+        label="전월실적(만원)",
+        min_value=0,
+        help_text="만원 단위로 입력하세요. 0 입력 시 실적 무관.",
+    )
+
+    class Meta:
+        model = CardBenefit
+        exclude = ("threshold_amount",)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if (
+            self.instance
+            and self.instance.pk
+            and self.instance.threshold_amount is not None
+        ):
+            self.fields["threshold_amount_manwon"].initial = (
+                self.instance.threshold_amount // 10000
+            )
+
+    def clean(self):
+        cleaned = super().clean()
+        manwon = cleaned.get("threshold_amount_manwon")
+        if manwon is not None:
+            cleaned["threshold_amount"] = manwon * 10000
+        return cleaned
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.threshold_amount = self.cleaned_data["threshold_amount_manwon"] * 10000
+        if commit:
+            instance.save()
+        return instance
+
+
 class CardBenefitInline(nested_admin.NestedStackedInline):
     model = CardBenefit
+    form = CardBenefitInlineForm
+    fields = ("kind", "threshold_amount_manwon", "amount")
     extra = 1
     exclude = ("deleted_at",)
 
 
+class CardAdditionalPromotionInline(nested_admin.NestedStackedInline):
+    model = CardAdditionalPromotion
+    extra = 0
+    exclude = ("deleted_at",)
+    filter_horizontal = ("target_series",)
+
+
+@admin.register(CardIssuer)
+class CardIssuerAdmin(admin.ModelAdmin):
+    list_display = ("name", "sort_order", "is_active")
+    search_fields = ("name",)
+    ordering = ("sort_order", "name")
+
+
 @admin.register(PartnerCard)
 class PartnerCardAdmin(admin.ModelAdmin):
-    list_display = ("name", "created_at")
-    search_fields = ("name",)
-    list_filter = ("created_at",)
-    readonly_fields = ("created_at", "updated_at", "deleted_at")
-    inlines = [CardBenefitInline]
-
-    queryset = PartnerCard.objects.filter(deleted_at__isnull=True).prefetch_related(
-        Prefetch(
-            "benefits",
-            queryset=CardBenefit.objects.filter(deleted_at__isnull=True),
-        )
+    form = PartnerCardAdminForm
+    list_display = (
+        "name",
+        "issuer",
+        "carriers_display",
+        "discount_types_display",
+        "is_active",
     )
+    search_fields = ("name",)
+    list_filter = ("is_active", "created_at")
+    readonly_fields = ("created_at", "updated_at", "deleted_at")
+    autocomplete_fields = ("issuer",)
+    inlines = [CardBenefitInline, CardAdditionalPromotionInline]
+
+    def get_queryset(self, request):
+        return (
+            super()
+            .get_queryset(request)
+            .filter(deleted_at__isnull=True)
+            .select_related("issuer")
+            .prefetch_related(
+                Prefetch(
+                    "card_benefits",
+                    queryset=CardBenefit.objects.order_by("kind", "threshold_amount"),
+                )
+            )
+        )
+
+    @admin.display(description="통신사")
+    def carriers_display(self, obj):
+        return ", ".join(obj.carriers) if obj.carriers else "-"
+
+    @admin.display(description="할인유형")
+    def discount_types_display(self, obj):
+        return ", ".join(obj.discount_types) if obj.discount_types else "-"
 
 
 @admin.register(CustomImage)
@@ -536,7 +631,9 @@ _ADMIN_GROUPS = {
         Banner,
         Event,
         PolicyDocument,
+        CardIssuer,
         PartnerCard,
+        CardAdditionalPromotion,
         CustomImage,
     ],
     "재고": [Inventory],

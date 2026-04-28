@@ -6,8 +6,10 @@ from phone.models import (
     Banner,
     Review,
     PolicyDocument,
+    CardIssuer,
     PartnerCard,
     CardBenefit,
+    CardAdditionalPromotion,
     Event,
     Product,
 )
@@ -108,38 +110,91 @@ class PolicyDocumentSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "document_type", "content", "effective_date"]
 
 
+class CardIssuerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CardIssuer
+        fields = ["id", "name"]
+        read_only_fields = ["id", "name"]
+
+
 class CardBenefitSimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = CardBenefit
-        fields = ["condition", "benefit_price", "is_optional"]
-        read_only_fields = ["id", "title", "description"]
+        fields = ["kind", "threshold_amount", "amount"]
+        read_only_fields = ["kind", "threshold_amount", "amount"]
+
+
+class CardAdditionalPromotionSerializer(serializers.ModelSerializer):
+    target_series = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+
+    class Meta:
+        model = CardAdditionalPromotion
+        fields = [
+            "id",
+            "title",
+            "description",
+            "image",
+            "target_series",
+            "min_installment_amount",
+            "cashback_amount",
+            "sort_order",
+        ]
+        read_only_fields = [
+            "id",
+            "title",
+            "description",
+            "image",
+            "target_series",
+            "min_installment_amount",
+            "cashback_amount",
+            "sort_order",
+        ]
 
 
 class PartnerCardSerializer(serializers.ModelSerializer):
+    issuer = CardIssuerSerializer(read_only=True)
     card_benefits = CardBenefitSimpleSerializer(many=True, read_only=True)
+    additional_promotions = CardAdditionalPromotionSerializer(many=True, read_only=True)
 
     class Meta:
         model = PartnerCard
         fields = [
             "id",
+            "issuer",
             "name",
-            "carrier",
-            "benefit_type",
             "image",
-            "link",
+            "carriers",
+            "discount_types",
+            "signup_start_date",
+            "signup_end_date",
+            "add_discount_months",
+            "add_discount_condition",
+            "min_installment_amount",
+            "installment_excluded_items",
+            "annual_fee",
             "card_benefits",
-            "contact",
+            "additional_promotions",
+            "sort_order",
+            "is_active",
         ]
         read_only_fields = [
             "id",
+            "issuer",
             "name",
-            "carrier",
-            "benefit_type",
             "image",
-            "link",
-            "sort_order",
+            "carriers",
+            "discount_types",
+            "signup_start_date",
+            "signup_end_date",
+            "add_discount_months",
+            "add_discount_condition",
+            "min_installment_amount",
+            "installment_excluded_items",
+            "annual_fee",
             "card_benefits",
-            "contact",
+            "additional_promotions",
+            "sort_order",
+            "is_active",
         ]
 
 

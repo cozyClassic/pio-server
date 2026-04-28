@@ -28,6 +28,7 @@ from phone.models import (
     PolicyDocument,
     PartnerCard,
     CardBenefit,
+    CardAdditionalPromotion,
     Event,
 )
 
@@ -209,12 +210,21 @@ class PartnerCardViewSet(ReadOnlyModelViewSet):
 
     serializer_class = PartnerCardSerializer
     queryset = (
-        PartnerCard.objects.all().filter(is_active=True).order_by("sort_order")
-    ).prefetch_related(
-        Prefetch(
-            "card_benefits",
-            queryset=CardBenefit.objects.filter(is_optional=False),
+        PartnerCard.objects.filter(is_active=True)
+        .select_related("issuer")
+        .prefetch_related(
+            Prefetch(
+                "card_benefits",
+                queryset=CardBenefit.objects.order_by("kind", "threshold_amount"),
+            ),
+            Prefetch(
+                "additional_promotions",
+                queryset=CardAdditionalPromotion.objects.filter(
+                    is_active=True
+                ).prefetch_related("target_series"),
+            ),
         )
+        .order_by("sort_order", "id")
     )
 
     @swagger_auto_schema(

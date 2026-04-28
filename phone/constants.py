@@ -40,6 +40,17 @@ CREDIT_CHECK_AGREE_LINK = {
 }
 
 
+class CardSlotChoices(object):
+    INSTALLMENT = "할부"
+    WIRELESS_BILLING = "무선청구"
+    WIRED_BILLING = "유선청구"
+    CHOICES = [
+        (INSTALLMENT, "할부"),
+        (WIRELESS_BILLING, "무선청구"),
+        (WIRED_BILLING, "유선청구"),
+    ]
+
+
 class OpenMarketChoices(object):
     ST11 = "11번가"
     GMK = "G마켓 옥션"
