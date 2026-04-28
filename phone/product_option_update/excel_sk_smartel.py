@@ -1,6 +1,7 @@
 import openpyxl
 import io
 from ..models import Product, ProductOption
+from django.db.models import OuterRef, Subquery
 from django.utils import timezone
 
 HEADERS = {
@@ -100,10 +101,22 @@ def update_product_option_SK_subsidy_addtional(file: bytes, margin=0) -> str:
 
     if updates:
         affected_product_ids = {opt.product_id for opt in updates}
-        for p in Product.objects.filter(
-            id__in=affected_product_ids, deleted_at__isnull=True
-        ):
-            p._update_product_best_option()
+        best_option_subquery = (
+            ProductOption.objects.filter(
+                product_id=OuterRef("pk"),
+                deleted_at__isnull=True,
+            )
+            .order_by("final_price", "plan__price")
+            .values("id")[:1]
+        )
+        products_to_update = list(
+            Product.objects.filter(
+                id__in=affected_product_ids, deleted_at__isnull=True
+            ).annotate(_new_best_option_id=Subquery(best_option_subquery))
+        )
+        for p in products_to_update:
+            p.best_price_option_id = p._new_best_option_id
+        Product.objects.bulk_update(products_to_update, ["best_price_option"])
 
     update_device_variants = sorted(list(update_device_variants))
 
