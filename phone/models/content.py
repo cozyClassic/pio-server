@@ -130,6 +130,10 @@ class PartnerCard(SoftDeleteImageModel):
     installment_excluded_items = models.TextField(blank=True, default="")
     annual_fee = models.IntegerField(default=0)
 
+    contact = models.CharField(max_length=30, blank=True, default="")
+    signup_url = models.URLField(max_length=500, blank=True, default="")
+    extra_benefits = models.TextField(blank=True, default="")
+
     sort_order = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)
 
