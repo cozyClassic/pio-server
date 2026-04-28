@@ -1,5 +1,4 @@
 # pyright: reportAttributeAccessIssue=false
-from collections import defaultdict
 from django.db.models import Prefetch
 from django.contrib import admin, messages
 from django.urls import path
@@ -10,9 +9,8 @@ import nested_admin
 
 from django import forms
 
-from phone.constants import OpenMarketChoices, CarrierChoices, CardSlotChoices
+from phone.constants import CardSlotChoices, CarrierChoices
 from phone.models import *
-from phone.tasks import task_a_remove_options
 from phone.inventory.kt_first.excel_kt_first import (
     read_inventory_excel as read_kt_first_inventory_excel,
     update_inventory as update_kt_first_inventory,
@@ -21,7 +19,7 @@ from phone.inventory.lg_hunet.image_lg_hunet import (
     extract_json_from_image as extract_json_from_image_lg_hunet,
     update_inventory as update_inventory_lg_hunet,
 )
-from .base import commonAdmin, format_price, UpdatePriceForm, BAIT_MARGIN
+from .base import commonAdmin, format_price
 
 
 @admin.register(Plan)
@@ -438,35 +436,6 @@ class OpenMarketCarrierFilter(admin.SimpleListFilter):
 
 @admin.register(OpenMarketProduct)
 class OpenMarketProductAdmin(commonAdmin):
-    actions = ["update_11st_prices"]
-    change_list_template = "admin/open_market_product_changelist.html"
-
-    def get_urls(self):
-        urls = super().get_urls()
-        custom_urls = [
-            path(
-                "update-naver-compare/",
-                self.admin_site.admin_view(self.update_naver_compare),
-                name="open_market_product_update_naver_compare",
-            ),
-        ]
-        return custom_urls + urls
-
-    def update_naver_compare(self, request):
-        from phone.external_services.naver_compare.engine_page_generator import (
-            NaverCompareEnginePageGenerator,
-        )
-
-        try:
-            NaverCompareEnginePageGenerator().generate()
-            self.message_user(
-                request, "네이버 가격비교 EP가 성공적으로 업데이트되었습니다."
-            )
-        except Exception as e:
-            self.message_user(
-                request, f"업데이트 중 오류가 발생했습니다: {e}", messages.ERROR
-            )
-        return HttpResponseRedirect("../")
 
     def get_queryset(self, request):
         return (
@@ -488,104 +457,6 @@ class OpenMarketProductAdmin(commonAdmin):
     autocomplete_fields = ["device_variant"]
 
     list_display = ["id", "open_market", "name"]
-
-    @admin.action(description="11번가 가격 업데이트")
-    def update_11st_prices(self, request, queryset):
-
-        if "apply" not in request.POST:
-            form = UpdatePriceForm()
-            return render(
-                request,
-                "admin/update_11st_price_intermediate.html",
-                {"form": form, "queryset": queryset},
-            )
-
-        form = UpdatePriceForm(request.POST)
-        if not form.is_valid():
-            self.message_user(request, "입력값이 올바르지 않습니다.", messages.ERROR)
-            return
-
-        db_margin = form.cleaned_data["db_margin"]
-        om_margin = form.cleaned_data["om_margin"]
-
-        om_products = list(
-            queryset.filter(open_market__source=OpenMarketChoices.ST11).select_related(
-                "open_market"
-            )
-        )
-
-        if not om_products:
-            self.message_user(
-                request, "선택된 11번가 상품이 없습니다.", messages.WARNING
-            )
-            return
-
-        # DB N+1 방지: 대상 device_variant의 ProductOption 전체를 1회 조회
-        device_variant_ids = [
-            p.device_variant_id for p in om_products if p.device_variant_id
-        ]
-        all_product_options = list(
-            ProductOption.objects.filter(
-                device_variant_id__in=device_variant_ids,
-                discount_type="공시지원금",
-            )
-            .select_related("plan")
-            .order_by("-plan__price")
-        )
-
-        po_by_dv = defaultdict(list)
-        for po in all_product_options:
-            po_by_dv[po.device_variant_id].append(po)
-
-        queued = 0
-        for om_product in om_products:
-            seller_code = om_product.seller_code or ""
-            carriers = [c for c in CarrierChoices.VALUES if c in seller_code]
-            if not carriers:
-                self.message_user(
-                    request,
-                    f"[{om_product.name}] 셀러코드에서 통신사를 찾을 수 없어 건너뜁니다.",
-                    messages.WARNING,
-                )
-                continue
-
-            carrier = carriers[0]
-            contract_type = "번호이동" if "MNP" in seller_code else "기기변경"
-
-            matching_pos = [
-                po
-                for po in po_by_dv.get(om_product.device_variant_id, [])
-                if po.plan.carrier == carrier and po.contract_type == contract_type
-            ]
-            if not matching_pos:
-                self.message_user(
-                    request,
-                    f"[{om_product.name}] 적합한 요금제 옵션이 없어 건너뜁니다.",
-                    messages.WARNING,
-                )
-                continue
-
-            bait_base = min([pos.final_price for pos in matching_pos]) - db_margin
-            commission_rate = om_product.open_market.commision_rate_default
-            target_price = int(
-                round((bait_base + BAIT_MARGIN) / (1 - commission_rate), -3)
-            )
-            if target_price <= 1000:
-                # 마이너스 가격 세팅 불가 - 최소 1000원으로 설정
-                target_price = 1000
-
-            task_a_remove_options.delay(
-                om_product_id_internal=om_product.id,
-                target_price=target_price,
-                om_margin=om_margin,
-            )
-            queued += 1
-
-        if queued:
-            self.message_user(
-                request,
-                f"{queued}개 상품에 대한 11번가 가격 업데이트 Task가 Queue에 추가되었습니다.",
-            )
 
 
 @admin.register(OpenMarketProductOption)

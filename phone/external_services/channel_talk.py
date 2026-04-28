@@ -189,3 +189,24 @@ def send_open_market_update_failure_alert(
             ]
         },
     )
+
+
+def send_marketplace_sync_failure_alert(stage: str, carrier: str, reason: str):
+    """정책 엑셀 업로드 후처리(마켓플레이스 동기화) 단계 실패 알림."""
+    ChannelTalkAPI.post(
+        path=f"/open/v5/groups/{ChannelTalkAPI.OPEN_MARKET_ERROR_ALERT_GROUP_ID}/messages",
+        json={
+            "blocks": [
+                {
+                    "type": "text",
+                    "value": (
+                        f"[정책 엑셀 후처리 실패]\n"
+                        f"단계: {stage}\n"
+                        f"통신사: {carrier}\n"
+                        f"사유: {reason}\n"
+                        f"엑셀 재업로드로 재시도하세요."
+                    ),
+                }
+            ]
+        },
+    )

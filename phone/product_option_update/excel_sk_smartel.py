@@ -1,8 +1,7 @@
 import openpyxl
 import io
-from ..models import ProductOption
+from ..models import Product, ProductOption
 from django.utils import timezone
-
 
 HEADERS = {
     "H": "5GX 프리미엄_번호이동_공시지원금",
@@ -98,6 +97,14 @@ def update_product_option_SK_subsidy_addtional(file: bytes, margin=0) -> str:
     ProductOption.objects.bulk_update(
         updates, ["additional_discount", "final_price", "updated_at"]
     )
+
+    if updates:
+        affected_product_ids = {opt.product_id for opt in updates}
+        for p in Product.objects.filter(
+            id__in=affected_product_ids, deleted_at__isnull=True
+        ):
+            p._update_product_best_option()
+
     update_device_variants = sorted(list(update_device_variants))
 
     return f"{ws.title} 시트의 {update_device_variants}의 SK 추가지원금 {len(updates)}건 업데이트 완료"

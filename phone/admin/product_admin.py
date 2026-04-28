@@ -429,9 +429,7 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
             output.getvalue(),
             content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
-        response["Content-Disposition"] = (
-            "attachment; filename=special_price.xlsx"
-        )
+        response["Content-Disposition"] = "attachment; filename=special_price.xlsx"
         return response
 
     def download_excel(self, request, object_id=None):
@@ -778,16 +776,31 @@ class ProductOptionsAdmin(commonAdmin):
 
     def upload_kt_jungchaek(self, request):
         if request.method == "POST" and request.FILES.get("excel_file"):
+            from django.db import transaction
             from phone.product_option_update.excel_kt_first import (
                 update_product_option_kt_subsidy_addtional,
+            )
+            from phone.product_option_update.marketplace_sync import (
+                trigger_marketplace_sync,
             )
 
             excel_file = request.FILES["excel_file"].read()
             margin = int(request.POST.get("margin", 0))
+            db_margin = int(request.POST.get("db_margin", 0))
+            om_margin = int(request.POST.get("om_margin", 0))
 
             try:
                 result = update_product_option_kt_subsidy_addtional(excel_file, margin)
                 messages.info(request, result)
+                transaction.on_commit(
+                    lambda: trigger_marketplace_sync(
+                        CarrierChoices.KT, db_margin, om_margin
+                    )
+                )
+                messages.success(
+                    request,
+                    "후처리 큐잉 완료. 실패 시 채널톡으로 알림이 갑니다.",
+                )
             except Exception as e:
                 messages.error(request, f"Error processing file: {str(e)}")
                 return HttpResponseRedirect("../")
@@ -796,16 +809,31 @@ class ProductOptionsAdmin(commonAdmin):
 
     def upload_sk_jungchaek(self, request):
         if request.method == "POST" and request.FILES.get("excel_file"):
+            from django.db import transaction
             from phone.product_option_update.excel_sk_smartel import (
                 update_product_option_SK_subsidy_addtional,
+            )
+            from phone.product_option_update.marketplace_sync import (
+                trigger_marketplace_sync,
             )
 
             excel_file = request.FILES["excel_file"].read()
             margin = int(request.POST.get("margin", 0))
+            db_margin = int(request.POST.get("db_margin", 0))
+            om_margin = int(request.POST.get("om_margin", 0))
 
             try:
                 result = update_product_option_SK_subsidy_addtional(excel_file, margin)
                 messages.info(request, result)
+                transaction.on_commit(
+                    lambda: trigger_marketplace_sync(
+                        CarrierChoices.SK, db_margin, om_margin
+                    )
+                )
+                messages.success(
+                    request,
+                    "후처리 큐잉 완료. 실패 시 채널톡으로 알림이 갑니다.",
+                )
             except Exception as e:
                 messages.error(request, f"Error processing file: {str(e)}")
                 return HttpResponseRedirect("../")
@@ -814,16 +842,31 @@ class ProductOptionsAdmin(commonAdmin):
 
     def upload_lg_jungchaek(self, request):
         if request.method == "POST" and request.FILES.get("excel_file"):
+            from django.db import transaction
             from phone.product_option_update.excel_lg_hutel import (
                 update_product_option_LG_subsidy_addtional,
+            )
+            from phone.product_option_update.marketplace_sync import (
+                trigger_marketplace_sync,
             )
 
             excel_file = request.FILES["excel_file"].read()
             margin = int(request.POST.get("margin", 0))
+            db_margin = int(request.POST.get("db_margin", 0))
+            om_margin = int(request.POST.get("om_margin", 0))
 
             try:
                 result = update_product_option_LG_subsidy_addtional(excel_file, margin)
                 messages.info(request, result)
+                transaction.on_commit(
+                    lambda: trigger_marketplace_sync(
+                        CarrierChoices.LG, db_margin, om_margin
+                    )
+                )
+                messages.success(
+                    request,
+                    "후처리 큐잉 완료. 실패 시 채널톡으로 알림이 갑니다.",
+                )
             except Exception as e:
                 messages.error(request, f"Error processing file: {str(e)}")
                 return HttpResponseRedirect("../")

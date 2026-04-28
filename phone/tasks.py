@@ -15,6 +15,9 @@ from phone.external_services.channel_talk import (
 from phone.external_services.st_11.check_order.get_order_list import (
     get_unhandled_order_list_today,
 )
+from phone.external_services.naver_compare.engine_page_generator import (
+    NaverCompareEnginePageGenerator,
+)
 
 
 def _get_carrier(seller_code: str) -> str:
@@ -86,6 +89,16 @@ def task_c_set_options(om_product_id_internal: int, om_margin: int):
         send_open_market_update_failure_alert(
             "Task C (옵션 추가)", om_product_id_internal, str(e)
         )
+        raise
+
+
+@shared_task
+def task_generate_naver_compare_ep():
+    """네이버 가격비교 EP 전체 재생성 후 S3 업로드."""
+    try:
+        NaverCompareEnginePageGenerator().generate()
+    except Exception as e:
+        send_open_market_update_failure_alert("네이버 EP generate", 0, str(e))
         raise
 
 
