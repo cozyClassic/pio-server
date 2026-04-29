@@ -1,3 +1,4 @@
+from django.db import transaction
 from rest_framework import serializers
 
 from internet.models import InternetCarrier
@@ -26,10 +27,18 @@ class CalculatorSessionCreateSerializer(serializers.Serializer):
 
     def validate_answers(self, answers):
         slot_value = answers.get("internet")
-        if slot_value is not None and not isinstance(slot_value, list):
-            raise serializers.ValidationError(
-                {"internet": "internet 은 list 여야 합니다 (carrier id list)"}
-            )
+        if slot_value is not None:
+            if not isinstance(slot_value, list):
+                raise serializers.ValidationError(
+                    {"internet": "internet 은 list 여야 합니다 (carrier id list)"}
+                )
+            cleaned = []
+            for v in slot_value:
+                try:
+                    cleaned.append(int(v))
+                except (TypeError, ValueError):
+                    continue
+            answers["internet"] = cleaned
         return answers
 
     def validate_auto_selected(self, auto):
@@ -114,6 +123,7 @@ class CalculatorSessionCreateSerializer(serializers.Serializer):
                     )
         return result
 
+    @transaction.atomic
     def create(self, validated_data):
         answers = validated_data.get("answers", {}) or {}
         auto = validated_data.get("auto_selected", {}) or {}

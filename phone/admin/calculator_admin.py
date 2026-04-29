@@ -3,9 +3,11 @@ from django.contrib import admin
 
 from phone.models import CalculatorSession, CustomerIdentity
 
+from .base import commonAdmin
+
 
 @admin.register(CalculatorSession)
-class CalculatorSessionAdmin(admin.ModelAdmin):
+class CalculatorSessionAdmin(commonAdmin):
     list_display = (
         "id",
         "funnel_variant",
@@ -28,7 +30,7 @@ class CalculatorSessionAdmin(admin.ModelAdmin):
         "submitted_contact",
         "device_name",
     )
-    readonly_fields = ("id", "created_at", "updated_at")
+    readonly_fields = ("id", "created_at", "updated_at", "deleted_at")
     autocomplete_fields = ("internet_carriers", "device")
     fieldsets = (
         (
@@ -131,7 +133,7 @@ class CalculatorSessionAdmin(admin.ModelAdmin):
 
 
 @admin.register(CustomerIdentity)
-class CustomerIdentityAdmin(admin.ModelAdmin):
+class CustomerIdentityAdmin(commonAdmin):
     list_display = (
         "id",
         "session",
@@ -147,5 +149,5 @@ class CustomerIdentityAdmin(admin.ModelAdmin):
         "oauth_user_id",
     )
     list_filter = ("source",)
-    readonly_fields = ("created_at", "updated_at", "identified_at")
+    readonly_fields = ("created_at", "updated_at", "deleted_at", "identified_at")
     autocomplete_fields = ("session",)
