@@ -13,6 +13,10 @@ from .content_views import (
 from .device_views import DeviceViewSet, PhonePlanViewSet
 from .price_views import PriceNotificationRequestViewSet, PriceHistoryChartViewSet
 from .diagnosis_views import DiagnosisLogViewSet, DiagnosisInquiryViewSet
+from .calculator_views import (
+    CalculatorSessionViewSet,
+    CustomerIdentityCreateView,
+)
 
 __all__ = [
     "clean_phone_num",
@@ -36,4 +40,6 @@ __all__ = [
     "PriceHistoryChartViewSet",
     "DiagnosisLogViewSet",
     "DiagnosisInquiryViewSet",
+    "CalculatorSessionViewSet",
+    "CustomerIdentityCreateView",
 ]

@@ -4,7 +4,15 @@ from django.contrib import admin
 import nested_admin
 from .models import *
 
-admin.site.register(InternetCarrier)
+
+@admin.register(InternetCarrier)
+class InternetCarrierAdmin(admin.ModelAdmin):
+    # autocomplete_fields 가 다른 admin (예: CalculatorSessionAdmin) 에서
+    # InternetCarrier 를 참조할 수 있도록 search_fields 필수.
+    list_display = ("id", "name")
+    search_fields = ("name",)
+
+
 admin.site.register(InternetPlan)
 admin.site.register(TVPlan)
 

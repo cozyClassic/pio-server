@@ -3,7 +3,6 @@ from rest_framework import routers
 
 from .views import *
 
-
 router = routers.DefaultRouter()
 
 urlpatterns = [
@@ -47,5 +46,19 @@ urlpatterns = [
     path(
         "diagnosis-inquiries",
         DiagnosisInquiryViewSet.as_view({"post": "create"}),
+    ),
+    path(
+        "calculator-sessions",
+        CalculatorSessionViewSet.as_view({"post": "create"}),
+    ),
+    path(
+        "calculator-sessions/<uuid:id>",
+        CalculatorSessionViewSet.as_view(
+            {"patch": "partial_update", "get": "retrieve"}
+        ),
+    ),
+    path(
+        "calculator-sessions/<uuid:id>/identity",
+        CustomerIdentityCreateView.as_view(),
     ),
 ]

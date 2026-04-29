@@ -31,6 +31,7 @@ from .open_market import (
     OpenMarketOrder,
 )
 from .diagnosis import DiagnosisLog, DiagnosisInquiry
+from .calculator import CalculatorSession, CustomerIdentity
 
 __all__ = [
     "SoftDeleteModel",
@@ -71,4 +72,6 @@ __all__ = [
     "OpenMarketOrder",
     "DiagnosisLog",
     "DiagnosisInquiry",
+    "CalculatorSession",
+    "CustomerIdentity",
 ]

@@ -49,6 +49,53 @@ class CardSlotChoices(object):
         (WIRELESS_BILLING, "무선청구"),
         (WIRED_BILLING, "유선청구"),
     ]
+    VALUES = [INSTALLMENT, WIRELESS_BILLING, WIRED_BILLING]
+
+
+class FunnelVariantChoices(object):
+    CONTROL = "control"
+    V1 = "v1"
+    V3 = "v3"
+    CHOICES = [
+        (CONTROL, "control"),
+        (V1, "v1"),
+        (V3, "v3"),
+    ]
+    VALUES = [CONTROL, V1, V3]
+
+
+class ContactChannelChoices(object):
+    PHONE = "phone"
+    KAKAO = "kakao"
+    CHOICES = [
+        (PHONE, "phone"),
+        (KAKAO, "kakao"),
+    ]
+    VALUES = [PHONE, KAKAO]
+
+
+class WinnerChoices(object):
+    PIO = "pio"
+    SELFBUY = "selfBuy"
+    OFFICIAL = "official"
+    CHOICES = [
+        (PIO, "pio"),
+        (SELFBUY, "selfBuy"),
+        (OFFICIAL, "official"),
+    ]
+    VALUES = [PIO, SELFBUY, OFFICIAL]
+
+
+class IdentitySourceChoices(object):
+    NAME_PHONE = "name_phone"
+    NAVER_OAUTH = "naver_oauth"
+    KAKAO_OAUTH = "kakao_oauth"
+    CHOICES = [
+        (NAME_PHONE, "name_phone"),
+        (NAVER_OAUTH, "naver_oauth"),
+        (KAKAO_OAUTH, "kakao_oauth"),
+    ]
+    VALUES = [NAME_PHONE, NAVER_OAUTH, KAKAO_OAUTH]
 
 
 class OpenMarketChoices(object):
