@@ -10,6 +10,7 @@ from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
 
+from phone.external_services.channel_talk import send_calculator_lead_alert
 from phone.models import CalculatorSession
 from phone.serializers import (
     CalculatorSessionCreateSerializer,
@@ -93,6 +94,23 @@ class CalculatorSessionViewSet(
                 pk,
                 fields.get("contact_channel"),
             )
+        else:
+            # 첫 lead 결정 시에만 운영팀 채널 알림. 실패해도 응답은 정상.
+            try:
+                send_calculator_lead_alert(
+                    session_id=str(instance.id),
+                    contact_channel=instance.contact_channel,
+                    customer_name=instance.submitted_name,
+                    customer_phone=instance.submitted_contact,
+                    device_name=instance.device_name,
+                    pio_total=instance.pio_total,
+                    total_saving=instance.total_saving,
+                    funnel_variant=instance.funnel_variant,
+                )
+            except Exception:
+                logger.exception(
+                    "calculator_lead_alert.failed session_id=%s", instance.id
+                )
 
         data = CalculatorSessionDetailSerializer(
             instance, context={"applied": applied}

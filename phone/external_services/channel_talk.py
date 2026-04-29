@@ -79,6 +79,43 @@ def send_inquiry_alert(
     return response
 
 
+def send_calculator_lead_alert(
+    *,
+    session_id: str,
+    contact_channel: str,
+    customer_name: str | None,
+    customer_phone: str | None,
+    device_name: str | None,
+    pio_total: int,
+    total_saving: int,
+    funnel_variant: str,
+) -> dict[str, str]:
+    """Calculator 세션 lead 결정 (PATCH 첫 적용) 시 운영팀 채널 알림."""
+    if contact_channel == "phone":
+        header = f"📞 전화요청 (calculator): {customer_name or '-'} / {customer_phone or '-'}"
+    elif contact_channel == "kakao":
+        header = "💬 카톡상담 (calculator)"
+    else:
+        header = f"🔔 calculator lead ({contact_channel})"
+
+    body = (
+        f"단말: {device_name or '-'}\n"
+        f"pio 총액: {pio_total:,}원 / 절약: {total_saving:,}원\n"
+        f"funnel: {funnel_variant}\n"
+        f"session: {session_id}"
+    )
+
+    response = ChannelTalkAPI.post(
+        path=f"/open/v5/groups/{ChannelTalkAPI.ORDER_ALERT_GROUP_ID}/messages",
+        json={
+            "blocks": [
+                {"type": "text", "value": f"{header}\n{body}"},
+            ]
+        },
+    )
+    return response
+
+
 def send_open_market_order_alert(source: str, orders: list[dict[str, str]]):
     """
     orders = [{

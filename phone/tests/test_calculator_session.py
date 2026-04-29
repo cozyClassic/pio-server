@@ -1,10 +1,25 @@
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from unittest import skipUnless
+from unittest import mock, skipUnless
 
 from django.db import connection
 from django.test import TestCase, TransactionTestCase
 from rest_framework.test import APIClient
+
+CHANNELTALK_PATCH_TARGET = "phone.views.calculator_views.send_calculator_lead_alert"
+
+
+class _MockChannelTalkMixin:
+    """모든 PATCH 흐름이 외부 ChannelTalk 호출을 하지 않도록 차단."""
+
+    def setUp(self):  # noqa: D401
+        super().setUp()
+        self._channel_talk_patcher = mock.patch(
+            CHANNELTALK_PATCH_TARGET, return_value={"id": "fake"}
+        )
+        self.mock_send_alert = self._channel_talk_patcher.start()
+        self.addCleanup(self._channel_talk_patcher.stop)
+
 
 from internet.models import InternetCarrier
 from phone.constants import (
@@ -199,10 +214,11 @@ class SerializerTests(TestCase):
         self.assertIn("result", ser.errors)
 
 
-class IntegrationTests(TestCase):
+class IntegrationTests(_MockChannelTalkMixin, TestCase):
     """API 레벨 통합 테스트."""
 
     def setUp(self):
+        super().setUp()
         self.client = APIClient()
         self.sk_carrier = InternetCarrier.objects.create(name="SK 인터넷")
 
@@ -325,9 +341,92 @@ class IntegrationTests(TestCase):
         body = get.json()
         self.assertNotIn("applied", body)
 
+    def test_patch_first_write_dispatches_channel_talk_alert(self):
+        post = self.client.post(CALC_URL, _payload(), format="json")
+        sid = post.json()["id"]
+        self.mock_send_alert.reset_mock()
 
-class IdentityTests(TestCase):
+        self.client.patch(
+            _detail_url(sid),
+            {
+                "contact_channel": ContactChannelChoices.PHONE,
+                "submitted_name": "홍길동",
+                "submitted_contact": "010-1234-5678",
+            },
+            format="json",
+        )
+
+        self.assertEqual(self.mock_send_alert.call_count, 1)
+        kwargs = self.mock_send_alert.call_args.kwargs
+        self.assertEqual(kwargs["session_id"], sid)
+        self.assertEqual(kwargs["contact_channel"], "phone")
+        self.assertEqual(kwargs["customer_name"], "홍길동")
+        self.assertEqual(kwargs["customer_phone"], "010-1234-5678")
+
+    def test_patch_kakao_dispatches_alert_without_pii(self):
+        post = self.client.post(CALC_URL, _payload(), format="json")
+        sid = post.json()["id"]
+        self.mock_send_alert.reset_mock()
+
+        self.client.patch(
+            _detail_url(sid),
+            {"contact_channel": ContactChannelChoices.KAKAO},
+            format="json",
+        )
+
+        self.assertEqual(self.mock_send_alert.call_count, 1)
+        kwargs = self.mock_send_alert.call_args.kwargs
+        self.assertEqual(kwargs["contact_channel"], "kakao")
+        self.assertIsNone(kwargs["customer_name"])
+        self.assertIsNone(kwargs["customer_phone"])
+
+    def test_patch_second_write_does_not_dispatch_alert(self):
+        post = self.client.post(CALC_URL, _payload(), format="json")
+        sid = post.json()["id"]
+        self.client.patch(
+            _detail_url(sid),
+            {
+                "contact_channel": ContactChannelChoices.PHONE,
+                "submitted_name": "홍길동",
+                "submitted_contact": "010-1234-5678",
+            },
+            format="json",
+        )
+        self.mock_send_alert.reset_mock()
+
+        # 두 번째 PATCH 는 first-write-wins 로 무시되므로 알림도 발송 안 됨.
+        self.client.patch(
+            _detail_url(sid),
+            {"contact_channel": ContactChannelChoices.KAKAO},
+            format="json",
+        )
+
+        self.assertEqual(self.mock_send_alert.call_count, 0)
+
+    def test_patch_alert_failure_does_not_break_response(self):
+        # 알림 실패가 사용자 응답을 막지 않아야 한다.
+        self.mock_send_alert.side_effect = RuntimeError("ChannelTalk 5xx")
+
+        post = self.client.post(CALC_URL, _payload(), format="json")
+        sid = post.json()["id"]
+
+        response = self.client.patch(
+            _detail_url(sid),
+            {
+                "contact_channel": ContactChannelChoices.PHONE,
+                "submitted_name": "홍길동",
+                "submitted_contact": "010-1234-5678",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json().get("applied"))
+
+
+class IdentityTests(_MockChannelTalkMixin, TestCase):
     def setUp(self):
+        super().setUp()
         self.client = APIClient()
 
     def test_identity_create_and_conflict(self):
@@ -358,7 +457,7 @@ class IdentityTests(TestCase):
         self.assertEqual(dup.status_code, 409)
 
 
-class ObservabilityTests(TestCase):
+class ObservabilityTests(_MockChannelTalkMixin, TestCase):
     def test_first_write_wins_warn_logged(self):
         # Fix #6 추적 수단 검증
         client = APIClient()
@@ -403,8 +502,9 @@ class ObservabilityTests(TestCase):
         self.assertTrue(plan_text)
 
 
-class ThrottleTests(TransactionTestCase):
+class ThrottleTests(_MockChannelTalkMixin, TransactionTestCase):
     def setUp(self):
+        super().setUp()
         from django.core.cache import cache
         from rest_framework.throttling import AnonRateThrottle
 
@@ -438,7 +538,7 @@ class ThrottleTests(TransactionTestCase):
         self.assertIn(AnonRateThrottle, CalculatorSessionViewSet.throttle_classes)
 
 
-class ConcurrentPatchTests(TransactionTestCase):
+class ConcurrentPatchTests(_MockChannelTalkMixin, TransactionTestCase):
     """동시성 환경에서 first-write-wins 가 race-free 한지 검증."""
 
     def test_first_write_wins_concurrent(self):
