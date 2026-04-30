@@ -5,7 +5,13 @@ from django.conf import settings
 from drf_yasg import openapi, views
 from rest_framework import permissions
 from django.db import connection
+from django.urls import path
 import logging
+
+
+def trigger_error(request):
+    division_by_zero = 1 / 0
+
 
 schema_view = views.get_schema_view(
     openapi.Info(
@@ -51,6 +57,7 @@ urlpatterns = [
     path("internet/", include(("internet.urls", "internet"))),
     path("db-check", db_check),
     path("env-check", env_check),
+    path("sentry-debug/", trigger_error),
     path("", health_check),
 ]
 

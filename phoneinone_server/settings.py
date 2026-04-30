@@ -2,6 +2,9 @@ import os
 from pathlib import Path
 
 import environ
+import sentry_sdk
+import logging
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env(DEBUG=(bool, False))
@@ -211,6 +214,9 @@ REST_FRAMEWORK = {
     },
 }
 
+logger = logging.getLogger(__name__)
+
+
 if DEBUG:
     LOGGING = {
         "version": 1,
@@ -288,3 +294,21 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": 60 * 5,  # 5분
     },
 }
+
+sentry_sdk.init(
+    dsn="https://c56b025211e2e9b775c47a34f254b5ca@o4511307313774592.ingest.us.sentry.io/4511307316723712",
+    # Add data like request headers and IP for users,
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+    # Enable sending logs to Sentry
+    enable_logs=True,
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for tracing.
+    traces_sample_rate=1.0,
+    # Set profile_session_sample_rate to 1.0 to profile 100%
+    # of profile sessions.
+    profile_session_sample_rate=1.0,
+    # Set profile_lifecycle to "trace" to automatically
+    # run the profiler on when there is an active transaction
+    profile_lifecycle="trace",
+)
