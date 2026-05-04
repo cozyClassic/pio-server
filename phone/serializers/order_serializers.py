@@ -136,7 +136,6 @@ class OrderDetailSerializer(serializers.ModelSerializer):
             "shipping_number",
             "payment_period",
             "customer_birth",
-            "credit_check_agreements",
         ]
 
     def get_device_color(self, obj):

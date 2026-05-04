@@ -36,9 +36,6 @@ class OrderViewSet(
     permission_classes = [AllowAny]
     queryset = Order.objects.all()
 
-    def get_queryset(self):
-        return self.queryset
-
     @swagger_auto_schema(
         operation_summary="주문 목록 조회",
         operation_description="고객 전화번호+이름으로 주문 목록을 조회합니다.",
@@ -79,13 +76,9 @@ class OrderViewSet(
         customer_name = request.query_params.get("customer_name", None)
         if not customer_name:
             return Response({"error": "param customer_name required"}, status=400)
-        where_text = f"o.deleted_at IS NULL AND o.status != '취소완료' AND o.customer_name='{customer_name}' AND o.customer_phone='{phone}'"
-
-        order_id = request.query_params.get("order_id", None)
-        if order_id:
-            where_text += f" AND o.id={order_id}"
         phone = clean_phone_num(phone)
-        orders = Order.objects.raw(f"""
+
+        sql = """
 SELECT DISTINCT ON (o.id) ci.image, c.color_code, o.*
 FROM phone_order o
 JOIN phone_product p
@@ -98,9 +91,24 @@ JOIN phone_devicescolorimage ci
     ON ci.device_color_id = c.id
     AND ci.deleted_at IS NULL
 WHERE
-    {where_text}
-ORDER BY o.id, ci.id;
-""")
+    o.deleted_at IS NULL
+    AND o.status != '취소완료'
+    AND o.customer_name = %s
+    AND o.customer_phone = %s
+"""
+        params = [customer_name, phone]
+
+        order_id = request.query_params.get("order_id", None)
+        if order_id:
+            try:
+                order_id_int = int(order_id)
+            except (TypeError, ValueError):
+                return Response({"error": "invalid order_id"}, status=400)
+            sql += "    AND o.id = %s\n"
+            params.append(order_id_int)
+
+        sql += "ORDER BY o.id, ci.id;"
+        orders = Order.objects.raw(sql, params)
 
         if len(orders) == 0:
             return Response(status=status.HTTP_404_NOT_FOUND)
@@ -166,6 +174,12 @@ ORDER BY o.id, ci.id;
         tags=["주문"],
     )
     def retrieve(self, request, *args, **kwargs):
+        customer_name = request.query_params.get("customer_name")
+        phone = request.query_params.get("phone")
+        if not customer_name or not phone:
+            return Response(data="order not found", status=status.HTTP_404_NOT_FOUND)
+        phone = clean_phone_num(phone)
+
         queryset = Order.objects.raw(
             """
             SELECT DISTINCT ON (o.id) ci.image, c.color_code, o.*
@@ -185,9 +199,11 @@ ORDER BY o.id, ci.id;
             WHERE
                 o.deleted_at IS NULL
                 AND o.id = %s
+                AND o.customer_name = %s
+                AND o.customer_phone = %s
             ORDER BY o.id, ci.id;
             """,
-            [kwargs.get("pk")],
+            [kwargs.get("pk"), customer_name, phone],
         )
 
         if len(queryset) == 0:
