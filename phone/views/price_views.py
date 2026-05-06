@@ -97,10 +97,32 @@ class PriceNotificationRequestViewSet(ModelViewSet):
 
     @swagger_auto_schema(
         operation_summary="가격 알림 삭제",
-        responses={204: "삭제 성공", 404: "알림 없음"},
+        manual_parameters=[
+            openapi.Parameter(
+                "customer_phone",
+                openapi.IN_QUERY,
+                description="고객 전화번호 (본인 검증, 필수)",
+                type=openapi.TYPE_STRING,
+                required=True,
+            ),
+        ],
+        responses={
+            204: "삭제 성공",
+            400: "customer_phone 누락",
+            404: "알림 없음 또는 본인 아님",
+        },
         tags=["가격알림"],
     )
     def destroy(self, request, *args, **kwargs):
+        customer_phone = request.query_params.get("customer_phone")
+        if not customer_phone:
+            return Response(
+                {"error": "param customer_phone required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        instance = self.get_object()
+        if instance.customer_phone != customer_phone:
+            return Response(status=status.HTTP_404_NOT_FOUND)
         return super().destroy(request, *args, **kwargs)
 
 

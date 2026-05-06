@@ -1,7 +1,11 @@
-import openpyxl
+import ast
 import io
-from ..models import Product, ProductOption
+import operator as op
+
+import openpyxl
 from django.utils import timezone
+
+from ..models import Product, ProductOption
 
 HEADERS = {
     "G": "초이스 스페셜_번호이동",
@@ -17,6 +21,41 @@ PLAN_START_ROW = 6
 PLAN_END_ROW = 100
 PRICE_UNIT = 10000
 MODEL_NAME_COL = "B"
+
+_ALLOWED_AST_OPS = {
+    ast.Add: op.add,
+    ast.Sub: op.sub,
+    ast.Mult: op.mul,
+    ast.Div: op.truediv,
+    ast.USub: op.neg,
+    ast.UAdd: op.pos,
+}
+
+
+def _safe_eval_number(value) -> float:
+    """엑셀 셀의 산술식 문자열을 안전하게 평가. 숫자/+,-,*,/ 만 허용."""
+    if isinstance(value, (int, float)):
+        return value
+    if value is None:
+        return 0
+    try:
+        node = ast.parse(str(value), mode="eval").body
+    except (SyntaxError, ValueError):
+        return 0
+
+    def _walk(n):
+        if isinstance(n, ast.Constant) and isinstance(n.value, (int, float)):
+            return n.value
+        if isinstance(n, ast.BinOp) and type(n.op) in _ALLOWED_AST_OPS:
+            return _ALLOWED_AST_OPS[type(n.op)](_walk(n.left), _walk(n.right))
+        if isinstance(n, ast.UnaryOp) and type(n.op) in _ALLOWED_AST_OPS:
+            return _ALLOWED_AST_OPS[type(n.op)](_walk(n.operand))
+        raise ValueError(f"unsupported expression: {ast.dump(n)}")
+
+    try:
+        return _walk(node)
+    except (ValueError, TypeError, ZeroDivisionError):
+        return 0
 
 
 def update_product_option_kt_subsidy_addtional(file: bytes, margin=0) -> str:
@@ -68,12 +107,8 @@ def update_product_option_kt_subsidy_addtional(file: bytes, margin=0) -> str:
         if not model_name:
             continue
         for col, header in HEADERS.items():
-            if type(ws[f"{col}{i}"].value) not in (int, float):
-                jungchaek = max(
-                    int(eval(ws[f"{col}{i}"].value)) * PRICE_UNIT - margin, 0
-                )
-            else:
-                jungchaek = max(int(ws[f"{col}{i}"].value) * PRICE_UNIT - margin, 0)
+            cell_value = ws[f"{col}{i}"].value
+            jungchaek = max(int(_safe_eval_number(cell_value)) * PRICE_UNIT - margin, 0)
             key = f"{header}_{model_name}"
             if key in db_option_dict:
                 options = db_option_dict[key]
