@@ -1,6 +1,7 @@
+import uuid
+
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.views import APIView
-from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -213,6 +214,15 @@ WHERE
         return Response(serializer.data)
 
 
+ALLOWED_CREDIT_CHECK_MIME = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+}
+MAX_CREDIT_CHECK_FILE_SIZE = 10 * 1024 * 1024
+MAX_CREDIT_CHECK_FILES = 10
+
+
 class OrderCreditCheckView(APIView):
     """신용조회 동의서 이미지 업로드 API"""
 
@@ -223,6 +233,20 @@ class OrderCreditCheckView(APIView):
         operation_summary="신용조회 동의서 업로드",
         manual_parameters=[
             openapi.Parameter(
+                "customer_name",
+                openapi.IN_FORM,
+                description="고객 이름 (주문 검증용, 필수)",
+                type=openapi.TYPE_STRING,
+                required=True,
+            ),
+            openapi.Parameter(
+                "phone",
+                openapi.IN_FORM,
+                description="고객 전화번호 (주문 검증용, 필수)",
+                type=openapi.TYPE_STRING,
+                required=True,
+            ),
+            openapi.Parameter(
                 "credit_check_agreement",
                 openapi.IN_FORM,
                 description="신용조회 동의서 이미지 파일",
@@ -230,41 +254,71 @@ class OrderCreditCheckView(APIView):
                 required=True,
             ),
         ],
-        responses={200: "업로드 성공", 400: "이미지 파일 필요", 404: "주문 없음"},
+        responses={
+            200: "업로드 성공",
+            400: "파일 누락 또는 검증 실패",
+            404: "주문 없음",
+        },
         consumes=["multipart/form-data"],
         tags=["주문"],
     )
     def post(self, request, pk):
+        customer_name = request.data.get("customer_name")
+        phone = request.data.get("phone")
+        if not customer_name or not phone:
+            return Response(
+                {"error": "주문을 찾을 수 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        phone = clean_phone_num(phone)
+
         try:
-            order = Order.objects.get(pk=pk)
+            order = Order.objects.get(
+                pk=pk,
+                customer_name=customer_name,
+                customer_phone=phone,
+                deleted_at__isnull=True,
+            )
         except Order.DoesNotExist:
             return Response(
                 {"error": "주문을 찾을 수 없습니다."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        if len(request.FILES) == 0:
+        files = list(request.FILES.values())
+        if not files:
             return Response(
                 {"error": "credit_check_agreement 이미지 파일이 필요합니다."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        if len(files) > MAX_CREDIT_CHECK_FILES:
+            return Response(
+                {
+                    "error": f"파일은 최대 {MAX_CREDIT_CHECK_FILES}개까지 업로드 가능합니다."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        for f in files:
+            if f.content_type not in ALLOWED_CREDIT_CHECK_MIME:
+                return Response(
+                    {"error": "지원하지 않는 이미지 형식입니다."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if f.size > MAX_CREDIT_CHECK_FILE_SIZE:
+                return Response(
+                    {"error": "파일 크기가 10MB를 초과합니다."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-        created_agreements = []
-        for index, image_file in enumerate(request.FILES.values()):
-            image_file.name = (
-                f"order_{pk}_{order.customer_phone}_credit_check_{index + 1}.png"
-            )
-            agreement = CreditCheckAgreement.objects.create(
-                order=order,
-                image=image_file,
-            )
-            created_agreements.append(agreement.image.url)
+        for image_file in files:
+            ext = ALLOWED_CREDIT_CHECK_MIME[image_file.content_type]
+            image_file.name = f"{uuid.uuid4().hex}.{ext}"
+            CreditCheckAgreement.objects.create(order=order, image=image_file)
         send_credit_check_alert(pk, order.customer_name, order.customer_phone)
 
         return Response(
             {
-                "message": f"신용조회 동의서 {len(created_agreements)}장이 업로드되었습니다.",
-                "credit_check_agreements": created_agreements,
+                "message": f"신용조회 동의서 {len(files)}장이 업로드되었습니다.",
             },
             status=status.HTTP_200_OK,
         )
