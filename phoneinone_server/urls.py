@@ -33,14 +33,13 @@ def health_check(request):
 
 def db_check(request):
     try:
-        # DB 연결 테스트
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
-            result = cursor.fetchone()
+            cursor.fetchone()
         return HttpResponse("ok")
-    except Exception as e:
-        logging.error(f"DB connection failed: {e}")
-        return HttpResponse(f"DB Error: {str(e)}")
+    except Exception:
+        logging.exception("db_check_failed")
+        return HttpResponse("error", status=503)
 
 
 def env_check(request):
@@ -56,13 +55,13 @@ urlpatterns = [
     path("phone/", include(("phone.urls", "phone"))),
     path("internet/", include(("internet.urls", "internet"))),
     path("db-check", db_check),
-    path("env-check", env_check),
-    path("sentry-debug/", trigger_error),
     path("", health_check),
 ]
 
 if settings.DEBUG:
     urlpatterns += [
+        path("env-check", env_check),
+        path("sentry-debug/", trigger_error),
         re_path(
             r"^swagger(?P<format>\.json|\.yaml)$",
             schema_view.without_ui(cache_timeout=0),

@@ -5,7 +5,6 @@ import environ
 import sentry_sdk
 import logging
 
-
 BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env(DEBUG=(bool, False))
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
@@ -27,7 +26,7 @@ DB_USER = env("DB_USER", default="postgres")
 DB_PASSWORD = env("DB_PASSWORD", default="1234")
 DB_HOST = env("DB_HOST", default="localhost")
 DB_PORT = env("DB_PORT", default="5432")
-DEBUG = env("DEBUG", default="False") == True
+DEBUG = env.bool("DEBUG", default=False)
 CHANENLTALK_ACCESS_KEY = env("CHANENLTALK_ACCESS_KEY")
 CHANENLTALK_ACCESS_SECRET = env("CHANENLTALK_ACCESS_SECRET")
 SMARTEL_INVENTORY_API_KEY = env("SMARTEL_INVENTORY_API_KEY")
