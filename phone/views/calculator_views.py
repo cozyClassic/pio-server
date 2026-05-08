@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_yasg.utils import swagger_auto_schema
@@ -58,6 +59,11 @@ class CalculatorSessionViewSet(
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        if settings.DEBUG:
+            return Response(
+                {"id": None, "debug_skipped": True},
+                status=status.HTTP_200_OK,
+            )
         instance = serializer.save()
         return Response({"id": str(instance.id)}, status=status.HTTP_201_CREATED)
 
@@ -69,6 +75,12 @@ class CalculatorSessionViewSet(
         pk = kwargs[self.lookup_field]
         serializer = self.get_serializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
+
+        if settings.DEBUG:
+            return Response(
+                {"id": str(pk), "debug_skipped": True},
+                status=status.HTTP_200_OK,
+            )
 
         # PII 빈문자열 정규화는 serializer 가 처리:
         #   - phone 분기: '' → ValidationError (rejected before reaching view)
@@ -131,6 +143,13 @@ class CustomerIdentityCreateView(APIView):
         tags=["Calculator"],
     )
     def post(self, request, id):
+        if settings.DEBUG:
+            serializer = CustomerIdentityCreateSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            return Response(
+                {**serializer.validated_data, "debug_skipped": True},
+                status=status.HTTP_200_OK,
+            )
         session = get_object_or_404(CalculatorSession, id=id)
         if hasattr(session, "identity"):
             return Response(
