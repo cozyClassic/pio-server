@@ -272,7 +272,7 @@ class ProductViewSet(ReadOnlyModelViewSet):
                 Prefetch(
                     "options",
                     queryset=ProductOption.objects.all()
-                    .select_related("plan", "device_variant")
+                    .select_related("plan", "device_variant", "official_contract_link")
                     .filter(
                         Q(Q(contract_type="기기변경") & Q(plan__carrier=prev_carrier))
                         | Q(
