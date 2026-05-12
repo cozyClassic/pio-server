@@ -3,8 +3,7 @@ import traceback
 from io import BytesIO
 import pandas as pd
 
-from collections import defaultdict
-from django.db.models import Prefetch, F, Subquery, OuterRef
+from django.db.models import Prefetch, F
 from django.contrib import admin, messages
 from django.urls import path
 from django.http import HttpResponse, HttpResponseRedirect
@@ -260,13 +259,12 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
         """
         모든 활성 상품의 현재 최저가를 PriceHistory에 저장
         - (product, carrier) 조합별로 6개월 총액 기준 가장 저렴한 공시지원금 옵션의 final_price 저장
-        - 이전 가격과 동일하면 저장하지 않음
+        - 같은 날짜의 같은 (product, carrier) 레코드가 이미 있으면 update, 없으면 create
+        - 이전 가격과 동일하면 스킵
         """
-        from django.db.models import OuterRef, Subquery
-        from collections import defaultdict
-
         today = timezone.now().date()
         created_count = 0
+        updated_count = 0
         skipped_count = 0
 
         # 1. 활성 상품 목록 조회 (1 쿼리)
@@ -301,70 +299,30 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
             if key not in best_options_map:
                 best_options_map[key] = opt
 
-        best_option_dict = defaultdict(defaultdict[str])
-        for opt in best_options_map.values():
-            best_option_dict[opt.product_id][opt.plan.carrier] = {
-                "id": opt.id,
-                "dv_id": opt.device_variant_id,
-                "plan_id": opt.plan_id,
-                "plan_name": opt.plan.name,
-                "final_price": opt.final_price,
-            }
-
-        all_option_dict = defaultdict(defaultdict[str])
-        for opt in all_options:
-            if (
-                opt.plan.carrier in all_option_dict[opt.product_id]
-                and all_option_dict[opt.product_id][opt.plan.carrier] is not None
-            ):
-                continue
-            all_option_dict[opt.product_id][opt.plan.carrier] = {
-                "id": opt.id,
-                "dv_id": opt.device_variant_id,
-                "plan_id": opt.plan_id,
-                "plan_name": opt.plan.name,
-                "final_price": opt.final_price,
-            }
-
-        # 3. 기존 PriceHistory 중 최신 레코드만 조회 (1 쿼리)
+        # 3. 오늘 날짜의 기존 PriceHistory 조회 (1 쿼리)
+        # DB unique_together = (product, price_at, carrier) 와 동일한 키로 조회
         carriers = [code for code, _ in CarrierChoices.CHOICES]
-
-        # 최신 price_at을 가진 레코드의 id를 서브쿼리로 조회
-        latest_history_subquery = (
-            PriceHistory.objects.filter(
-                product_id=OuterRef("product_id"),
-                carrier=OuterRef("carrier"),
-                plan_id=OuterRef("plan_id"),
-            )
-            .order_by("-price_at")
-            .values("id")[:1]
-        )
 
         existing_histories = list(
             PriceHistory.objects.filter(
                 product_id__in=product_ids,
                 carrier__in=carriers,
-                id=Subquery(latest_history_subquery),
-            ).values("id", "product_id", "carrier", "plan_id", "final_price")
+                price_at=today,
+            )
         )
 
-        # (product_id, carrier, plan_id) -> history 매핑
-        history_map = {
-            (h["product_id"], h["carrier"], h["plan_id"]): h for h in existing_histories
-        }
+        # (product_id, carrier) -> history 인스턴스 매핑
+        history_map = {(h.product_id, h.carrier): h for h in existing_histories}
 
-        # 4. 새로 생성할 PriceHistory 수집
+        # 4. CREATE / UPDATE / SKIP 분기
         to_create = []
+        to_update = []
 
         for (product_id, carrier), best_option in best_options_map.items():
-            history_key = (product_id, carrier, best_option.plan_id)
-            existing = history_map.get(history_key)
+            existing = history_map.get((product_id, carrier))
 
-            if existing and existing["final_price"] == best_option.final_price:
-                # 가격이 동일하면 스킵
-                skipped_count += 1
-            else:
-                # 새 레코드 생성 (가격이 다르거나 기존 기록이 없는 경우)
+            if existing is None:
+                # 오늘 날짜 레코드가 없으면 새로 생성
                 to_create.append(
                     PriceHistory(
                         product_id=product_id,
@@ -375,14 +333,25 @@ class ProductAdmin(nested_admin.NestedModelAdmin):
                     )
                 )
                 created_count += 1
+            elif existing.final_price == best_option.final_price:
+                # 가격이 동일하면 스킵 (plan_id가 달라도 가격 기준)
+                skipped_count += 1
+            else:
+                # 가격이 달라졌으면 기존 레코드 업데이트
+                existing.final_price = best_option.final_price
+                existing.plan_id = best_option.plan_id
+                to_update.append(existing)
+                updated_count += 1
 
-        # 5. bulk_create로 한 번에 저장 (1 쿼리)
+        # 5. bulk 저장
         if to_create:
             PriceHistory.objects.bulk_create(to_create)
+        if to_update:
+            PriceHistory.objects.bulk_update(to_update, ["final_price", "plan_id"])
 
         messages.success(
             request,
-            f"✅ 가격 기록 저장 완료: {created_count}개 생성, {skipped_count}개 스킵",
+            f"✅ 가격 기록 저장 완료: {created_count}개 생성, {updated_count}개 업데이트, {skipped_count}개 스킵",
         )
 
         return HttpResponseRedirect("../")
