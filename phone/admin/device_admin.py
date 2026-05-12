@@ -60,7 +60,15 @@ class DeviceColorsAdmin(commonAdmin):
 
 @admin.register(DeviceVariant)
 class DeviceVariantsAdmin(commonAdmin):
-    list_display = ("device", "storage_capacity", "device_price")
+    list_display = (
+        "device",
+        "storage_capacity",
+        "device_price",
+        "is_default",
+        "self_buy_url_naver",
+        "self_buy_url_coupang",
+    )
+    list_editable = ("is_default",)
     search_fields = ("device__model_name", "storage_capacity")
 
     def get_queryset(self, request):

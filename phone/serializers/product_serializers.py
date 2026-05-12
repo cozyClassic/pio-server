@@ -236,8 +236,12 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         for dv in obj.device.variants.all():
             result["device_variants"].append(
                 {
+                    "id": dv.id,
                     "storage_capacity": dv.storage_capacity,
                     "price": dv.device_price,
+                    "self_buy_url_naver": dv.self_buy_url_naver,
+                    "self_buy_url_coupang": dv.self_buy_url_coupang,
+                    "is_default": dv.is_default,
                 }
             )
 

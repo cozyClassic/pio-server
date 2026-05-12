@@ -77,6 +77,22 @@ class DeviceVariant(SoftDeleteModel):
     price_lg = models.IntegerField(
         help_text="LG 모델 가격", blank=True, default=0, null=True
     )
+    self_buy_url_naver = models.URLField(
+        max_length=500,
+        blank=True,
+        default="",
+        help_text="자급제 구매 링크 (네이버). 용량별로 다른 링크 입력",
+    )
+    self_buy_url_coupang = models.URLField(
+        max_length=500,
+        blank=True,
+        default="",
+        help_text="자급제 구매 링크 (쿠팡). 용량별로 다른 링크 입력",
+    )
+    is_default = models.BooleanField(
+        default=False,
+        help_text="자급제 카드 등 단말 단위 노출 시 대표로 사용할 variant (Device당 1개 권장)",
+    )
 
     def __str__(self):
         if DEBUG:
