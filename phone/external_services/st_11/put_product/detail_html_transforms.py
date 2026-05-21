@@ -35,12 +35,15 @@ IMAGE_URL_REPLACEMENTS = {
     # 정직한 조건
     "https://store.img11.co.kr/76294482/4e51f4e4-7a6a-41f8-be5c-888647045100_1770856168511.png": NEW_HONEST_URL,
     "https://d1a9hcae9rlwaq.cloudfront.net/images/Frame_84-20260520080948528407.webp": NEW_HONEST_URL,
+    "https://d1a9hcae9rlwaq.cloudfront.net/images/Frame_84-20260521003847145313.png": NEW_HONEST_URL,
     # 구매 전 확인사항
     "https://store.img11.co.kr/76294482/84d81f17-f8aa-471f-a6b9-24c03977bebc_1770856168671.png": NEW_PURCHASE_NOTICE_URL,
     "https://d1a9hcae9rlwaq.cloudfront.net/images/Frame_16196-20260520081026539282.webp": NEW_PURCHASE_NOTICE_URL,
+    "https://d1a9hcae9rlwaq.cloudfront.net/images/Frame_16196-20260521003859293314.png": NEW_PURCHASE_NOTICE_URL,
     # 교환/반품 안내
     "https://store.img11.co.kr/76294482/efce4d00-d29e-4b06-8bb5-da701d2d1c56_1770869244145.png": NEW_RETURN_URL,
     "https://d1a9hcae9rlwaq.cloudfront.net/images/Frame_16197-20260520081242171493.png": NEW_RETURN_URL,
+    "https://d1a9hcae9rlwaq.cloudfront.net/images/Frame_16197-20260521003913449419.png": NEW_RETURN_URL,
 }
 
 FAQ_URL_FRAGMENT = "21a9c880-854b-4ef4-b79f-779b59fad311"
@@ -147,6 +150,70 @@ def fix_carrier_vip_block(carrier: str) -> Callable[[str], tuple[str, dict]]:
         return html, counts
 
     return _transform
+
+
+# ===== 카카오톡 상담 링크 (a href 강제 https) =====
+# 11번가 API가 일부 a href를 비워(`#`) 저장하거나 과거 http:// 로 등록된 케이스가 섞여 있어,
+# 카카오톡 상담 이미지를 감싸는 <a> 블록을 일괄로 신규 형태로 재구성한다.
+
+KAKAO_HREF = "https://pf.kakao.com/_xlgjNn"
+KAKAO_IMG_FRAGMENT = "Frame_16195-20260520080934288892"
+KAKAO_IMG_URL = (
+    "https://d1a9hcae9rlwaq.cloudfront.net/images/"
+    "Frame_16195-20260520080934288892.webp"
+)
+KAKAO_IMG_ALT = "카카오톡 상담원 연결 링크, 월~금 10시~19시 토요일 10~17시"
+
+# <a>로 감싸진 카카오 블록: <a ...><img ...Frame_16195...></a>
+KAKAO_LINKED_BLOCK_PATTERN = re.compile(
+    r"<a\b[^>]*?>\s*"
+    r"<img\b[^>]*?" + re.escape(KAKAO_IMG_FRAGMENT) + r"[^>]*?>"
+    r"\s*</a>",
+    re.DOTALL,
+)
+# <a>가 없는 단독 카카오 <img>
+KAKAO_IMG_ONLY_PATTERN = re.compile(
+    r"<img\b[^>]*?" + re.escape(KAKAO_IMG_FRAGMENT) + r"[^>]*?>",
+    re.DOTALL,
+)
+
+
+def _build_kakao_block() -> str:
+    return (
+        f'<a target="_blank" href="{KAKAO_HREF}">'
+        f'<img style="display: block" src="{KAKAO_IMG_URL}" alt="{KAKAO_IMG_ALT}" />'
+        f"</a>"
+    )
+
+
+def fix_kakao_link_block(html: str) -> tuple[str, dict]:
+    """카카오톡 상담 이미지 블록을 일괄로 표준 <a href=https://...><img></a>로 재구성한다.
+
+    - <a>로 이미 감싸진 경우(빈 href '#', http://, 또는 https:// 무관)도 통째 교체한다.
+    - <img>만 단독으로 있는 경우에도 <a>로 감싸 새로 만든다.
+    """
+    counts = {
+        "linked_block_replaced": 0,
+        "img_only_replaced": 0,
+        "no_match": 0,
+    }
+
+    new_block = _build_kakao_block()
+    placeholder = "<<<__KAKAO_BLOCK_PLACEHOLDER__>>>"
+
+    # 먼저 <a><img></a> 형태를 placeholder로 치환 (이중 매칭 방지)
+    html, n1 = KAKAO_LINKED_BLOCK_PATTERN.subn(placeholder, html)
+    # 남은 <img> 단독을 placeholder로 치환
+    html, n2 = KAKAO_IMG_ONLY_PATTERN.subn(placeholder, html)
+    # placeholder를 최종 블록으로 일괄 치환
+    html = html.replace(placeholder, new_block)
+
+    counts["linked_block_replaced"] = n1
+    counts["img_only_replaced"] = n2
+    if n1 == 0 and n2 == 0:
+        counts["no_match"] = 1
+
+    return html, counts
 
 
 def replace_common_images(html: str) -> tuple[str, dict]:
