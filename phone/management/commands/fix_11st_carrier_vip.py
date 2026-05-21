@@ -6,14 +6,26 @@ from phone.external_services.st_11.put_product.update_detail_html import (
     transform_and_update_product_detail_html,
 )
 from phone.external_services.st_11.put_product.detail_html_transforms import (
-    replace_common_images,
+    fix_carrier_vip_block,
+    CARRIER_VIP_IMG,
 )
+
+CARRIERS = ("SK", "KT", "LG")
+
+
+def _carrier_from_name(name: str) -> str | None:
+    if not name:
+        return None
+    for c in CARRIERS:
+        if f" {c} " in name or name.startswith(f"{c} ") or name.endswith(f" {c}"):
+            return c
+    return None
 
 
 class Command(BaseCommand):
     help = (
-        "11번가 등록 상품들의 상세페이지 HTML에 detail_html_transforms.replace_common_images "
-        "변환을 적용한다. (공통 이미지 URL 일괄 교체 + FAQ 제거 + 구매전확인사항 보장)"
+        "11번가 등록 상품들의 상세페이지에서 통신사별 VIP 혜택(요금제표) 이미지/링크를 "
+        "상품의 통신사(SK/KT/LG)에 맞게 일괄 교정한다."
     )
 
     def add_arguments(self, parser):
@@ -62,60 +74,76 @@ class Command(BaseCommand):
         success_count = 0
         skip_count = 0
         fail_count = 0
+        unknown_carrier_count = 0
 
         for i, om_product in enumerate(products, 1):
             prefix = (
                 f"[{i}/{total}] id={om_product.id} prdNo={om_product.om_product_id}"
             )
             try:
+                carrier = _carrier_from_name(om_product.name)
+                if carrier is None:
+                    unknown_carrier_count += 1
+                    self.stderr.write(
+                        f"{prefix} SKIP: 상품명에서 통신사(SK/KT/LG)를 판별 못함 → {om_product.name!r}"
+                    )
+                    continue
+
                 result = self._process_one(
                     om_product,
+                    carrier,
                     dry_run=opts["dry_run"],
                     show_html=opts["show_html"],
                 )
                 if result == "updated":
                     success_count += 1
-                    self.stdout.write(self.style.SUCCESS(f"{prefix} OK"))
+                    self.stdout.write(self.style.SUCCESS(f"{prefix} [{carrier}] OK"))
                 elif result == "dry":
                     success_count += 1
-                    self.stdout.write(f"{prefix} DRY (변환 OK, API 미호출)")
+                    self.stdout.write(f"{prefix} [{carrier}] DRY (변환 OK, API 미호출)")
                 else:
                     skip_count += 1
-                    self.stdout.write(f"{prefix} SKIP (변경사항 없음)")
+                    self.stdout.write(f"{prefix} [{carrier}] SKIP (변경사항 없음)")
             except Exception as e:
                 fail_count += 1
                 self.stderr.write(f"{prefix} FAIL: {e}")
 
         self.stdout.write(
-            f"\n결과 - 성공: {success_count}, 스킵: {skip_count}, 실패: {fail_count}"
+            f"\n결과 - 성공: {success_count}, 스킵: {skip_count}, "
+            f"실패: {fail_count}, 통신사판별불가: {unknown_carrier_count}"
         )
 
     def _process_one(
-        self, om_product: OpenMarketProduct, dry_run: bool, show_html: bool
+        self,
+        om_product: OpenMarketProduct,
+        carrier: str,
+        dry_run: bool,
+        show_html: bool,
     ) -> str:
+        transformer = fix_carrier_vip_block(carrier)
         before, after, counts = transform_and_update_product_detail_html(
             om_product.om_product_id,
-            replace_common_images,
+            transformer,
             dry_run=dry_run,
         )
 
         self.stdout.write(
-            "  변환: url_replaced={url_replaced}, faq_removed={faq_removed}, "
-            "purchase_notice_inserted={purchase_notice_inserted}, "
-            "purchase_notice_anchor_missing={purchase_notice_anchor_missing}, "
-            "hooking_inserted={hooking_inserted}, "
-            "hooking_anchor_missing={hooking_anchor_missing}".format(**counts)
+            "  변환: linked_block_replaced={linked_block_replaced}, "
+            "img_only_replaced={img_only_replaced}, "
+            "no_match={no_match}".format(**counts)
         )
 
-        if counts["purchase_notice_anchor_missing"]:
+        if counts["no_match"]:
             self.stderr.write(
-                "  경고: 구매전확인사항을 삽입할 앵커(정직한조건 신규 URL)가 없음 → 추가 못함"
+                "  경고: VIP 이미지 블록(SK/KT/LG)을 HTML에서 못 찾음 → 변경 없음"
             )
 
-        if counts["hooking_anchor_missing"]:
-            self.stderr.write(
-                "  경고: 후킹 이미지를 삽입할 앵커(정직한조건 신규 URL)가 없음 → 추가 못함"
-            )
+        # 변환 후에 다른 통신사 잔재가 남아있는지 검증
+        for other in CARRIERS:
+            if other == carrier:
+                continue
+            if CARRIER_VIP_IMG[other] in after:
+                self.stderr.write(f"  경고: 변환 후에도 {other} VIP 이미지가 잔존함")
 
         if before == after:
             return "skip"
