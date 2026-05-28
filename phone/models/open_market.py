@@ -45,7 +45,7 @@ class OpenMarketProduct(SoftDeleteModel):
     )
     seller_code = models.CharField(max_length=100, blank=True, null=True, default=None)
     name = models.CharField(max_length=255, default="", blank=True)
-    registered_price = models.PositiveIntegerField(default=10000)
+    registered_price = models.PositiveIntegerField(default=1000)
     detail_page_html = tinymce_models.HTMLField(default="", blank=True)
     last_price_updated_at = models.DateTimeField(default=None, null=True)
 
