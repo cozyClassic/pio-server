@@ -2,7 +2,7 @@ import requests
 from phoneinone_server.settings import SMARTEL_INVENTORY_API_KEY
 from phone.models import Inventory, Dealership
 
-REQUEST_URL = "https://api2.smartel.kr/admin/inventory"
+REQUEST_URL = "https://api2.smartel.kr/inventory/list"
 
 
 class SmartelInventoryItem:
