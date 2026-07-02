@@ -23,7 +23,7 @@ from .content import (
     CustomImage,
 )
 from .price import PriceHistory, PriceNotificationRequest
-from .inventory import Dealership, OfficialContractLink, Inventory
+from .inventory import Dealership, OfficialContractLink, Inventory, InventorySummary
 from .open_market import (
     OpenMarket,
     OpenMarketProduct,
@@ -66,6 +66,7 @@ __all__ = [
     "Dealership",
     "OfficialContractLink",
     "Inventory",
+    "InventorySummary",
     "OpenMarket",
     "OpenMarketProduct",
     "OpenMarketProductOption",

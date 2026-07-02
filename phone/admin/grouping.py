@@ -34,7 +34,7 @@ _ADMIN_GROUPS = {
         CardAdditionalPromotion,
         CustomImage,
     ],
-    "재고": [Inventory],
+    "재고": [Inventory, InventorySummary],
     "오픈마켓": [OpenMarket, OpenMarketProduct, OpenMarketProductOption],
     "기타": [Dealership, OfficialContractLink],
     "진단": [DiagnosisLog, CalculatorSession, CustomerIdentity],

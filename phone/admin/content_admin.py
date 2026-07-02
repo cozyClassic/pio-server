@@ -1,5 +1,7 @@
 # pyright: reportAttributeAccessIssue=false
-from django.db.models import Prefetch
+from collections import OrderedDict
+
+from django.db.models import Prefetch, Sum
 from django.contrib import admin, messages
 from django.urls import path
 from django.http import HttpResponseRedirect
@@ -410,6 +412,143 @@ class InventoryAdmin(commonAdmin):
                 "opts": self.model._meta,
             },
         )
+
+
+@admin.register(InventorySummary)
+class InventorySummaryAdmin(commonAdmin):
+    """제품별(단말기/용량) 합계 재고를 대리점별 피벗 표로 보여주는 읽기전용 리포트."""
+
+    change_list_template = "admin/inventory_summary.html"
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def changelist_view(self, request, extra_context=None):
+        group_by = request.GET.get("group_by", "variant")
+        if group_by not in ("variant", "device"):
+            group_by = "variant"
+        # 기본은 재고(합계>0)만 노출, ?all=1 이면 전체 노출
+        in_stock_only = request.GET.get("all") != "1"
+
+        base = Inventory.objects.filter(
+            device_variant__deleted_at__isnull=True,
+            device_variant__device__deleted_at__isnull=True,
+            dealership__deleted_at__isnull=True,
+        )
+
+        # 대리점 컬럼 목록 (이름순)
+        dealer_rows = (
+            base.values("dealership_id", "dealership__name")
+            .distinct()
+            .order_by("dealership__name")
+        )
+        dealerships = [
+            {"id": d["dealership_id"], "name": d["dealership__name"]}
+            for d in dealer_rows
+        ]
+        dealer_ids = [d["id"] for d in dealerships]
+
+        # (단말기, 용량, 대리점) 별 합계 집계
+        agg_rows = (
+            base.values(
+                "device_variant_id",
+                "device_variant__storage_capacity",
+                "device_variant__device_id",
+                "device_variant__device__model_name",
+                "device_variant__device__brand",
+                "dealership_id",
+            )
+            .annotate(total=Sum("count"))
+            .order_by(
+                "device_variant__device__model_name",
+                "device_variant__storage_capacity",
+                "device_variant_id",
+            )
+        )
+
+        devices = OrderedDict()
+        for r in agg_rows:
+            did = r["device_variant__device_id"]
+            dev = devices.get(did)
+            if dev is None:
+                dev = {
+                    "id": did,
+                    "model_name": r["device_variant__device__model_name"],
+                    "brand": r["device_variant__device__brand"],
+                    "variants": OrderedDict(),
+                }
+                devices[did] = dev
+            vid = r["device_variant_id"]
+            variant = dev["variants"].get(vid)
+            if variant is None:
+                variant = {
+                    "id": vid,
+                    "storage": r["device_variant__storage_capacity"],
+                    "cells": {d: 0 for d in dealer_ids},
+                    "total": 0,
+                }
+                dev["variants"][vid] = variant
+            variant["cells"][r["dealership_id"]] = r["total"]
+            variant["total"] += r["total"]
+
+        groups = []
+        col_totals = {d: 0 for d in dealer_ids}
+        grand_total = 0
+        for dev in devices.values():
+            variant_rows = []
+            subtotal = {d: 0 for d in dealer_ids}
+            dev_total = 0
+            for variant in dev["variants"].values():
+                if in_stock_only and variant["total"] == 0:
+                    continue
+                variant_rows.append(
+                    {
+                        "id": variant["id"],
+                        "storage": variant["storage"],
+                        "cells": [variant["cells"][d] for d in dealer_ids],
+                        "total": variant["total"],
+                    }
+                )
+                for d in dealer_ids:
+                    subtotal[d] += variant["cells"][d]
+                dev_total += variant["total"]
+
+            if in_stock_only and dev_total == 0:
+                continue
+
+            groups.append(
+                {
+                    "device_id": dev["id"],
+                    "model_name": dev["model_name"],
+                    "brand": dev["brand"],
+                    "variant_count": len(variant_rows),
+                    "variant_rows": variant_rows,
+                    "subtotal_cells": [subtotal[d] for d in dealer_ids],
+                    "subtotal_total": dev_total,
+                }
+            )
+            for d in dealer_ids:
+                col_totals[d] += subtotal[d]
+            grand_total += dev_total
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "제품별 재고",
+            "opts": self.model._meta,
+            "dealerships": dealerships,
+            "col_count": len(dealerships),
+            "groups": groups,
+            "col_totals": [col_totals[d] for d in dealer_ids],
+            "grand_total": grand_total,
+            "group_by": group_by,
+            "in_stock_only": in_stock_only,
+        }
+        if extra_context:
+            context.update(extra_context)
+        return render(request, self.change_list_template, context)
 
 
 @admin.register(OpenMarket)

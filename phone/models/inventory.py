@@ -85,3 +85,17 @@ class Inventory(SoftDeleteModel):
                 name="unique_inventory_item",
             )
         ]
+
+
+class InventorySummary(Inventory):
+    """제품별 재고 집계 리포트 전용 프록시 모델.
+
+    별도의 admin 페이지(`admin/phone/inventorysummary/`)에서 단말기/용량별
+    합계 재고를 대리점별로 피벗 형태로 보여주기 위해 사용한다. 실제 DB
+    테이블은 Inventory와 동일하며 스키마 변경이 없다.
+    """
+
+    class Meta:
+        proxy = True
+        verbose_name = "제품별 재고"
+        verbose_name_plural = "제품별 재고"

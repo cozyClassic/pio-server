@@ -1,0 +1,114 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}제품별 재고 | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">홈</a>
+  &rsaquo; <a href="{% url 'admin:app_list' app_label='phone' %}">Phone</a>
+  &rsaquo; 제품별 재고
+</div>
+{% endblock %}
+
+{% block extrahead %}{{ block.super }}
+<style>
+  .inv-toolbar { margin: 12px 0 16px; display: flex; gap: 24px; flex-wrap: wrap; align-items: center; }
+  .inv-toolbar .grp { display: flex; gap: 6px; align-items: center; }
+  .inv-toolbar .grp .lbl { font-weight: 600; color: #555; margin-right: 4px; }
+  .inv-toolbar a.tab {
+    padding: 5px 12px; border: 1px solid #ccc; border-radius: 4px;
+    text-decoration: none; color: #333; background: #fff;
+  }
+  .inv-toolbar a.tab.active { background: #417690; color: #fff; border-color: #417690; }
+  table.inv-summary { border-collapse: collapse; width: 100%; font-size: 13px; }
+  table.inv-summary th, table.inv-summary td {
+    border: 1px solid #e0e0e0; padding: 6px 10px; text-align: right; white-space: nowrap;
+  }
+  table.inv-summary thead th {
+    background: #f5f6f7; position: sticky; top: 0; text-align: center; font-weight: 600;
+  }
+  table.inv-summary td.label, table.inv-summary th.label { text-align: left; }
+  table.inv-summary td.zero { color: #c4c4c4; }
+  table.inv-summary tr.subtotal td { background: #f0f7fb; font-weight: 600; }
+  table.inv-summary tr.grand td { background: #417690; color: #fff; font-weight: 700; }
+  table.inv-summary td.total-col, table.inv-summary th.total-col { background: #fbf7ee; font-weight: 600; }
+  table.inv-summary tr.grand td.total-col { background: #34627a; }
+  .inv-empty { padding: 40px; text-align: center; color: #888; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>제품별 재고</h1>
+
+<div class="inv-toolbar">
+  <div class="grp">
+    <span class="lbl">보기</span>
+    <a class="tab {% if group_by == 'variant' %}active{% endif %}"
+       href="?group_by=variant{% if not in_stock_only %}&all=1{% endif %}">용량별</a>
+    <a class="tab {% if group_by == 'device' %}active{% endif %}"
+       href="?group_by=device{% if not in_stock_only %}&all=1{% endif %}">단말기별</a>
+  </div>
+  <div class="grp">
+    <span class="lbl">범위</span>
+    <a class="tab {% if in_stock_only %}active{% endif %}"
+       href="?group_by={{ group_by }}">재고만(&gt;0)</a>
+    <a class="tab {% if not in_stock_only %}active{% endif %}"
+       href="?group_by={{ group_by }}&all=1">전체</a>
+  </div>
+</div>
+
+{% if not groups %}
+  <div class="inv-empty">표시할 재고 데이터가 없습니다.</div>
+{% else %}
+<table class="inv-summary">
+  <thead>
+    <tr>
+      <th class="label">단말기</th>
+      {% if group_by == 'variant' %}<th class="label">용량</th>{% endif %}
+      {% for d in dealerships %}<th>{{ d.name }}</th>{% endfor %}
+      <th class="total-col">합계</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% if group_by == 'variant' %}
+      {% for g in groups %}
+        {% for v in g.variant_rows %}
+        <tr>
+          {% if forloop.first %}
+          <td class="label" rowspan="{{ g.variant_count|add:1 }}">
+            {{ g.model_name }}{% if g.brand %} <small style="color:#888">({{ g.brand }})</small>{% endif %}
+          </td>
+          {% endif %}
+          <td class="label">{{ v.storage }}</td>
+          {% for c in v.cells %}<td class="{% if not c %}zero{% endif %}">{{ c }}</td>{% endfor %}
+          <td class="total-col">{{ v.total }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="subtotal">
+          <td class="label">소계</td>
+          {% for c in g.subtotal_cells %}<td class="{% if not c %}zero{% endif %}">{{ c }}</td>{% endfor %}
+          <td class="total-col">{{ g.subtotal_total }}</td>
+        </tr>
+      {% endfor %}
+    {% else %}
+      {% for g in groups %}
+      <tr>
+        <td class="label">
+          {{ g.model_name }}{% if g.brand %} <small style="color:#888">({{ g.brand }})</small>{% endif %}
+        </td>
+        {% for c in g.subtotal_cells %}<td class="{% if not c %}zero{% endif %}">{{ c }}</td>{% endfor %}
+        <td class="total-col">{{ g.subtotal_total }}</td>
+      </tr>
+      {% endfor %}
+    {% endif %}
+    <tr class="grand">
+      <td class="label">총 합계</td>
+      {% if group_by == 'variant' %}<td class="label"></td>{% endif %}
+      {% for c in col_totals %}<td>{{ c }}</td>{% endfor %}
+      <td class="total-col">{{ grand_total }}</td>
+    </tr>
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}
