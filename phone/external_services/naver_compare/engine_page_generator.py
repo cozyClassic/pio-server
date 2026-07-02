@@ -152,6 +152,9 @@ class NaverCompareEnginePageGenerator:
             "capacity": str(omp.get_capacity()),
             "discount_type": DiscountTypeChoices.SUBSIDY,  # 이후에 상품 선택약정 상품 추가 고려
             "is_best_device_price": "true",
+            "utm_source": "naver",
+            "utm_medium": "cpc",
+            "utm_campaign": "shopping_price_compare",
         }
 
         return f"{URL}?{urlencode(search_params)}"
