@@ -48,6 +48,11 @@ class OpenMarketProduct(SoftDeleteModel):
     registered_price = models.PositiveIntegerField(default=1000)
     detail_page_html = tinymce_models.HTMLField(default="", blank=True)
     last_price_updated_at = models.DateTimeField(default=None, null=True)
+    is_display_stopped = models.BooleanField(
+        "11번가 전시중지 여부",
+        default=False,
+        help_text="재고 소진 시 11번가 전시중지(True), 재고 확보 시 전시재개(False). 재고 동기화 시 자동 갱신됨.",
+    )
 
     def __str__(self):
         return self.name

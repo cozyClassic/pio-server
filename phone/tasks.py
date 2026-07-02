@@ -8,6 +8,9 @@ from phone.external_services.st_11.put_product.remove_options import (
 )
 from phone.external_services.st_11.put_product.set_price import set_product_price
 from phone.external_services.st_11.put_product.set_options import SetOptions11ST
+from phone.external_services.st_11.put_product.sync_display_status import (
+    sync_11st_display_status,
+)
 from phone.external_services.channel_talk import (
     send_open_market_update_failure_alert,
     send_open_market_order_alert,
@@ -89,6 +92,21 @@ def task_c_set_options(om_product_id_internal: int, om_margin: int):
         send_open_market_update_failure_alert(
             "Task C (옵션 추가)", om_product_id_internal, str(e)
         )
+        raise
+
+
+@shared_task
+def task_sync_11st_display_status():
+    """재고 변동 후 11번가 상품의 전시(판매)중지/재개 상태를 동기화.
+
+    재고가 0인 상품은 전시중지, 재고가 확보된 상품은 전시재개한다.
+    상태가 바뀐 상품만 API를 호출하며, 개별 상품 실패는 격리되고
+    함수 전체가 실패하면 채널톡으로 알림을 보낸다.
+    """
+    try:
+        sync_11st_display_status()
+    except Exception as e:
+        send_open_market_update_failure_alert("전시상태 동기화(태스크)", 0, str(e))
         raise
 
 

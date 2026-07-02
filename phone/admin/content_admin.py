@@ -1,4 +1,5 @@
 # pyright: reportAttributeAccessIssue=false
+import logging
 from collections import OrderedDict
 
 from django.db.models import Prefetch, Sum
@@ -22,6 +23,8 @@ from phone.inventory.lg_hunet.image_lg_hunet import (
     update_inventory as update_inventory_lg_hunet,
 )
 from .base import commonAdmin, format_price
+
+logger = logging.getLogger(__name__)
 
 
 @admin.register(Plan)
@@ -276,6 +279,25 @@ class InventoryCountFilter(admin.SimpleListFilter):
         return queryset
 
 
+def _trigger_11st_display_sync():
+    """재고 동기화 커밋 후 11번가 전시상태 동기화 Celery 태스크를 큐잉한다.
+
+    admin 요청 트랜잭션이 커밋된 뒤에 실행되도록 transaction.on_commit을 사용해,
+    Celery 워커가 최신 재고를 읽도록 보장한다. 큐잉 실패는 재고 동기화 자체를
+    막지 않도록 격리한다.
+    """
+    from django.db import transaction
+    from phone.tasks import task_sync_11st_display_status
+
+    def _enqueue():
+        try:
+            task_sync_11st_display_status.delay()
+        except Exception:
+            logger.exception("[11st display sync] 태스크 큐잉 실패")
+
+    transaction.on_commit(_enqueue)
+
+
 @admin.register(Inventory)
 class InventoryAdmin(commonAdmin):
     list_display = ("dealership", "color_in_sheet", "name_in_sheet", "count")
@@ -316,6 +338,7 @@ class InventoryAdmin(commonAdmin):
 
         try:
             missed_items, updated_count = sync_smartel_inventory()
+            _trigger_11st_display_sync()
             messages.success(
                 request,
                 f"스마텔 재고 동기화가 완료되었습니다. 업데이트된 항목 수: {updated_count}개",
@@ -346,6 +369,7 @@ class InventoryAdmin(commonAdmin):
             try:
                 inventory_data = read_kt_first_inventory_excel(tmp_path)
                 not_matched = update_kt_first_inventory(inventory_data)
+                _trigger_11st_display_sync()
 
                 if not_matched:
                     messages.warning(
@@ -386,6 +410,7 @@ class InventoryAdmin(commonAdmin):
             try:
                 inventory_data = extract_json_from_image_lg_hunet(tmp_path)
                 not_matched = update_inventory_lg_hunet(inventory_data)
+                _trigger_11st_display_sync()
 
                 if not_matched:
                     messages.warning(
@@ -592,10 +617,10 @@ class OpenMarketProductAdmin(commonAdmin):
             kwargs["queryset"] = DeviceVariant.objects.select_related("device")
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
-    list_filter = ["open_market", OpenMarketCarrierFilter]
+    list_filter = ["open_market", OpenMarketCarrierFilter, "is_display_stopped"]
     autocomplete_fields = ["device_variant"]
 
-    list_display = ["id", "open_market", "name"]
+    list_display = ["id", "open_market", "name", "is_display_stopped"]
 
 
 @admin.register(OpenMarketProductOption)
