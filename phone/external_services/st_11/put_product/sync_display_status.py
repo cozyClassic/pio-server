@@ -8,7 +8,10 @@
 - 대리점(`Dealership`)은 통신사와 1:1 (디아이=SK, 퍼스트=KT, 엘비휴넷=LG).
 - 따라서 상품의 재고 = 해당 `device_variant`이면서 상품 통신사와 같은 통신사의
   대리점 재고(모든 색상) 합계.
-- 합계가 0이면 전시중지(stopdisplay), 0보다 크면 전시재개(restartdisplay).
+- 판매중(전시재개) 조건은 **재고>0 이면서 동시에** 해당 단말(device)의 폰인원
+  Product가 활성(is_active=True)인 경우로 한정한다.
+  (비활성 모델은 재고가 있어도 11번가 가격을 갱신하지 않으므로 전시중지 유지)
+- 위 조건을 만족하지 못하면 전시중지(stopdisplay), 만족하면 전시재개(restartdisplay).
 
 중복 호출 방지
 --------------
@@ -29,9 +32,12 @@ from phone.external_services.st_11.put_product.set_display_status import (
     restart_display,
     stop_display,
 )
-from phone.models import Inventory, OpenMarketProduct
+from phone.models import Inventory, OpenMarketProduct, Product
 
 logger = logging.getLogger(__name__)
+
+# 11번가 판매상태 코드 중 '전시중지중'. (103=판매중, 104=품절, 105=전시중지)
+STOPPED_STATUS_CODE = "105"
 
 # seller_code에서 통신사를 판별할 때 검사할 순서 (모델 get_carrier와 동일 우선순위)
 _CARRIER_CANDIDATES = (CarrierChoices.KT, CarrierChoices.LG, CarrierChoices.SK)
@@ -63,6 +69,18 @@ def _build_stock_map(device_variant_ids: set[int]) -> dict[tuple[int, str], int]
     }
 
 
+def _build_active_device_ids() -> set[int]:
+    """폰인원 사이트에서 활성(is_active=True)인 Product의 device_id 집합."""
+    return set(
+        Product.objects.filter(is_active=True).values_list("device_id", flat=True)
+    )
+
+
+def compute_desired_stopped(stock: int, device_active: bool) -> bool:
+    """전시중지 여부 판정: 재고 0이거나 비활성 모델이면 중지."""
+    return stock <= 0 or not device_active
+
+
 def sync_11st_display_status() -> dict[str, int]:
     """전체 11번가 상품의 전시상태를 현재 재고에 맞춰 동기화한다.
 
@@ -75,10 +93,12 @@ def sync_11st_display_status() -> dict[str, int]:
         )
         .exclude(om_product_id__isnull=True)
         .exclude(om_product_id="")
+        .select_related("device_variant")
     )
 
     device_variant_ids = {p.device_variant_id for p in om_products}
     stock_map = _build_stock_map(device_variant_ids)
+    active_device_ids = _build_active_device_ids()
 
     updated = 0
     failures: list[tuple[int, str]] = []
@@ -96,7 +116,8 @@ def sync_11st_display_status() -> dict[str, int]:
             continue
 
         stock = stock_map.get((product.device_variant_id, carrier), 0)
-        desired_stopped = stock <= 0
+        device_active = product.device_variant.device_id in active_device_ids
+        desired_stopped = compute_desired_stopped(stock, device_active)
 
         if desired_stopped == product.is_display_stopped:
             continue
