@@ -72,10 +72,11 @@ HONEST_IMG_PATTERN = re.compile(
 
 # ===== 통신사별 VIP 혜택 이미지/링크 (요금제표) =====
 
+# SK/LG는 2026-07 요금제 개편 반영 신규 이미지, KT는 기존 유지.
 CARRIER_VIP_IMG = {
     "KT": "https://store.img11.co.kr/76294482/e08bb6d1-4c28-488b-8854-039471fd4af8_1770964486404.png",
-    "LG": "https://store.img11.co.kr/76294482/2dff4aae-f23c-437c-a680-91f8a33be6eb_1770964486623.png",
-    "SK": "https://store.img11.co.kr/76294482/d3edf438-e1ef-4e63-8a21-ae1a65a8eb73_1770964486810.png",
+    "LG": "https://store.img11.co.kr/76294482/1886da37-23d7-413d-9642-9f93bd2346c0_1783054519616.png",
+    "SK": "https://store.img11.co.kr/76294482/6450705d-edbd-47ae-b3c6-c13c5b3cfad3_1783054519845.png",
 }
 CARRIER_VIP_LINK = {
     "KT": "https://m.membership.kt.com/vip/choice/s_VvipChoiceInfo.do",
@@ -83,15 +84,23 @@ CARRIER_VIP_LINK = {
     "LG": "https://m.lguplus.com/benefit-membership?urcMbspDivsCd=01&urcMbspBnftDivsCd=02",
 }
 
-# VIP 이미지의 유니크 fragment (UUID 부분)
+# 현행 VIP 이미지의 유니크 fragment (UUID 부분)
 CARRIER_VIP_IMG_FRAGMENT = {
     "KT": "e08bb6d1-4c28-488b-8854-039471fd4af8",
-    "LG": "2dff4aae-f23c-437c-a680-91f8a33be6eb",
-    "SK": "d3edf438-e1ef-4e63-8a21-ae1a65a8eb73",
+    "LG": "1886da37-23d7-413d-9642-9f93bd2346c0",
+    "SK": "6450705d-edbd-47ae-b3c6-c13c5b3cfad3",
 }
 
+# 과거 등록됐던(이제 교체 대상) VIP 이미지 fragment.
+# HTML에 옛 이미지가 남아있을 수 있으므로 매칭 대상에 포함해 상품 통신사의 새 이미지로 통일한다.
+LEGACY_VIP_IMG_FRAGMENTS = (
+    "d3edf438-e1ef-4e63-8a21-ae1a65a8eb73",  # SK 구
+    "2dff4aae-f23c-437c-a680-91f8a33be6eb",  # LG 구
+)
+
 _VIP_IMG_FRAGMENT_ALT = "|".join(
-    re.escape(f) for f in CARRIER_VIP_IMG_FRAGMENT.values()
+    re.escape(f)
+    for f in (*CARRIER_VIP_IMG_FRAGMENT.values(), *LEGACY_VIP_IMG_FRAGMENTS)
 )
 
 # <a>로 감싸진 VIP 블록: <a ...><img ...VIP_IMG...></a>
