@@ -39,6 +39,19 @@ API_KEY_11st = env("API_KEY_11st")
 FRONTEND_URL = env("FRONTEND_URL", default="https://www.phoneinone.com")
 REVALIDATE_SECRET_TOKEN = env("REVALIDATE_SECRET_TOKEN", default="")
 
+# Google Merchant API (Shopping) — 상품 피드 직접 푸시
+# 값이 비어 있으면 push 커맨드/태스크가 런타임에 명확히 에러를 낸다(부팅에는 영향 없음).
+GOOGLE_MERCHANT_ACCOUNT_ID = env("GOOGLE_MERCHANT_ACCOUNT_ID", default="")
+GOOGLE_MERCHANT_DATASOURCE_ID = env("GOOGLE_MERCHANT_DATASOURCE_ID", default="")
+# 서비스계정 인증 (우선순위 순):
+#   1) GOOGLE_MERCHANT_SA_INFO — SA JSON '내용' 전체를 담은 문자열(배포 권장, 파일 불필요)
+#   2) GOOGLE_MERCHANT_SA_JSON — SA JSON 파일 경로
+#   3) BASE_DIR/google-merchant.json (로컬 편의) → 4) ADC
+GOOGLE_MERCHANT_SA_INFO = env("GOOGLE_MERCHANT_SA_INFO", default="")
+GOOGLE_MERCHANT_SA_JSON = env("GOOGLE_MERCHANT_SA_JSON", default="")
+GOOGLE_MERCHANT_CONTENT_LANGUAGE = env("GOOGLE_MERCHANT_CONTENT_LANGUAGE", default="ko")
+GOOGLE_MERCHANT_FEED_LABEL = env("GOOGLE_MERCHANT_FEED_LABEL", default="KR")
+
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 STATIC_URL = f"https://{AWS_CLOUDFRONT_DOMAIN}/static/"
 
@@ -312,6 +325,12 @@ CELERY_BEAT_SCHEDULE = {
         "task": "phone.tasks.task_check_11st_orders",
         "schedule": 60 * 5,  # 5분
     },
+    # Google Merchant 피드 푸시 — dry-run으로 검증하고 데이터소스/크리덴셜을 설정한 뒤
+    # 아래 주석을 해제해 활성화한다. (상품은 최소 30일 내 refresh 필요)
+    # "push-google-merchant-hourly": {
+    #     "task": "phone.tasks.task_push_google_merchant",
+    #     "schedule": 60 * 60,  # 1시간
+    # },
 }
 
 sentry_sdk.init(

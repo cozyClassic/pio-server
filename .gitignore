@@ -144,6 +144,12 @@ venv.bak/
 *.pem
 static/*
 
+# Google service account keys / OAuth client secrets (절대 커밋 금지)
+google-merchant.json
+*-service-account.json
+service-account*.json
+client_secret*.json
+
 # Spyder project settings
 .spyderproject
 .spyproject

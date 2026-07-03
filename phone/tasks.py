@@ -146,3 +146,19 @@ def task_check_11st_orders():
         ]
     )
     send_open_market_order_alert(OpenMarketChoices.ST11, orders)
+
+
+@shared_task
+def task_push_google_merchant():
+    """Google Merchant API로 활성 상품 피드를 등록/갱신한다.
+
+    상품은 최소 30일 내 refresh 되어야 만료되지 않으므로 주기 실행을 전제로 한다.
+    개별 상품 실패는 sync.push 내부에서 격리되고, 전체 실패 시 채널톡으로 알린다.
+    """
+    from phone.external_services.google_merchant.sync import push
+
+    try:
+        push(dry_run=False)
+    except Exception as e:
+        send_open_market_update_failure_alert("Google Merchant 푸시", 0, str(e))
+        raise
