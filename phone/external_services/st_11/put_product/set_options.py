@@ -39,11 +39,6 @@ class SetOptions11ST:
         return carriers[0]
 
     @classmethod
-    def _get_default_option_xml(cls, carrier: str) -> str:
-        plan_name = CARRIER_TO_DEFAULT_PLAN_NAME[carrier]
-        return cls._get_product_option_xml(plan_name, 0)
-
-    @classmethod
     def _get_queryset(cls, open_market_product_id_internal: int) -> OpenMarketProduct:
         om_product = (
             OpenMarketProduct.objects.select_related("open_market")
@@ -105,23 +100,49 @@ class SetOptions11ST:
         ]
 
     @classmethod
-    def set_om_options(cls, open_market_product_id_internal: int, margin: int):
+    def set_om_options(
+        cls, open_market_product_id_internal: int, margin: int, dry_run: bool = False
+    ) -> dict:
+        """11번가 상품 옵션(요금제)을 재구성해 push한다.
+
+        옵션명은 DB의 ``Plan.name``(현행 요금제명)을 사용한다.
+        dry_run=True면 전송할 payload/옵션 요약만 만들고 API는 호출하지 않는다.
+
+        Returns: {"carrier", "om_product_id", "default_plan_name", "options"} 요약.
+                 options는 (요금제명, 옵션가차이) 튜플 리스트.
+        """
         om_product = cls._get_queryset(open_market_product_id_internal)
         carrier = cls._get_carrier(om_product)
         open_market_product_id = om_product.om_product_id
 
         available_options = cls._get_available_options(om_product, carrier, margin)
 
-        options_xml = "\n".join(
-            cls._get_product_option_xml(
-                po.plan.short_name,
+        option_rows = [
+            (
+                po.plan.name,
                 cls._get_option_price(
                     po, margin, om_product.open_market.commision_rate_default
                 )
                 - om_product.registered_price,
             )
             for po in available_options
+        ]
+
+        options_xml = "\n".join(
+            cls._get_product_option_xml(plan_name, opt_price)
+            for plan_name, opt_price in option_rows
         )
+
+        default_plan_name = CARRIER_TO_DEFAULT_PLAN_NAME[carrier]
+        summary = {
+            "carrier": carrier,
+            "om_product_id": open_market_product_id,
+            "default_plan_name": default_plan_name,
+            "options": option_rows,
+        }
+
+        if dry_run:
+            return summary
 
         url = f"{HOST_11st}/prodservices/updateProductOption/{open_market_product_id}"
         headers = {"openapikey": API_KEY_11st}
@@ -131,7 +152,7 @@ class SetOptions11ST:
   <txtColCnt>1</txtColCnt>
   <colTitle>요금제</colTitle>
   <prdExposeClfCd>01</prdExposeClfCd>
-  {cls._get_default_option_xml(carrier)}
+  {cls._get_product_option_xml(default_plan_name, 0)}
   {options_xml}
 </Product>
 """
@@ -147,3 +168,5 @@ class SetOptions11ST:
             raise Exception(
                 f"11번가 옵션 업데이트 실패 - status: {response.status_code}, body: {response.content}"
             )
+
+        return summary

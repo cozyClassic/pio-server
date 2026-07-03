@@ -7,6 +7,7 @@ from phone.constants import (
     OpenMarketChoices,
 )
 from phone.models import OpenMarketProduct, ProductOption
+from phone.external_services.st_11.api import OM_MARGIN_BY_CARRIER
 from phone.external_services.st_11.put_product.get_product_info import (
     get_product_listed_price,
 )
@@ -17,11 +18,6 @@ DB_MARGIN_BY_CARRIER = {
     CarrierChoices.SK: 60_000,
     CarrierChoices.LG: 60_000,
     CarrierChoices.KT: 80_000,
-}
-OM_MARGIN_BY_CARRIER = {
-    CarrierChoices.SK: 10_000,
-    CarrierChoices.LG: 10_000,
-    CarrierChoices.KT: 30_000,
 }
 
 
@@ -148,7 +144,7 @@ class Command(BaseCommand):
             "carrier": carrier,
             "contract_type": contract_type,
             "po_id": po.id,
-            "po_plan_short_name": po.plan.short_name,
+            "po_plan_name": po.plan.name,
             "db_final_price": po.final_price,
             "om_price": om_price,
             "om_after_fee": om_after_fee,
@@ -181,7 +177,7 @@ class Command(BaseCommand):
 
         detail = (
             f"carrier={result['carrier']} ct={result['contract_type']} "
-            f"po_id={result['po_id']} plan={result['po_plan_short_name']!r} | "
+            f"po_id={result['po_id']} plan={result['po_plan_name']!r} | "
             f"DB={result['db_final_price']:,} "
             f"OM={result['om_price']:,} "
             f"OM*{1 - COMMISSION_RATE:.2f}={result['om_after_fee']:,.0f} "
