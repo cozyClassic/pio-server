@@ -68,7 +68,10 @@ def assemble(product, inventories) -> dict | None:
             f"{title} 공시지원금 최대 적용가. "
             "부가서비스·기기반납 조건 없이 익일배송."
         ),
-        "link": f"{settings.FRONTEND_URL}/mobile/detail/{product.id}/v2/mvno",
+        "link": (
+            f"{settings.GOOGLE_MERCHANT_SITE_URL}"
+            f"/mobile/detail/{product.id}/v2/mvno"
+        ),
         "image_link": _first_image(device_data),
         "brand": brand,
         "price_krw": int(offer_price),

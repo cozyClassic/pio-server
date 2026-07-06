@@ -51,6 +51,11 @@ GOOGLE_MERCHANT_SA_INFO = env("GOOGLE_MERCHANT_SA_INFO", default="")
 GOOGLE_MERCHANT_SA_JSON = env("GOOGLE_MERCHANT_SA_JSON", default="")
 GOOGLE_MERCHANT_CONTENT_LANGUAGE = env("GOOGLE_MERCHANT_CONTENT_LANGUAGE", default="ko")
 GOOGLE_MERCHANT_FEED_LABEL = env("GOOGLE_MERCHANT_FEED_LABEL", default="KR")
+# 피드 link 도메인. 구글에 보내는 링크는 반드시 '공개' 프로덕션 URL이어야 하므로
+# FRONTEND_URL(로컬에선 localhost)에 의존하지 않고 별도 기본값을 둔다.
+GOOGLE_MERCHANT_SITE_URL = env(
+    "GOOGLE_MERCHANT_SITE_URL", default="https://www.phoneinone.com"
+)
 
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 STATIC_URL = f"https://{AWS_CLOUDFRONT_DOMAIN}/static/"
@@ -325,12 +330,12 @@ CELERY_BEAT_SCHEDULE = {
         "task": "phone.tasks.task_check_11st_orders",
         "schedule": 60 * 5,  # 5분
     },
-    # Google Merchant 피드 푸시 — dry-run으로 검증하고 데이터소스/크리덴셜을 설정한 뒤
-    # 아래 주석을 해제해 활성화한다. (상품은 최소 30일 내 refresh 필요)
-    # "push-google-merchant-hourly": {
-    #     "task": "phone.tasks.task_push_google_merchant",
-    #     "schedule": 60 * 60,  # 1시간
-    # },
+    # Google Merchant 피드 푸시 — 활성 상품을 매시간 등록/갱신(30일 내 refresh 필수).
+    # 서버에 GOOGLE_MERCHANT_SA_INFO / ACCOUNT_ID / DATASOURCE_ID 가 있어야 동작한다.
+    "push-google-merchant-hourly": {
+        "task": "phone.tasks.task_push_google_merchant",
+        "schedule": 60 * 60,  # 1시간
+    },
 }
 
 sentry_sdk.init(
