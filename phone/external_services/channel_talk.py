@@ -209,8 +209,10 @@ def send_shipping_noti_to_customer(
 
 
 def send_open_market_update_failure_alert(
-    task_name: str, om_product_id: int, detail: str
+    task_name: str, om_product_id: int, detail: str, market: str = "11번가"
 ):
+    # om_product_id=0 은 특정 상품이 아닌 태스크 전체 실패 → ID 줄 생략
+    id_line = f"내부 ID: {om_product_id}\n" if om_product_id else ""
     ChannelTalkAPI.post(
         path=f"/open/v5/groups/{ChannelTalkAPI.OPEN_MARKET_ERROR_ALERT_GROUP_ID}/messages",
         json={
@@ -218,8 +220,8 @@ def send_open_market_update_failure_alert(
                 {
                     "type": "text",
                     "value": (
-                        f"[11번가 {task_name} 실패]\n"
-                        f"내부 ID: {om_product_id}\n"
+                        f"[{market} {task_name} 실패]\n"
+                        f"{id_line}"
                         f"상세: {detail}"
                     ),
                 }

@@ -56,6 +56,28 @@ def _credentials():
     return service_account.Credentials.from_service_account_file(path, scopes=SCOPES)
 
 
+def missing_settings() -> list[str]:
+    """푸시에 필요한 설정 중 누락된 항목명을 반환(모두 있으면 빈 리스트).
+
+    google 라이브러리 임포트 없이 판단하므로 Celery 태스크가 미설정 환경에서
+    ADC 폴백으로 크래시하기 전에 건너뛸 수 있다.
+    """
+    missing = []
+    has_credentials = bool(
+        (settings.GOOGLE_MERCHANT_SA_INFO or "").strip()
+        or (settings.GOOGLE_MERCHANT_SA_JSON or "").strip()
+        or os.path.exists(os.path.join(settings.BASE_DIR, DEFAULT_SA_FILENAME))
+        or os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+    )
+    if not has_credentials:
+        missing.append("GOOGLE_MERCHANT_SA_INFO(또는 SA 키 파일)")
+    if not (settings.GOOGLE_MERCHANT_ACCOUNT_ID or "").strip():
+        missing.append("GOOGLE_MERCHANT_ACCOUNT_ID")
+    if not (settings.GOOGLE_MERCHANT_DATASOURCE_ID or "").strip():
+        missing.append("GOOGLE_MERCHANT_DATASOURCE_ID")
+    return missing
+
+
 def product_inputs_client():
     """``ProductInputsServiceClient`` 인스턴스를 생성한다."""
     from google.shopping import merchant_products_v1 as mp

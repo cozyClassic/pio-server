@@ -154,11 +154,25 @@ def task_push_google_merchant():
 
     상품은 최소 30일 내 refresh 되어야 만료되지 않으므로 주기 실행을 전제로 한다.
     개별 상품 실패는 sync.push 내부에서 격리되고, 전체 실패 시 채널톡으로 알린다.
+    설정(크리덴셜/계정 ID)이 없는 환경에서는 알림 없이 건너뛴다 — 매시간
+    채널톡 스팸을 막기 위함. 설정 후에는 워커/비트 재시작 필요.
     """
+    import logging
+
+    from phone.external_services.google_merchant.client import missing_settings
     from phone.external_services.google_merchant.sync import push
+
+    missing = missing_settings()
+    if missing:
+        logging.getLogger(__name__).warning(
+            "Google Merchant 푸시 건너뜀 — 미설정: %s", ", ".join(missing)
+        )
+        return
 
     try:
         push(dry_run=False)
     except Exception as e:
-        send_open_market_update_failure_alert("Google Merchant 푸시", 0, str(e))
+        send_open_market_update_failure_alert(
+            "푸시", 0, str(e), market="Google Merchant"
+        )
         raise
