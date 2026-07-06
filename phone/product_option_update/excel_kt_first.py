@@ -8,12 +8,12 @@ from django.utils import timezone
 from ..models import Product, ProductOption
 
 HEADERS = {
-    "G": "초이스 스페셜_번호이동",
-    "H": "초이스 스페셜_기기변경",
-    "J": "스페셜_번호이동",
-    "K": "스페셜_기기변경",
-    "M": "초이스 베이직_번호이동",
-    "N": "초이스 베이직_기기변경",
+    "G": "초이스 110_번호이동",
+    "H": "초이스 110_기기변경",
+    "J": "베이직 100_번호이동",
+    "K": "베이직 100_기기변경",
+    "M": "초이스 90_번호이동",
+    "N": "초이스 90_기기변경",
 }
 
 PLAN_START_COL = HEADERS.keys().__iter__().__next__()
