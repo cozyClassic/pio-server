@@ -18,6 +18,9 @@ from phone.external_services.channel_talk import (
 from phone.external_services.st_11.check_order.get_order_list import (
     get_unhandled_order_list_today,
 )
+from phone.external_services.st_11.check_order.official_contract_kakao import (
+    send_official_contract_kakao,
+)
 from phone.external_services.naver_compare.engine_page_generator import (
     NaverCompareEnginePageGenerator,
 )
@@ -122,7 +125,12 @@ def task_generate_naver_compare_ep():
 
 @shared_task
 def task_check_11st_orders():
-    """5분마다 11번가 미처리 주문을 조회하고, 아직 알림을 보내지 않은 신규 주문만 알림 발송."""
+    """5분마다 11번가 미처리 주문을 조회하고, 아직 알림을 보내지 않은 신규 주문만 알림 발송.
+
+    신규 주문마다 채널톡 팀 알림에 더해 고객에게 공식신청서 안내 알림톡을
+    트리거한다(채널톡 Order 이벤트). 알림톡 실패는 주문별로 격리되고
+    에러 채널로 알림을 보내 수동 발송으로 넘긴다.
+    """
     orders = get_unhandled_order_list_today()
     if not orders:
         return
@@ -145,7 +153,19 @@ def task_check_11st_orders():
             for no in new_order_nos
         ]
     )
-    send_open_market_order_alert(OpenMarketChoices.ST11, orders)
+    new_orders = [o for o in orders if o["order_no"] in new_order_nos]
+    send_open_market_order_alert(OpenMarketChoices.ST11, new_orders)
+
+    for order in new_orders:
+        try:
+            send_official_contract_kakao(order)
+        except Exception as e:
+            send_open_market_update_failure_alert(
+                "공식신청서 알림톡",
+                0,
+                f"주문 {order['order_no']} ({order.get('customer_name')}): {e}\n"
+                f"수동으로 공식신청서 링크를 발송해주세요.",
+            )
 
 
 @shared_task

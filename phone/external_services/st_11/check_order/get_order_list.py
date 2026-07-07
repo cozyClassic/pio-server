@@ -106,6 +106,7 @@ def parse_datas(xml: etree._Element):
         "customer_name": xml.findtext("ordNm"),
         "customer_phone": xml.findtext("ordPrtblTel"),
         "product_name": xml.findtext("prdNm"),
+        "product_no": xml.findtext("prdNo"),
         "plan_name": xml.findtext("slctPrdOptNm"),
         "sell_price": xml.findtext("selPrc"),
     }

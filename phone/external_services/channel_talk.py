@@ -36,6 +36,17 @@ class ChannelTalkAPI:
             raise Exception(f"Failed to get data: {response.text}")
         return response.json()
 
+    @staticmethod
+    def put(path: str, json: dict) -> dict:
+        response = requests.put(
+            url="https://api.channel.io" + path,
+            json=json,
+            headers=ChannelTalkAPI.CHANNELTALK_HEADERS,
+        )
+        if response.status_code != 200:
+            raise Exception(f"Failed to put data: {response.text}")
+        return response.json()
+
 
 def send_order_alert(
     order_id: str, customer_name: str, customer_phone: str
@@ -161,6 +172,49 @@ def send_credit_check_alert(
             ]
         },
     )
+    return response
+
+
+# 자사몰 주문 시 프론트가 쏘는 커스텀 이벤트명. 채널톡 마케팅 자동화(이벤트 트리거)가
+# 이 이벤트를 받아 공식신청서 안내 알림톡을 발송한다. 11번가 주문도 같은 이벤트를 재사용.
+ORDER_EVENT_NAME = "Order"
+
+
+def upsert_user(member_id: str, name: str, mobile_number: str) -> str:
+    """채널톡 유저를 memberId 기준으로 업서트하고 user id를 반환한다.
+
+    mobile_number는 "+8210..." 국제 형식이어야 알림톡 발송이 가능하다.
+    """
+    response = ChannelTalkAPI.put(
+        path=f"/open/v5/users/@{member_id}",
+        json={
+            "profile": {
+                "name": name,
+                "mobileNumber": mobile_number,
+            },
+        },
+    )
+
+    user = response.get("user")
+    if not user or not user.get("id"):
+        raise Exception(f"채널톡 유저 업서트 실패: {response}")
+
+    return user["id"]
+
+
+def send_order_event(channeltalk_user_id: str, property: dict) -> dict:
+    """유저에게 Order 커스텀 이벤트를 발사해 공식신청서 알림톡 자동화를 트리거한다."""
+    response = ChannelTalkAPI.post(
+        path=f"/open/v5/users/{channeltalk_user_id}/events",
+        json={
+            "name": ORDER_EVENT_NAME,
+            "property": property,
+        },
+    )
+
+    if "event" not in response:
+        raise Exception(f"채널톡 Order 이벤트 발송 실패: {response}")
+
     return response
 
 
