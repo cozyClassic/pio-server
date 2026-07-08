@@ -34,6 +34,8 @@ GEMINI_API_KEY = env("GEMINI_API_KEY")
 CELERY_BROKER_URL = env("celery_broker")
 CELERY_RESULT_BACKEND = env("celery_broker")
 API_KEY_11st = env("API_KEY_11st")
+# SSG(신세계) 오픈API 벤더 인증키 — 빈 값이면 SSG 연동 코드가 런타임에 명확히 에러를 낸다.
+SSG_API_KEY = env("SSG_API_KEY", default="")
 
 # Next.js ISR Revalidation
 FRONTEND_URL = env("FRONTEND_URL", default="https://www.phoneinone.com")
