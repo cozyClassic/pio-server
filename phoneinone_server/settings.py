@@ -330,6 +330,12 @@ CELERY_BEAT_SCHEDULE = {
         "task": "phone.tasks.task_check_11st_orders",
         "schedule": 60 * 5,  # 5분
     },
+    # 11번가 정산내역 체크 — 정산 데이터는 전일자 구매확정 기준으로 하루 단위 갱신되므로
+    # 6시간 주기면 충분. 신규 정산 건만 채널톡으로 알림.
+    "check-11st-settlements-every-6h": {
+        "task": "phone.tasks.task_check_11st_settlements",
+        "schedule": 60 * 60 * 6,  # 6시간
+    },
     # Google Merchant 피드 푸시 — 활성 상품을 매시간 등록/갱신(30일 내 refresh 필수).
     # 서버에 GOOGLE_MERCHANT_SA_INFO / ACCOUNT_ID / DATASOURCE_ID 가 있어야 동작한다.
     "push-google-merchant-hourly": {

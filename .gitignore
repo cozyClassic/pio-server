@@ -222,3 +222,6 @@ CLAUDE.md
 .omc/
 .vscode/**
 .codex/**
+
+# SSG 상품등록용 로컬 이미지 소스 (커밋 제외)
+temp/

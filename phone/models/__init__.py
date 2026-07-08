@@ -29,6 +29,7 @@ from .open_market import (
     OpenMarketProduct,
     OpenMarketProductOption,
     OpenMarketOrder,
+    OpenMarketSettlement,
 )
 from .diagnosis import DiagnosisLog, DiagnosisInquiry
 from .calculator import CalculatorSession, CustomerIdentity
@@ -71,6 +72,7 @@ __all__ = [
     "OpenMarketProduct",
     "OpenMarketProductOption",
     "OpenMarketOrder",
+    "OpenMarketSettlement",
     "DiagnosisLog",
     "DiagnosisInquiry",
     "CalculatorSession",

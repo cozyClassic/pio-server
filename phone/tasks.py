@@ -1,7 +1,7 @@
 from celery import shared_task
 from django.utils import timezone
 
-from phone.models import OpenMarketProduct, OpenMarketOrder
+from phone.models import OpenMarketProduct, OpenMarketOrder, OpenMarketSettlement
 from phone.constants import CarrierChoices, OpenMarketChoices
 from phone.external_services.st_11.put_product.remove_options import (
     remove_options_except_default,
@@ -14,9 +14,13 @@ from phone.external_services.st_11.put_product.sync_display_status import (
 from phone.external_services.channel_talk import (
     send_open_market_update_failure_alert,
     send_open_market_order_alert,
+    send_open_market_settlement_alert,
 )
 from phone.external_services.st_11.check_order.get_order_list import (
     get_unhandled_order_list_today,
+)
+from phone.external_services.st_11.settlement.get_settlement_list import (
+    get_recent_settlement_list,
 )
 from phone.external_services.st_11.check_order.official_contract_kakao import (
     send_official_contract_kakao,
@@ -166,6 +170,59 @@ def task_check_11st_orders():
                 f"주문 {order['order_no']} ({order.get('customer_name')}): {e}\n"
                 f"수동으로 공식신청서 링크를 발송해주세요.",
             )
+
+
+@shared_task
+def task_check_11st_settlements():
+    """11번가 정산내역을 주기 조회하고, 아직 알림을 보내지 않은 신규 정산 건만 알림 발송.
+
+    정산 데이터는 전일자 구매확정 기준으로 갱신되므로 최근 N일을 조회하고
+    (source, 주문번호, 주문순번, 클레임번호) 기준으로 중복을 거른다.
+    조회/알림 실패 시 채널톡 에러 채널로 티나게 알린다.
+    """
+    try:
+        settlements = get_recent_settlement_list()
+    except Exception as e:
+        send_open_market_update_failure_alert("정산내역 조회", 0, str(e))
+        raise
+
+    if not settlements:
+        return
+
+    def dedup_key(s: dict) -> tuple:
+        return (s["order_no"], s["ord_prd_seq"], s["claim_req_seq"])
+
+    incoming = {dedup_key(s): s for s in settlements}
+    already_notified = {
+        (order_no, ord_prd_seq, claim_req_seq)
+        for order_no, ord_prd_seq, claim_req_seq in OpenMarketSettlement.objects.filter(
+            source=OpenMarketChoices.ST11,
+            order_no__in={k[0] for k in incoming},
+        ).values_list("order_no", "ord_prd_seq", "claim_req_seq")
+    }
+
+    new_settlements = [
+        s for key, s in incoming.items() if key not in already_notified
+    ]
+    if not new_settlements:
+        return
+
+    OpenMarketSettlement.objects.bulk_create(
+        [
+            OpenMarketSettlement(
+                source=OpenMarketChoices.ST11,
+                order_no=s["order_no"],
+                ord_prd_seq=s["ord_prd_seq"],
+                claim_req_seq=s["claim_req_seq"],
+                product_name=s["product_name"],
+                settlement_amount=s["settlement_amount"],
+                settlement_day=s["settlement_day"],
+                remittance_plan_day=s["remittance_plan_day"],
+            )
+            for s in new_settlements
+        ]
+    )
+    send_open_market_settlement_alert(OpenMarketChoices.ST11, new_settlements)
 
 
 @shared_task

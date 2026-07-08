@@ -196,3 +196,33 @@ class OpenMarketOrder(models.Model):
 
     class Meta:
         unique_together = ("source", "order_no")
+
+
+class OpenMarketSettlement(models.Model):
+    """오픈마켓 정산 알림 중복 방지용 - 알림을 보낸 정산 건 저장.
+
+    정산내역은 주문상품 단위(ordNo + ordPrdSeq)로 내려오며, 반품/교환 클레임 건은
+    clmReqSeq가 붙어 같은 주문상품에 복수 row가 존재할 수 있다.
+    """
+
+    id = models.AutoField(primary_key=True)
+    source = models.CharField(
+        "오픈마켓",
+        choices=OpenMarketChoices.Choices,
+        max_length=20,
+    )
+    order_no = models.CharField("주문번호", max_length=255)
+    ord_prd_seq = models.CharField("주문순번", max_length=20, default="", blank=True)
+    claim_req_seq = models.CharField(
+        "클레임번호", max_length=50, default="", blank=True
+    )
+    product_name = models.CharField("상품명", max_length=255, default="", blank=True)
+    settlement_amount = models.IntegerField("정산금액", default=0)
+    settlement_day = models.CharField("정산일", max_length=20, default="", blank=True)
+    remittance_plan_day = models.CharField(
+        "송금예정일", max_length=20, default="", blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("source", "order_no", "ord_prd_seq", "claim_req_seq")

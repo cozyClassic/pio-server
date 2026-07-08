@@ -157,6 +157,42 @@ def send_open_market_order_alert(source: str, orders: list[dict[str, str]]):
     return response
 
 
+def send_open_market_settlement_alert(source: str, settlements: list[dict]):
+    """새로 확인된 정산 건 알림.
+
+    settlements = [{
+        "order_no": "",
+        "product_name": "",
+        "settlement_amount": int,
+        "settlement_day": "",
+        "remittance_plan_day": "",
+    }]
+    """
+    lines = "\n".join(
+        f"{s['product_name']} / {s['settlement_amount']:,}원"
+        f" / 송금예정일 {s['remittance_plan_day'] or '-'}"
+        for s in settlements
+    )
+    total = sum(s["settlement_amount"] for s in settlements)
+
+    response = ChannelTalkAPI.post(
+        path=f"/open/v5/groups/{ChannelTalkAPI.OPEN_MARKET_ORDER_GROUP_ID}/messages",
+        json={
+            "blocks": [
+                {
+                    "type": "text",
+                    "value": (
+                        f"💰 새 정산 알림({source})\n"
+                        f"{lines}\n\n"
+                        f"총 {len(settlements)}건 / 합계 {total:,}원"
+                    ),
+                },
+            ]
+        },
+    )
+    return response
+
+
 def send_credit_check_alert(
     order_id: str, customer_name: str, customer_phone: str
 ) -> dict[str, str]:
