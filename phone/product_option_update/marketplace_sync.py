@@ -99,6 +99,21 @@ def trigger_marketplace_sync(carrier: str, margin: int, om_margin: int) -> None:
     except Exception as e:
         send_marketplace_sync_failure_alert("11번가 큐잉", carrier, str(e))
 
+    # 단계 1.5 — SSG 가격/옵션 업데이트 큐잉 (해당 통신사 상품만)
+    try:
+        from phone.tasks import task_update_ssg_prices
+
+        ssg_products = OpenMarketProduct.objects.filter(
+            open_market__source=OpenMarketChoices.SSG,
+            deleted_at__isnull=True,
+            seller_code__contains=carrier,
+        ).exclude(om_product_id__isnull=True).exclude(om_product_id="")
+
+        for ssg_product in ssg_products:
+            task_update_ssg_prices.delay(ssg_product.id)
+    except Exception as e:
+        send_marketplace_sync_failure_alert("SSG 큐잉", carrier, str(e))
+
     # 단계 2 — 네이버 EP 재생성 큐잉
     try:
         task_generate_naver_compare_ep.delay()

@@ -249,6 +249,53 @@ def task_check_11st_settlements():
 
 
 @shared_task
+def task_update_ssg_prices(ssg_om_product_id_internal: int):
+    """SSG 상품의 옵션(요금제) 가격을 현재 DB(ProductOption) 기준으로 갱신한다.
+
+    정책 엑셀 업로드로 final_price가 바뀐 뒤 통신사별로 큐잉된다. 요금제 구성이
+    바뀌면 옵션도 재구성(추가/비활성)한다. 개별 상품 실패는 채널톡으로 알린다.
+    """
+    from phone.constants import OpenMarketChoices
+    from phone.external_services.ssg.put_product.register_item import (
+        _get_carrier,
+        _get_contract_type,
+        _get_product_options,
+        _get_ssg_open_market,
+    )
+    from phone.external_services.ssg.put_product.update_options import (
+        update_ssg_options,
+    )
+    from phone.external_services.st_11.api import OM_MARGIN_BY_CARRIER
+
+    try:
+        ssg = OpenMarketProduct.objects.select_related("device_variant").get(
+            id=ssg_om_product_id_internal,
+            open_market__source=OpenMarketChoices.SSG,
+        )
+        if not ssg.om_product_id or ssg.device_variant_id is None:
+            return
+
+        carrier = _get_carrier(ssg.seller_code)
+        contract_type = _get_contract_type(ssg.seller_code)
+        product_options = _get_product_options(
+            ssg.device_variant_id, carrier, contract_type
+        )
+        if not product_options:
+            return
+
+        margin = OM_MARGIN_BY_CARRIER[carrier]
+        commission_rate = _get_ssg_open_market().commision_rate_default
+        update_ssg_options(
+            ssg.om_product_id, product_options, margin, commission_rate
+        )
+    except Exception as e:
+        send_open_market_update_failure_alert(
+            "가격/옵션 업데이트", ssg_om_product_id_internal, str(e), market="SSG"
+        )
+        raise
+
+
+@shared_task
 def task_check_ssg_orders():
     """SSG 신규 주문(배송지시)을 주기 조회하고, 아직 알림을 보내지 않은 주문만 알림 발송.
 
