@@ -36,13 +36,15 @@ def _clean_phone(phone: str) -> str:
     return digits
 
 
-def _find_official_contract_link(product_no: str, plan_name: str) -> str:
+def _find_official_contract_link(
+    product_no: str, plan_name: str, source: str = OpenMarketChoices.ST11
+) -> str:
     om_product = OpenMarketProduct.objects.filter(
-        open_market__source=OpenMarketChoices.ST11,
+        open_market__source=source,
         om_product_id=product_no,
     ).first()
     if om_product is None:
-        raise Exception(f"11번가 상품번호에 해당하는 상품이 없습니다: {product_no}")
+        raise Exception(f"{source} 상품번호에 해당하는 상품이 없습니다: {product_no}")
 
     product_option = (
         ProductOption.objects.filter(

@@ -335,6 +335,24 @@ def task_check_ssg_orders():
             new_orders.append(o)
     send_open_market_order_alert(OpenMarketChoices.SSG, new_orders)
 
+    # 신규 주문마다 고객에게 공식신청서 안내 알림톡을 트리거한다(채널톡 Order 이벤트).
+    # 주문별로 격리하고, 실패 시 에러 채널로 알려 수동 발송으로 넘긴다.
+    from phone.external_services.ssg.check_order.official_contract_kakao import (
+        send_official_contract_kakao,
+    )
+
+    for order in new_orders:
+        try:
+            send_official_contract_kakao(order)
+        except Exception as e:
+            send_open_market_update_failure_alert(
+                "공식신청서 알림톡",
+                0,
+                f"주문 {order['order_no']} ({order.get('customer_name')}): {e}\n"
+                f"수동으로 공식신청서 링크를 발송해주세요.",
+                market="SSG",
+            )
+
 
 @shared_task
 def task_push_google_merchant():

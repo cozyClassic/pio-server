@@ -47,7 +47,8 @@ def _parse_order(d: dict) -> dict:
         "customer_name": d.get("ordpeNm"),
         "customer_phone": d.get("ordpeHpno"),
         "product_name": d.get("itemNm"),
-        "plan_name": d.get("uitemNm"),
+        "product_no": d.get("itemId"),  # 공식신청서 링크 매핑용(SSG itemId)
+        "plan_name": d.get("uitemNm"),  # SSG 옵션명 = Plan.name 그대로
         "sell_price": d.get("sellprc"),
         "site_no": d.get("siteNo"),
     }
