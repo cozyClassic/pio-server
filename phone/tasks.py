@@ -121,6 +121,26 @@ def task_sync_11st_display_status():
 
 
 @shared_task
+def task_sync_ssg_sales_status():
+    """재고 변동 후 SSG 상품의 판매상태를 동기화한다.
+
+    판매재개는 하지 않는다(enable_resume=False) — 재고 소진 시 판매중지 방향만
+    자동 적용한다. 판매 개시가 확정되면 sync_ssg_sales --enable-resume 로 재개한다.
+    """
+    from phone.external_services.ssg.put_product.sync_sales_status import (
+        sync_ssg_sales_status,
+    )
+
+    try:
+        sync_ssg_sales_status(enable_resume=False)
+    except Exception as e:
+        send_open_market_update_failure_alert(
+            "판매상태 동기화(태스크)", 0, str(e), market="SSG"
+        )
+        raise
+
+
+@shared_task
 def task_generate_naver_compare_ep():
     """네이버 가격비교 EP 전체 재생성 후 S3 업로드."""
     try:

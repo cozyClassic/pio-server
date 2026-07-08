@@ -298,6 +298,24 @@ def _trigger_11st_display_sync():
     transaction.on_commit(_enqueue)
 
 
+def _trigger_ssg_sales_sync():
+    """재고 동기화 커밋 후 SSG 판매상태 동기화 Celery 태스크를 큐잉한다.
+
+    판매재개는 하지 않고(재고 소진 → 판매중지 방향만) 동기화한다. 11번가 트리거와
+    동일하게 on_commit 후 비동기 실행하며, 큐잉 실패는 격리한다.
+    """
+    from django.db import transaction
+    from phone.tasks import task_sync_ssg_sales_status
+
+    def _enqueue():
+        try:
+            task_sync_ssg_sales_status.delay()
+        except Exception:
+            logger.exception("[ssg sales sync] 태스크 큐잉 실패")
+
+    transaction.on_commit(_enqueue)
+
+
 @admin.register(Inventory)
 class InventoryAdmin(commonAdmin):
     list_display = ("dealership", "color_in_sheet", "name_in_sheet", "count")
@@ -339,6 +357,7 @@ class InventoryAdmin(commonAdmin):
         try:
             missed_items, updated_count = sync_smartel_inventory()
             _trigger_11st_display_sync()
+            _trigger_ssg_sales_sync()
             messages.success(
                 request,
                 f"스마텔 재고 동기화가 완료되었습니다. 업데이트된 항목 수: {updated_count}개",
@@ -370,6 +389,7 @@ class InventoryAdmin(commonAdmin):
                 inventory_data = read_kt_first_inventory_excel(tmp_path)
                 not_matched = update_kt_first_inventory(inventory_data)
                 _trigger_11st_display_sync()
+                _trigger_ssg_sales_sync()
 
                 if not_matched:
                     messages.warning(
@@ -411,6 +431,7 @@ class InventoryAdmin(commonAdmin):
                 inventory_data = extract_json_from_image_lg_hunet(tmp_path)
                 not_matched = update_inventory_lg_hunet(inventory_data)
                 _trigger_11st_display_sync()
+                _trigger_ssg_sales_sync()
 
                 if not_matched:
                     messages.warning(
