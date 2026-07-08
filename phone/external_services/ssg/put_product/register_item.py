@@ -179,6 +179,7 @@ def build_ssg_registration_from_11st(
             contract_type=contract_type,
             brand=device.brand,
             model_code=model_code or device.model_name,
+            sell_stat_cd=20 if on_sale else 80,
         ),
         delivery=build_delivery(),
         description=build_description(
@@ -246,4 +247,6 @@ def register_ssg_item(
         registered_price=context["registered_price"],
         detail_page_html=context["detail_html"],
         last_price_updated_at=dj_timezone.now(),
+        # 판매상태 추적 캐시(재고 동기화용). 검수 전 기본 등록은 판매중지 상태.
+        is_display_stopped=not on_sale,
     )

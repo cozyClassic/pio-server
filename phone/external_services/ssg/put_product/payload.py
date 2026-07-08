@@ -66,6 +66,7 @@ def build_item_base(
     contract_type: str,
     brand: str,
     model_code: str,
+    sell_stat_cd: int = 80,
 ) -> dict:
     if carrier not in STD_CTG_FULL_PAYMENT:
         raise Exception(f"SSG 표준카테고리가 없는 통신사입니다: {carrier}")
@@ -89,9 +90,11 @@ def build_item_base(
         "txnDivCd": 10,  # 과세
         "buyFrmCd": 60,  # 위수탁
         "stdCtgId": STD_CTG_FULL_PAYMENT[carrier],
+        # 사이트 판매상태가 상품 노출을 좌우한다. 20이면 SSG가 전시기간을
+        # 자동설정해 즉시 판매중이 되므로, 검수 전 등록은 반드시 80(판매중지)이어야 한다.
         "sites": [
-            {"siteNo": SITE_EMART, "sellStatCd": 20},
-            {"siteNo": SITE_SHINSEGAE, "sellStatCd": 20},
+            {"siteNo": SITE_EMART, "sellStatCd": sell_stat_cd},
+            {"siteNo": SITE_SHINSEGAE, "sellStatCd": sell_stat_cd},
         ],
         "mainDisplayCategories": main_display_categories,
         "srchPsblYn": "Y",
