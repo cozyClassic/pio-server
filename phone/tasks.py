@@ -22,6 +22,9 @@ from phone.external_services.st_11.check_order.get_order_list import (
 from phone.external_services.st_11.settlement.get_settlement_list import (
     get_recent_settlement_list,
 )
+from phone.external_services.ssg.check_order.get_order_list import (
+    get_recent_ssg_orders,
+)
 from phone.external_services.st_11.check_order.official_contract_kakao import (
     send_official_contract_kakao,
 )
@@ -223,6 +226,47 @@ def task_check_11st_settlements():
         ]
     )
     send_open_market_settlement_alert(OpenMarketChoices.ST11, new_settlements)
+
+
+@shared_task
+def task_check_ssg_orders():
+    """SSG 신규 주문(배송지시)을 주기 조회하고, 아직 알림을 보내지 않은 주문만 알림 발송.
+
+    배송지시 목록은 주문상품 단위라 한 주문에 복수 row가 올 수 있어, 알림은
+    주문번호(ordNo) 단위로 dedup한다. 중복 방지는 OpenMarketOrder(source=SSG).
+    """
+    orders = get_recent_ssg_orders()
+    if not orders:
+        return
+
+    incoming_order_nos = {o["order_no"] for o in orders}
+    already_notified = set(
+        OpenMarketOrder.objects.filter(
+            source=OpenMarketChoices.SSG,
+            order_no__in=incoming_order_nos,
+        ).values_list("order_no", flat=True)
+    )
+
+    new_order_nos = incoming_order_nos - already_notified
+    if not new_order_nos:
+        return
+
+    OpenMarketOrder.objects.bulk_create(
+        [
+            OpenMarketOrder(source=OpenMarketChoices.SSG, order_no=no)
+            for no in new_order_nos
+        ]
+    )
+
+    # 주문번호 단위로 첫 아이템만 남겨 알림 중복 표시를 막는다.
+    seen: set[str] = set()
+    new_orders = []
+    for o in orders:
+        no = o["order_no"]
+        if no in new_order_nos and no not in seen:
+            seen.add(no)
+            new_orders.append(o)
+    send_open_market_order_alert(OpenMarketChoices.SSG, new_orders)
 
 
 @shared_task

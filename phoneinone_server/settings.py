@@ -338,6 +338,12 @@ CELERY_BEAT_SCHEDULE = {
         "task": "phone.tasks.task_check_11st_settlements",
         "schedule": 60 * 60 * 6,  # 6시간
     },
+    # SSG 신규 주문 체크 — 배송지시 목록에서 결제완료 주문 감지, 신규만 채널톡 알림.
+    # 판매중지 상태면 빈 조회라 판매 여부와 무관하게 안전.
+    "check-ssg-orders-every-10min": {
+        "task": "phone.tasks.task_check_ssg_orders",
+        "schedule": 60 * 10,  # 10분
+    },
     # Google Merchant 피드 푸시 — 활성 상품을 매시간 등록/갱신(30일 내 refresh 필수).
     # 서버에 GOOGLE_MERCHANT_SA_INFO / ACCOUNT_ID / DATASOURCE_ID 가 있어야 동작한다.
     "push-google-merchant-hourly": {
