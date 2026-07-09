@@ -231,6 +231,10 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "device_colors": [],
             "model_name": obj.device.model_name,
             "brand": obj.device.brand,
+            "specs": [
+                {"label": s.label, "value": s.value}
+                for s in obj.device.specs.all().order_by("sort_order", "id")
+            ],
         }
 
         for dv in obj.device.variants.all():

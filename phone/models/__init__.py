@@ -1,5 +1,11 @@
 from .base import SoftDeleteModel, SoftDeleteImageModel, get_int_or_zero
-from .device import Device, DeviceColor, DevicesColorImage, DeviceVariant
+from .device import (
+    Device,
+    DeviceColor,
+    DevicesColorImage,
+    DeviceVariant,
+    DeviceSpecItem,
+)
 from .plan import Plan, PlanPremiumChoices
 from .product import (
     Product,
@@ -42,6 +48,7 @@ __all__ = [
     "DeviceColor",
     "DevicesColorImage",
     "DeviceVariant",
+    "DeviceSpecItem",
     "Plan",
     "PlanPremiumChoices",
     "Product",
