@@ -242,6 +242,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
                     "self_buy_url_naver": dv.self_buy_url_naver,
                     "self_buy_url_coupang": dv.self_buy_url_coupang,
                     "is_default": dv.is_default,
+                    "gtin": dv.gtin,
                 }
             )
 

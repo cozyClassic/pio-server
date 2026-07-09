@@ -57,6 +57,13 @@ def assemble(product, inventories) -> dict | None:
     offer_price = min(bo["final_price"] for bo in best.values())
     device_data = serializer.get_device(product)
 
+    # 대표 GTIN: is_default variant 우선, 없으면 gtin이 채워진 첫 variant
+    gtin = ""
+    for v in sorted(product.device.variants.all(), key=lambda v: (not v.is_default,)):
+        if (v.gtin or "").strip():
+            gtin = v.gtin.strip()
+            break
+
     brand = device_data.get("brand", "")
     model_name = device_data.get("model_name", "")
     title = f"{brand} {model_name}".strip()
@@ -76,6 +83,7 @@ def assemble(product, inventories) -> dict | None:
         "brand": brand,
         "price_krw": int(offer_price),
         "in_stock": True,
+        "gtin": gtin,
     }
 
 
@@ -89,7 +97,7 @@ def to_product_input(payload: dict):
     from google.shopping import merchant_products_v1 as mp
     from google.shopping.type import Price
 
-    attributes = mp.ProductAttributes(
+    attr_kwargs = dict(
         title=payload["title"],
         description=payload["description"],
         link=payload["link"],
@@ -107,6 +115,11 @@ def to_product_input(payload: dict):
             currency_code="KRW",
         ),
     )
+    if payload.get("gtin"):
+        # merchant_products_v1(설치버전 1.7.0)의 GTIN 필드는 repeated string이며
+        # 필드명이 `gtins`(복수)다. 라이브러리 업그레이드 시 필드명/타입 재확인 필요.
+        attr_kwargs["gtins"] = [payload["gtin"]]
+    attributes = mp.ProductAttributes(**attr_kwargs)
 
     return mp.ProductInput(
         offer_id=payload["offer_id"],
