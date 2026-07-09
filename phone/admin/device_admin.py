@@ -65,11 +65,12 @@ class DeviceVariantsAdmin(commonAdmin):
         "storage_capacity",
         "device_price",
         "is_default",
+        "gtin",
         "self_buy_url_naver",
         "self_buy_url_coupang",
     )
-    list_editable = ("is_default",)
-    search_fields = ("device__model_name", "storage_capacity")
+    list_editable = ("is_default", "gtin")
+    search_fields = ("device__model_name", "storage_capacity", "gtin")
 
     def get_queryset(self, request):
         return (

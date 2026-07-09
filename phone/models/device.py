@@ -93,6 +93,12 @@ class DeviceVariant(SoftDeleteModel):
         default=False,
         help_text="자급제 카드 등 단말 단위 노출 시 대표로 사용할 variant (Device당 1개 권장)",
     )
+    gtin = models.CharField(
+        max_length=14,
+        blank=True,
+        default="",
+        help_text="GTIN(바코드, EAN-13/UPC 등). 용량별로 다름. Google Merchant 리뷰 매칭 키.",
+    )
 
     def __str__(self):
         if DEBUG:
