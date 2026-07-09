@@ -42,12 +42,18 @@ class ColorsInline(nested_admin.NestedStackedInline):
     inlines = [DeviceImagesInline]
 
 
+class DeviceSpecItemInline(nested_admin.NestedTabularInline):
+    model = DeviceSpecItem
+    extra = 0
+    fields = ("label", "value", "sort_order")
+
+
 @admin.register(Device)
 class DeviceAdmin(commonAdmin, nested_admin.NestedModelAdmin):
     list_display = ("model_name", "brand")
     search_fields = ("model_name", "brand")
 
-    inlines = [ColorsInline]
+    inlines = [ColorsInline, DeviceSpecItemInline]
 
 
 @admin.register(DeviceColor)

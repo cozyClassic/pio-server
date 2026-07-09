@@ -116,3 +116,16 @@ class DeviceVariant(SoftDeleteModel):
         for option in product_options:
             option.final_price = option._get_final_price()
             option.save()
+
+
+class DeviceSpecItem(SoftDeleteModel):
+    device = models.ForeignKey(Device, on_delete=models.CASCADE, related_name="specs")
+    label = models.CharField(max_length=50, help_text="예: 디스플레이, 칩셋")
+    value = models.CharField(max_length=200, help_text="예: 6.1형 Super Retina XDR OLED")
+    sort_order = models.IntegerField(default=0)
+
+    class Meta:
+        ordering = ["sort_order", "id"]
+
+    def __str__(self):
+        return f"{self.device.model_name} - {self.label}"
