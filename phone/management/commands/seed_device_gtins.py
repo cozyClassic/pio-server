@@ -92,8 +92,12 @@ class Command(BaseCommand):
                             f"variant_id={variant.id} gtin={gtin!r}"
                         )
                     else:
-                        variant.gtin = gtin
-                        variant.save(update_fields=["gtin"])
+                        # variant.save() 대신 queryset .update() 사용:
+                        # DeviceVariant.save() 오버라이드가 연결된 ProductOption들의
+                        # final_price 재계산·저장(→ 시그널 → best_price_option 갱신)이라는
+                        # 무거운 사이드이펙트를 유발함. GTIN만 채우는 데 가격 재계산이
+                        # 도는 것은 불필요하고, Merchant 가격 정합상 피해야 한다.
+                        DeviceVariant.objects.filter(id=variant.id).update(gtin=gtin)
                         self.stdout.write(
                             self.style.SUCCESS(
                                 f"[설정] model_name={model_name!r} "
